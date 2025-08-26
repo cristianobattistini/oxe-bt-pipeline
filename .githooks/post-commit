@@ -1,17 +1,24 @@
 #!/usr/bin/env bash
 set -e
 
-repo_root="$(git rev-parse --show-toplevel)"
-pyexe="$USERPROFILE\\anaconda3\\envs\\oxe-bt-pipeline\\python.exe"
-script="$repo_root\\dev_logs\\scripts\\commit_log.py"
+# Root repo come path Windows (backslash)
+repo_root="$(git rev-parse --show-toplevel | sed 's|/|\\|g')"
 
-# Trace log
+# Python dell'env Conda
+pyexe="$USERPROFILE\\anaconda3\\envs\\oxe-bt-pipeline\\python.exe"
+
+# Script corretto (NON in dev_logs)
+script="$repo_root\\scripts\\commit_log.py"
+
+# Log trace (backslash ovunque)
+log="$repo_root\\dev_logs\\hook_trace.txt"
+
 {
   echo "post-commit ran: $(date)"
   echo "repo_root=$repo_root"
   echo "pyexe=$pyexe"
   echo "script=$script"
-} >> "$repo_root/dev_logs/hook_trace.txt"
+} >> "$log"
 
-# Esegui con cmd.exe per gestire spazi nel path
-cmd.exe /C "\"$pyexe\" \"$script\"" >> "$repo_root/dev_logs/hook_trace.txt" 2>&1 || true
+# Esegui con cmd.exe per gestire spazi nei path
+cmd.exe /C "\"$pyexe\" \"$script\"" >> "$log" 2>&1 || true
