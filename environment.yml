@@ -6,47 +6,61 @@ dependencies:
   - python=3.10
   - pip
 
-  # --- Base pipeline ---
-  - lxml            # parsing e validazione XML
-  - opencv          # estrazione e gestione frame da video/immagini
+  # --- Base pipeline (Conda: binari stabili) ---
+  - lxml            # parsing/validazione XML low-level
+  - opencv          # I/O video/immagini, estrazione frame
   - numpy           # operazioni numeriche
-  - rich            # logging e output colorato
-  - typer           # CLI per gestire pipeline
-  - pytest          # unit testing
+  - rich            # logging formattato
+  - typer           # CLI
+  - pytest          # unit test
+
   - pip:
-      # --- Base pipeline ---
-      - pydantic==2.*      # schema rigoroso dei piani/plan JSON
+      # --- Base pipeline (Pip) ---
+      - pydantic==2.*      # modelli/validazione schema (Plan/Step)
       - jsonschema         # validazione JSON contro schema
 
-      # --- VLM & NLP ---
-      - torch              # deep learning base
-      - transformers       # modelli HuggingFace (LLM, VLM)
-      - sentencepiece      # tokenizer per LLaMA/Alpaca
-      - datasets           # gestione dataset HuggingFace
-      - huggingface_hub    # scaricare/caricare modelli da HF Hub
-      - safetensors        # formato efficiente per pesi modelli
+      # --- OpenAI/Azure OpenAI ---
+      - openai             # SDK ufficiale (OpenAI e AzureOpenAI)
+      - python-dotenv      # carica .env per chiavi/endpoint
 
-      # --- Fine-tuning LoRA ---
-      - accelerate         # orchestrazione training distribuito
-      - peft               # Parameter-Efficient Fine-Tuning (LoRA)
+      # --- Deep Learning / HF stack ---
+      # Scegli UNA delle opzioni torch sottostanti:
+      # 1) CPU-only (portabile):
+      - torch==2.3.* ; platform_system!="Linux" or platform_machine!="x86_64"
+      # 2) CUDA 12.1 (Linux/NVIDIA recenti):
+      # - torch==2.3.*+cu121 -f https://download.pytorch.org/whl/torch_stable.html
+      # 3) CUDA 11.8 (cluster più vecchi):
+      # - torch==2.3.*+cu118 -f https://download.pytorch.org/whl/torch_stable.html
 
-      # --- Vision models ---
-      - timm               # backbone vision models (ResNet, ViT, ecc.)
-      - einops             # utility tensoriali per modelli vision
-      - torchvision        # moduli visione PyTorch (transform, dataset)
+      - torchvision==0.18.*     # allinea alla versione di torch
+      - transformers            # modelli HF (LLM/VLM)
+      - sentencepiece           # tokenizer (LLaMA/Alpaca)
+      - datasets                # gestione dataset HF
+      - huggingface_hub         # download/upload modelli
+      - safetensors             # formato pesi efficiente
+      - accelerate              # orchestrazione training/inferenza
+      - peft                    # LoRA/PEFT
+      - protobuf                # richiesto da vari modelli HF
+
+      # --- Vision backbones / util ---
+      - timm                   # backbone vision (ViT, ecc.)
+      - einops                 # manipolazione tensori
 
       # --- Detection ---
-      - ultralytics        # YOLOv8 (detector baseline)
-      - groundingdino-py   # open-vocabulary detector (GroundingDINO)
-      - pycocotools        # metriche detection e gestione COCO-format
+      - ultralytics            # baseline YOLO (utile per smoke test)
+      # - groundingdino          # open-vocabulary detector
+      - pyyaml                 # richiesto da groundingdino
+      - shapely                # richiesto da groundingdino
+      - pycocotools            # metriche COCO (Linux/macOS)
+      # - pycocotools-windows  # usa questo su Windows se la riga sopra fallisce
 
-      # --- Validation extra ---
-      - xmlschema          # validazione XML schema aggiuntiva (oltre lxml)
+      # --- Validazione extra ---
+      - xmlschema              # validazione XSD aggiuntiva
 
-      # --- Dev utils ---
-      - mypy               # type checking
-      - black              # auto-formatting codice
-      - flake8             # linting
+      # --- Dev tools (opzionali ma consigliati) ---
+      - mypy                   # type checking
+      - black                  # formatter
+      - flake8                 # linting
 
-      # --- Evaluation ---
-      - evaluate           # metriche di valutazione su dataset
+      # --- Evaluation helpers ---
+      - evaluate               # metriche su dataset
