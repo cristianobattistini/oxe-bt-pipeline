@@ -1,0 +1,52 @@
+name: oxe-bt-pipeline
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+
+  # --- Base pipeline ---
+  - lxml            # parsing e validazione XML
+  - opencv          # estrazione e gestione frame da video/immagini
+  - numpy           # operazioni numeriche
+  - rich            # logging e output colorato
+  - typer           # CLI per gestire pipeline
+  - pytest          # unit testing
+  - pip:
+      # --- Base pipeline ---
+      - pydantic==2.*      # schema rigoroso dei piani/plan JSON
+      - jsonschema         # validazione JSON contro schema
+
+      # --- VLM & NLP ---
+      - torch              # deep learning base
+      - transformers       # modelli HuggingFace (LLM, VLM)
+      - sentencepiece      # tokenizer per LLaMA/Alpaca
+      - datasets           # gestione dataset HuggingFace
+      - huggingface_hub    # scaricare/caricare modelli da HF Hub
+      - safetensors        # formato efficiente per pesi modelli
+
+      # --- Fine-tuning LoRA ---
+      - accelerate         # orchestrazione training distribuito
+      - peft               # Parameter-Efficient Fine-Tuning (LoRA)
+
+      # --- Vision models ---
+      - timm               # backbone vision models (ResNet, ViT, ecc.)
+      - einops             # utility tensoriali per modelli vision
+      - torchvision        # moduli visione PyTorch (transform, dataset)
+
+      # --- Detection ---
+      - ultralytics        # YOLOv8 (detector baseline)
+      - groundingdino-py   # open-vocabulary detector (GroundingDINO)
+      - pycocotools        # metriche detection e gestione COCO-format
+
+      # --- Validation extra ---
+      - xmlschema          # validazione XML schema aggiuntiva (oltre lxml)
+
+      # --- Dev utils ---
+      - mypy               # type checking
+      - black              # auto-formatting codice
+      - flake8             # linting
+
+      # --- Evaluation ---
+      - evaluate           # metriche di valutazione su dataset
