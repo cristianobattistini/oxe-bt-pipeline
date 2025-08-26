@@ -1,3 +1,15 @@
 #!/usr/bin/env bash
+set -e
+
 repo_root="$(git rev-parse --show-toplevel)"
-python "$repo_root/scripts/commit_log.py" || true
+
+# Python dell'ambiente Conda (path assoluto; adatta 'anaconda3' se diverso)
+pyexe="$USERPROFILE\\anaconda3\\envs\\oxe-bt-pipeline\\python.exe"
+
+# Trace file per capire se l'hook parte
+echo "post-commit ran: $(date)" >> "$repo_root/dev_logs/hook_trace.txt"
+echo "repo_root=$repo_root" >> "$repo_root/dev_logs/hook_trace.txt"
+echo "pyexe=$pyexe" >> "$repo_root/dev_logs/hook_trace.txt"
+
+# Esegui commit_log.py con python dell'env, tramite cmd.exe (gestisce bene gli spazi nei path)
+cmd.exe /C "\"$pyexe\" \"$repo_root\\dev_logs\\scripts\\commit_log.py\"" >> "$repo_root/dev_logs/hook_trace.txt" 2>&1 || true
