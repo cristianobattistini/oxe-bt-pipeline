@@ -21,7 +21,7 @@ datasets = [
 ]
 
 # Subset rapido per prove (puoi aumentare in seguito)
-split = "train[:80%]"
+split = "train[:100%]"
 
 # Output root
 out_root = "out"

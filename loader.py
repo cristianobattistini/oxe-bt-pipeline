@@ -388,7 +388,7 @@ def dump_episode_rlds(
     if T >= 2:
         gif_path = os.path.join(out_dir, "preview.gif")
         imgs = [Image.fromarray(arr[t]) for t in range(T)]
-        imgs[0].save(gif_path, save_all=True, append_images=imgs[1:], duration=120, loop=0)
+        imgs[0].save(gif_path, save_all=True, append_images=imgs[1:], duration=5000, loop=1)
         gif_flag = True
 
     # Istruzione
