@@ -12,54 +12,107 @@ import numpy as np
 import tensorflow_datasets as tfds
 from PIL import Image
 
-
 # =============================================================================
 #  Utility: accesso a chiavi annidate ("a/b/c" o "a.b.c")
 # =============================================================================
 def _get_by_path(d: Dict[str, Any], key: str) -> Any:
     """
-    Restituisce d[key] anche se key è 'a/b/c' o 'a.b.c'.
-    Se il percorso non esiste, ritorna None.
+    Accede a percorsi tipo 'a/b/c' o 'a.b.c' dentro dict o numpy structured.
+    NON attraversa liste: per gli step usiamo accesso esplicito.
     """
     if not key:
         return None
-    if key in d:
-        return d[key]
     parts: Sequence[str] = key.replace(".", "/").split("/")
     cur: Any = d
     for p in parts:
+        # dict classico
+        print(f"[DEBUG] Looking for {p} in {type(cur)}")
         if isinstance(cur, dict) and p in cur:
             cur = cur[p]
-        else:
-            return None
+            continue
+        # elemento structured numpy (np.void) con campi nominati
+        if isinstance(cur, np.void) and cur.dtype.names and p in cur.dtype.names:
+            cur = cur[p]
+            continue
+        # oggetto con attributo p (caso rari)
+        if hasattr(cur, p):
+            cur = getattr(cur, p)
+            continue
+        print(f"[DEBUG] Key {p} not found in {type(cur)}")
+        return None
     return cur
 
 
+
+
 # =============================================================================
-#  Costruzione builder TFDS: directory (locale o GCS) oppure nome registrato
+#  TFDS builder construction: first local (data_dir), then explicit path, then registered builder
 # =============================================================================
 def _make_builder(name_or_dir: str, data_dir: str | None = None):
     """
-    1) Se 'name_or_dir' è un path (esiste su disco o contiene '://'), prova builder_from_directory.
-    2) Altrimenti prova builder(name, data_dir=...).
-    Nota: anche con data_dir, serve che il builder sia REGISTRATO (pkg open-x-embodiment).
+    "Local-first" strategy:
+      1) If data_dir is set, try to resolve a local TFDS directory:
+         - Case 'name/version' → {data_dir}/name/version
+         - Case 'name' → look for the most recent version in {data_dir}/name/*
+         The directory is considered valid if it contains 'dataset_info.json'.
+      2) If name_or_dir is a path (local or GCS), use builder_from_directory.
+      3) Otherwise, try the registered builder (requires OXE builders installed).
     """
-    # caso directory (locale o GCS)
-    try:
-        if '://' in name_or_dir or name_or_dir.startswith('/') or os.path.exists(name_or_dir):
-            return tfds.builder_from_directory(name_or_dir)
-    except Exception:
-        pass
+    def _has_dataset_info(p: str) -> bool:
+        return os.path.isfile(os.path.join(p, "dataset_info.json"))
 
-    # caso nome registrato
+    # 1) Local resolution inside data_dir
+    if data_dir:
+        # Example: "columbia_cairlab_pusht_real/0.1.0" → base="columbia_cairlab_pusht_real", ver="0.1.0"
+        parts = name_or_dir.strip("/").split("/")
+        base = parts[0]
+        ver  = parts[1] if len(parts) > 1 else None
+
+        if ver:  # full path: {data_dir}/base/ver
+            cand = os.path.join(data_dir, base, ver)
+            if os.path.isdir(cand) and _has_dataset_info(cand):
+                return tfds.builder_from_directory(cand)
+        else:    # no version: look for the most recent one with dataset_info.json
+            base_dir = os.path.join(data_dir, base)
+            if os.path.isdir(base_dir):
+                # sort subfolders by version in descending order (e.g. 1.2.0 > 1.1.0)
+                for v in sorted(os.listdir(base_dir), reverse=True):
+                    cand = os.path.join(base_dir, v)
+                    if os.path.isdir(cand) and _has_dataset_info(cand):
+                        return tfds.builder_from_directory(cand)
+
+    # 2) Explicit path (local or GCS). Accepts:
+    #    - a versioned path ({...}/name/0.1.0)
+    #    - or the "builder root" path containing dataset_info.json directly
+    if "://" in name_or_dir or name_or_dir.startswith("/") or os.path.exists(name_or_dir):
+        p = name_or_dir
+        if os.path.isdir(p):
+            # if the user passed the dataset "root" path without version,
+            # also try to resolve the most recent version
+            if not os.path.isfile(os.path.join(p, "dataset_info.json")):
+                subdirs = [os.path.join(p, d) for d in os.listdir(p)]
+                subdirs = [d for d in subdirs if os.path.isdir(d)]
+                subdirs.sort(reverse=True)
+                for d in subdirs:
+                    if os.path.isfile(os.path.join(d, "dataset_info.json")):
+                        p = d
+                        break
+        return tfds.builder_from_directory(p)
+
+    # 3) Fallback: registered builder (requires OXE builders installed)
     try:
         return tfds.builder(name_or_dir, data_dir=data_dir)
     except Exception as e:
         raise RuntimeError(
-            f"TFDS builder not found for '{name_or_dir}'. "
-            f"Assicurati di aver installato 'open-x-embodiment' e di aver settato TFDS_DATA_DIR.\n"
-            f"data_dir={data_dir!r}. Original error: {e}"
+            "TFDS builder not found. I tried locally first, then as an explicit path, "
+            f"finally as a registered builder for '{name_or_dir}'.\n"
+            f"data_dir={data_dir!r}\n"
+            "Hints:\n"
+            "  - check that the directory contains 'dataset_info.json' (complete TFDS cache),\n"
+            "  - if the files are only .tfrecord without metadata, install OXE builders or copy the full dataset.\n"
+            f"Original error: {e}"
         )
+
 
 
 # =============================================================================
@@ -75,7 +128,30 @@ def iterate_episodes(name_or_dir: str, split: str, data_dir: str | None = None) 
     b = _make_builder(name_or_dir, data_dir=data_dir)
     ds = b.as_dataset(split=split, read_config=tfds.ReadConfig(try_autocache=False))
     ds = tfds.as_numpy(ds)
+    # ex = next(iter(ds))
+
+    # steps = ex["steps"]
+
+    # print("Type of steps:", type(steps))
+    # print("dir(steps):", dir(steps))
+
+    # # vars() only works if __dict__ is exposed
+    # try:
+    #     print("vars(steps):", vars(steps))
+    # except Exception as e:
+    #     print("vars(steps) not available:", e)
+
+    # # Iterate a few steps
+    # print("\nIterating first elements:")
+    # for i, element in enumerate(steps):
+        # print(f"Step {i} keys:", element.keys())
+        # if "observation" in element:
+        #     print("Observation keys:", element["observation"].keys())
+
+    # -----
+
     for episode in ds:
+        episode["steps"] = list(episode["steps"])
         yield episode
 
 # =============================================================================
@@ -109,20 +185,46 @@ _DEFAULT_IMAGE_CANDIDATES = [
     "image",                    # fallback
 ]
 
+# candidati di camera dentro observation
+_OBS_IMAGE_CANDIDATES = ["image", "wrist_image", "hand_image", "image2"]
+
 def _resolve_image_array(episode: Dict[str, Any], image_key: str) -> np.ndarray:
     """
-    Trova l'array immagini. Se image_key non esiste, prova candidati standard.
-    Ritorna un np.ndarray (H,W,C) o (T,H,W,C).
+    Ritorna un array (T,H,W,C) costruito iterando gli step:
+    - image_key può essere 'observation/image', 'image', 'observation/wrist_image', ecc.
+    - se non trovato, prova candidati standard in observation.
     """
-    arr = _get_by_path(episode, image_key) if image_key else None
-    if arr is None:
-        for cand in _DEFAULT_IMAGE_CANDIDATES:
-            arr = _get_by_path(episode, cand)
-            if arr is not None:
-                break
-    if arr is None:
-        raise KeyError(f"Nessuna immagine trovata. key='{image_key}', candidati={_DEFAULT_IMAGE_CANDIDATES}")
-    return np.asarray(arr)
+    steps = episode.get("steps", [])
+    if not isinstance(steps, (list, tuple)) or not steps:
+        raise KeyError("Episode has no materialized 'steps' list.")
+
+    # normalizza la chiave: togli 'steps/' se presente
+    key = (image_key or "").replace("steps/", "")
+    parts = key.split("/") if key else []
+    # se è 'observation/<camera>' prendi <camera>, altrimenti ultima parte o 'image'
+    cam_key = parts[1] if len(parts) >= 2 and parts[0] == "observation" else (parts[-1] if parts else "image")
+
+    frames = []
+    for st in steps:
+        obs = st.get("observation", {})
+        arr = obs.get(cam_key)
+        if arr is None:
+            # fallback su candidati comuni
+            for cand in _OBS_IMAGE_CANDIDATES:
+                if cand in obs:
+                    arr = obs[cand]
+                    break
+        if arr is not None:
+            frames.append(np.asarray(arr))
+
+    if not frames:
+        raise KeyError(f"Nessuna immagine trovata. key='{image_key}', candidati_obs={_OBS_IMAGE_CANDIDATES}")
+
+    # stack in (T,H,W,C); se singoli frame con shape (H,W,C), ok; se occasionalmente (H,W), alziamo errore esplicito
+    arr = np.stack(frames, axis=0)
+    if arr.ndim != 4 or arr.shape[-1] not in (1, 3, 4):
+        raise ValueError(f"Forma immagini inattesa: {arr.shape}")
+    return arr
 
 def _first_nonempty_string(seq) -> Optional[str]:
     for x in seq:
@@ -137,91 +239,113 @@ def _first_nonempty_string(seq) -> Optional[str]:
             return x.strip()
     return None
 
+
+# =============================================================================
+#  Utility text
+# =============================================================================
+def _as_text(x):
+    """Converte qualunque 'stringa' (bytes / np.bytes_ / np.str_ / scalari numpy) in str UTF-8, altrimenti None."""
+    if x is None:
+        return None
+    if isinstance(x, str):
+        return x
+    # scalare numpy? estrai e riprova
+    if hasattr(x, "item"):
+        try:
+            return _as_text(x.item())
+        except Exception:
+            pass
+    # bytes-like (incluso np.bytes_)
+    import numpy as _np
+    if isinstance(x, (bytes, bytearray, _np.bytes_)):
+        try:
+            return x.decode("utf-8")
+        except Exception:
+            return x.decode("latin-1", errors="replace")
+    # stringa numpy
+    if isinstance(x, _np.str_):
+        return str(x)
+    return None
+
 def resolve_instruction(episode: Dict[str, Any], instruction_key: str) -> Optional[str]:
     """
-    Recupera l'istruzione:
-      1) prova a livello EPISODIO (es. 'natural_language_instruction', 'task/language_instruction');
-      2) in fallback prova a livello STEPS (es. 'steps/...'): prima stringa non vuota.
-    Restituisce None se non trovata (alcuni dataset non la contengono).
+    Ordine di ricerca:
+      1) livello episodio: instruction_key se dato; poi alias noti;
+      2) livello step: instruction_key e alias, sia come campo diretto sia dentro observation.
+    Restituisce str UTF-8 oppure None.
     """
-    # episodio-level
-    txt = _get_by_path(episode, instruction_key) if instruction_key else None
-    if txt is not None:
-        if isinstance(txt, (bytes, bytearray)):
-            try:
-                txt = txt.decode("utf-8")
-            except Exception:
-                txt = str(txt)
-        elif hasattr(txt, "item"):
-            txt = txt.item()
-        if isinstance(txt, str) and txt.strip():
-            return txt.strip()
+    # 1) episodio (chiave specificata)
+    if instruction_key:
+        val = _get_by_path(episode, instruction_key)
+        txt = _as_text(val)
+        if txt:
+            return txt
 
-    # steps-level
-    step_key = f"steps/{instruction_key}" if instruction_key else None
-    if step_key:
-        arr = _get_by_path(episode, step_key)
-        if arr is not None:
-            arr = np.asarray(arr)
-            if arr.ndim == 1:
-                cand = _first_nonempty_string(list(arr))
-                if cand:
-                    return cand
+    # 1b) episodio (alias comuni)
+    for k in ("language_instruction", "natural_language_instruction", "task/language_instruction"):
+        val = _get_by_path(episode, k)
+        txt = _as_text(val)
+        if txt:
+            return txt
 
-    # alias comuni di fallback
-    for cand in ("natural_language_instruction", "task/language_instruction"):
-        txt = _get_by_path(episode, cand)
-        if isinstance(txt, (bytes, bytearray)):
-            try:
-                txt = txt.decode("utf-8")
-            except Exception:
-                txt = str(txt)
-        elif hasattr(txt, "item"):
-            txt = txt.item()
-        if isinstance(txt, str) and txt.strip():
-            return txt.strip()
+    # 2) steps
+    steps = episode.get("steps", [])
+    candidates = [c for c in (instruction_key, "language_instruction", "natural_language_instruction", "task/language_instruction") if c]
+    for st in steps:
+        for k in candidates:
+            # a) campo diretto nello step
+            txt = _as_text(st.get(k))
+            if txt:
+                return txt
+            # b) eventualmente annidato in observation
+            obs = st.get("observation", {})
+            txt = _as_text(obs.get(k))
+            if txt:
+                return txt
 
-    for cand in ("steps/natural_language_instruction", "steps/task/language_instruction"):
-        arr = _get_by_path(episode, cand)
-        if arr is not None:
-            arr = np.asarray(arr)
-            if arr.ndim == 1:
-                cand_txt = _first_nonempty_string(list(arr))
-                if cand_txt:
-                    return cand_txt
     return None
+
 
 
 # =============================================================================
 #  Dump diagnostico attributi
 # =============================================================================
+ 
 def dump_attributes(example: Dict[str, Any], out_dir: str) -> str:
     """
-    Scrive attributes.json con chiavi e tipi serializzabili.
-    Non salva tensori completi: per np.ndarray memorizza solo shape e dtype.
+    Write attributes.json with keys and serializable types only.
+    Does not save full tensors: for np.ndarray, only shape and dtype are stored.
+    If an object is not JSON-serializable (e.g., TFDS Dataset), store its repr().
     """
     os.makedirs(out_dir, exist_ok=True)
 
     def _to_serializable(obj: Any):
-        if isinstance(obj, (np.floating, np.integer)):
+        # scalari numpy
+        if isinstance(obj, (np.floating, np.integer, np.bool_)):
             return obj.item()
+        # tipi python base
+        if isinstance(obj, (bool, int, float, str)) or obj is None:
+            return obj
+        # array
         if isinstance(obj, np.ndarray):
             return {"__ndarray__": True, "shape": list(obj.shape), "dtype": str(obj.dtype)}
-        if isinstance(obj, (bytes, bytearray)):
-            try:
-                return obj.decode("utf-8")
-            except Exception:
-                return str(obj)
+        # record numpy (una riga di structured array)
+        if isinstance(obj, np.void) and obj.dtype.names:
+            return {name: _to_serializable(obj[name]) for name in obj.dtype.names}
+        # dict / lista
         if isinstance(obj, dict):
             return {k: _to_serializable(v) for k, v in obj.items()}
         if isinstance(obj, (list, tuple)):
             return [_to_serializable(v) for v in obj]
-        return obj
+        # fallback
+        return f"<<non-serializable: {type(obj).__name__}>>"
 
     path = os.path.join(out_dir, "attributes.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(_to_serializable(example), f, ensure_ascii=False, indent=2)
     return path
+
+
 
 
 # =============================================================================
@@ -235,47 +359,51 @@ def dump_episode_rlds(
     max_frames: int,
 ) -> Dict[str, Any]:
     """
-    Estrae i frame da un EPISODIO RLDS e li salva in out_dir/raw_frames.
-    Crea preview.gif se i frame salvati sono ≥2.
-    Se trova un'istruzione testuale, crea out_dir/instruction.txt.
-    Ritorna un sommario con conteggi e flag.
+    Salva:
+      - raw_frames/frame_XXXX.jpg (fino a max_frames),
+      - preview.gif se ≥2 frame,
+      - instruction.txt se presente,
+      - episode_data.json con {"instruction": ..., "frames": [...]}
     """
     os.makedirs(out_dir, exist_ok=True)
     frames_dir = os.path.join(out_dir, "raw_frames")
     os.makedirs(frames_dir, exist_ok=True)
 
-    # 1) immagini
+    # Immagini (T,H,W,C) da step
     arr = _resolve_image_array(episode, image_key)
     arr = to_uint8_rgb(arr)
-    if arr.ndim == 3:   # (H,W,C) → singolo frame
+    if arr.ndim == 3:
         arr = arr[None, ...]
     T = min(arr.shape[0], max_frames)
 
-    saved = 0
+    frames_rel = []
     for t in range(T):
         img = Image.fromarray(arr[t])
         fp = os.path.join(frames_dir, f"frame_{t:04d}.jpg")
         img.save(fp, quality=95)
-        saved += 1
+        frames_rel.append(os.path.relpath(fp, out_dir))
 
-    # 2) GIF
+    # GIF
     gif_flag = False
-    if saved >= 2:
+    if T >= 2:
         gif_path = os.path.join(out_dir, "preview.gif")
         imgs = [Image.fromarray(arr[t]) for t in range(T)]
         imgs[0].save(gif_path, save_all=True, append_images=imgs[1:], duration=120, loop=0)
         gif_flag = True
 
-    # 3) instruction
-    instr_flag = False
+    # Istruzione
     instr = resolve_instruction(episode, instruction_key)
-    if instr:
+    instr_flag = bool(instr)
+    if instr_flag:
         with open(os.path.join(out_dir, "instruction.txt"), "w", encoding="utf-8") as f:
             f.write(instr)
-        instr_flag = True
+
+    # Serializzazione per VLM
+    with open(os.path.join(out_dir, "episode_data.json"), "w", encoding="utf-8") as f:
+        json.dump({"instruction": instr, "frames": frames_rel}, f, ensure_ascii=False, indent=2)
 
     return {
-        "frames_saved": saved,
+        "frames_saved": len(frames_rel),
         "preview_gif": gif_flag,
         "instruction": instr_flag,
         "out_dir": out_dir,
