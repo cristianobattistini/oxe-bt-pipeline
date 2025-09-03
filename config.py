@@ -41,7 +41,7 @@ dataset_keys = {
 
 
 # Quanti frame max per episodio (GIF inclusa se ≥2)
-max_frames = 8
+max_frames = 100
 
 # Limite episodi per dataset (fase di prova)
 limit_episodes_per_dataset = 10
