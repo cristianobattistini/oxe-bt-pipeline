@@ -42,13 +42,18 @@ def write_episode_phase(
     instruction: str,
     gif: bool = True,
     attributes: List[Dict] = None,
+    filename_mode: str = "original",  # NEW: "original" | "sequential"
 ):
     """
     Salva:
-      - sampled_frames/
-      - preview.gif
-      - attributes.json
+      - sampled_frames/ (nomi coerenti con filename_mode)
+      - preview.gif      (ordine fotogrammi coerente con filename_mode)
+      - attributes.json  (chiavi = filename salvato; conserva selected_index = t originale)
       - episode_data.json
+
+    filename_mode:
+      - "original":   usa l'indice reale t nel nome file (frame_00xx.jpg)
+      - "sequential": ordina per t crescente e salva come frame_00.jpg, frame_01.jpg, ...
     """
     out_dir = os.path.join(ep_dir, phase_name)
     os.makedirs(out_dir, exist_ok=True)
@@ -56,7 +61,7 @@ def write_episode_phase(
     frames_dir = os.path.join(out_dir, "sampled_frames")
     os.makedirs(frames_dir, exist_ok=True)
 
-    # normalizza frames in lista di immagini
+    # Normalizza frames in lista
     if isinstance(frames, np.ndarray):
         if frames.ndim == 3:
             frames = frames[None, ...]
@@ -64,36 +69,72 @@ def write_episode_phase(
     else:
         frames_list = frames
 
-    rel_paths = []
-    for i, t in enumerate(frame_indices):
-        img = Image.fromarray(frames_list[i])
-        fname = f"frame_{t:04d}.jpg"
-        img.save(os.path.join(frames_dir, fname), quality=95)
-        rel_paths.append(os.path.join("sampled_frames", fname))
+    if len(frames_list) != len(frame_indices):
+        raise ValueError(
+            f"frames_list ({len(frames_list)}) e frame_indices ({len(frame_indices)}) non coincidono."
+        )
 
-    # GIF
-    if gif and len(frames_list) >= 2:
-        gif_path = os.path.join(out_dir, "preview.gif")
-        make_gif(frames_list, gif_path)
-
-    # Attributes
-    attr_data = {}
-    if attributes is not None:
-        for i, t in enumerate(frame_indices):
-            attr_data[f"frame_{t:04d}.jpg"] = attributes[i]
+    # Allinea o genera attributi
+    if attributes is None:
+        attributes = [{"selected_index": int(t)} for t in frame_indices]
     else:
-        attr_data = {f"frame_{t:04d}.jpg": {"selected_index": int(t)} for t in frame_indices}
+        if len(attributes) != len(frame_indices):
+            raise ValueError(
+                f"attributes ({len(attributes)}) e frame_indices ({len(frame_indices)}) non coincidono."
+            )
 
+    # Aggrega triplette (t, frame, attr); se richiesto, ordinale per t
+    items = list(zip(frame_indices, frames_list, attributes))  # (t, img, attr)
+    if filename_mode == "sequential":
+        items.sort(key=lambda x: x[0])  # ordine temporale
+
+    # Salvataggio + mapping filename → attr
+    rel_paths = []
+    attr_data = {}
+
+    if filename_mode == "sequential":
+        width = max(2, len(str(len(items) - 1)))  # padding minimo a 2 cifre
+        frames_for_gif = []
+        for i, (t, img_arr, attr) in enumerate(items):
+            img = Image.fromarray(img_arr)
+            fname = f"frame_{i:0{width}d}.jpg"
+            img.save(os.path.join(frames_dir, fname), quality=95)
+            rel_paths.append(os.path.join("sampled_frames", fname))
+            # conserva l’indice temporale originale
+            attr = dict(attr)
+            attr["selected_index"] = int(t)
+            attr_data[fname] = to_json_safe(attr)
+            frames_for_gif.append(img_arr)
+    else:
+        frames_for_gif = []
+        for (t, img_arr, attr) in items:
+            img = Image.fromarray(img_arr)
+            fname = f"frame_{t:04d}.jpg"
+            img.save(os.path.join(frames_dir, fname), quality=95)
+            rel_paths.append(os.path.join("sampled_frames", fname))
+            attr = dict(attr)
+            attr["selected_index"] = int(attr.get("selected_index", t))
+            attr_data[fname] = to_json_safe(attr)
+            frames_for_gif.append(img_arr)
+
+    # GIF coerente con l’ordine di salvataggio
+    if gif and len(frames_for_gif) >= 2:
+        gif_path = os.path.join(out_dir, "preview.gif")
+        make_gif(frames_for_gif, gif_path)
+
+    # attributes.json
     with open(os.path.join(out_dir, "attributes.json"), "w") as f:
-        json.dump(to_json_safe(attr_data), f, indent=2)
+        json.dump(attr_data, f, indent=2)
 
-    # Episode data
+    # episode_data.json
     edata = {
         "instruction": instruction,
         "frames": rel_paths,
+        "filename_mode": filename_mode,
     }
     with open(os.path.join(out_dir, "episode_data.json"), "w") as f:
         json.dump(edata, f, indent=2)
+
 
 
 def build_all_episode_phases(ep_dir: str, episode_steps: Optional[list] = None):
@@ -176,6 +217,7 @@ def build_all_episode_phases(ep_dir: str, episode_steps: Optional[list] = None):
                     instruction=instruction,
                     gif=True,
                     attributes=sel_attrs,
+                    filename_mode="sequential"
                 )
                 print(f"[EMBEDS] selected {len(sel_idx)} frames (k_slicing={sel['k_slicing']}, K={sel['K']}).")
             else:

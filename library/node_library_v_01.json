@@ -1,0 +1,75 @@
+{
+    "version": "btlib_v1.1",
+    "composites": {
+      "Sequence":  { "attrs": {} },
+      "Fallback":  { "attrs": {} },
+      "Parallel":  { "attrs": { "success_threshold": "int", "failure_threshold": "int" } }
+    },
+    "decorators": {
+      "Inverter":               { "attrs": {} },
+      "RetryUntilSuccessful":   { "attrs": { "num_attempts": "int" } },
+      "Repeat":                 { "attrs": { "num_cycles": "int" } },
+      "Timeout":                { "attrs": { "timeout_ms": "int" } }
+    },
+  
+    "actions": {
+      "MoveTo":            { "ports": { "target": "string", "timeout_ms": "int" } },
+      "MoveAbove":         { "ports": { "target": "string", "offset_z": "float", "timeout_ms": "int" } },
+      "MoveDelta":         { "ports": { "axis": "string", "dist": "float", "timeout_ms": "int" } },
+  
+      "DetectObject":      { "ports": { "target": "string", "timeout_ms": "int" } },
+      "ScanForTarget":     { "ports": { "target": "string", "pattern": "string", "max_attempts": "int", "timeout_ms": "int" } },
+  
+      "ComputeGraspPose":  { "ports": { "target": "string", "strategy": "string", "result_key": "string" } },
+      "ApproachAndAlign":  { "ports": { "target": "string", "tolerance": "float", "timeout_ms": "int" } },
+      "SetTCPYaw":         { "ports": { "yaw_deg": "int" } },
+  
+      "OpenGripper":       { "ports": { "width": "float", "timeout_ms": "int" } },
+      "CloseGripper":      { "ports": { "force": "float", "timeout_ms": "int" } },
+      "Pick":              { "ports": { "grasp_key": "string", "timeout_ms": "int" } },
+  
+      "PlaceAt":           { "ports": { "pose_key": "string", "yaw_deg": "int", "press_force": "float", "timeout_ms": "int" } },
+      "LowerUntilContact": { "ports": { "speed": "string", "max_depth": "float", "force_threshold": "float", "timeout_ms": "int" } },
+  
+      "OpenContainer":     { "ports": { "target": "string", "container_type": "string", "timeout_ms": "int" } },
+      "CloseContainer":    { "ports": { "target": "string", "container_type": "string", "timeout_ms": "int" } },
+  
+      "Push":              { "ports": { "target": "string", "distance": "float", "direction_deg": "int", "timeout_ms": "int" } },
+      "WipeArea":          { "ports": { "area_id": "string", "pattern": "string", "passes": "int", "timeout_ms": "int" } },
+  
+      "Retreat":           { "ports": { "distance": "float", "timeout_ms": "int" } },
+      "Wait":              { "ports": { "timeout_ms": "int" } },
+      "SetBlackboard":     { "ports": { "key": "string", "value": "string" } }
+  
+      /* opzionale se hai mobile base:
+      "MoveBaseTo":        { "ports": { "target": "string", "timeout_ms": "int" } }
+      */
+    },
+  
+    "conditions": {
+      "IsAt":              { "ports": { "target": "string" } },
+      "IsObjectVisible":   { "ports": { "target": "string" } },
+      "IsGraspStable":     { "ports": {} },
+      "ObjectInGripper":   { "ports": { "target": "string" } },
+      "ContactDetected":   { "ports": { "force_threshold": "float" } },
+      "ContainerOpen":     { "ports": { "target": "string" } },
+      "PoseAvailable":     { "ports": { "key": "string" } },
+      "AtOrientation":     { "ports": { "yaw_deg": "int" } }
+    },
+  
+    "port_value_spaces": {
+      "timeout_ms":   [400, 500, 800, 1200, 1500, 2000],
+      "force":        [10, 20, 30, 40],
+      "width":        [0.06, 0.08, 0.09],
+      "tolerance":    [0.005, 0.01, 0.02],
+      "distance":     [0.05, 0.1, 0.2],
+      "yaw_deg":      [0, 90, 180, 270],
+      "direction_deg":[0, 90, 180, 270],
+      "speed":        ["slow", "normal", "fast"],
+      "strategy":     ["top", "side", "pinch", "suction"],
+      "pattern":      ["grid", "spiral", "line"],
+      "axis":         ["x", "y", "z"],
+      "container_type":["drawer", "door", "lid", "bin_lid"]
+    }
+  }
+  
