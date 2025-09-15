@@ -1,0 +1,53 @@
+{
+    "dataset_id": "cmu_stretch_0.1.0",
+    "episode_id": "episode_002",
+    "task_summary": "Robot locates the dishwasher handle, moves to a pregrasp pose, aligns, grasps the handle, pulls to open the dishwasher door, verifies opening, and retreats.",
+    "assumptions": [
+      "dishwasher and handle are within reachable workspace",
+      "handle affords pulling and door opens outward",
+      "visual detection may need an active scan",
+      "pregrasp pose is collision-free"
+    ],
+    "objects": ["dishwasher", "dishwasher_handle", "pregrasp_dishwasher"],
+    "blackboard_keys": ["target", "timeout_ms", "width", "force", "tolerance"],
+    "node_specs": [
+      {"id":"SetBlackboard","type":"Action","ports":{"key":"string","value":"string"},"description":"Store symbolic targets/params."},
+      {"id":"IsObjectVisible","type":"Condition","ports":{"target":"string"},"description":"Checks if the target is visible."},
+      {"id":"ScanForTarget","type":"Action","ports":{"target":"string","pattern":"string","max_attempts":"int","timeout_ms":"int"},"description":"Active search when target not visible."},
+      {"id":"IsAt","type":"Condition","ports":{"target":"string"},"description":"Verify robot is at a named pose."},
+      {"id":"MoveTo","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Move to a symbolic pose."},
+      {"id":"MoveAbove","type":"Action","ports":{"target":"string","offset_z":"float","timeout_ms":"int"},"description":"Reach a safe height above target."},
+      {"id":"ApproachAndAlign","type":"Action","ports":{"target":"string","tolerance":"float","timeout_ms":"int"},"description":"Precisely align to the handle."},
+      {"id":"OpenGripper","type":"Action","ports":{"width":"float","timeout_ms":"int"},"description":"Open gripper before grasp."},
+      {"id":"CloseGripper","type":"Action","ports":{"force":"float","timeout_ms":"int"},"description":"Close gripper to grasp the handle."},
+      {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Confirms a stable grasp."},
+      {"id":"OpenContainer","type":"Action","ports":{"target":"string","container_type":"string","timeout_ms":"int"},"description":"Execute door-opening motion for the dishwasher."},
+      {"id":"ContainerOpen","type":"Condition","ports":{"target":"string"},"description":"Verify the door is open."},
+      {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back off to a safe distance after opening."}
+    ],
+    "tree_stats": {"nodes_total": 17, "actions": 9, "conditions": 4, "composites": 3, "decorators": 1, "depth": 4},
+    "failure_modes": [
+      "handle not detected or occluded",
+      "pregrasp pose unreachable",
+      "grasp unstable or slips",
+      "door jammed or blocked"
+    ],
+    "recovery_strategy": [
+      "spiral scan up to 3 attempts for detection",
+      "retry MoveTo up to 3 attempts via decorator",
+      "re-align and re-grasp if unstable",
+      "fallback to operator if door does not open"
+    ],
+    "frame_annotations": [
+      {"frame":"frame_00.jpg","step":"scene context; dishwasher area visible"},
+      {"frame":"frame_01.jpg","step":"begin approach toward handle region"},
+      {"frame":"frame_02.jpg","step":"continue approach to pregrasp"},
+      {"frame":"frame_03.jpg","step":"move above handle (pregrasp height)"},
+      {"frame":"frame_04.jpg","step":"fine align to handle"},
+      {"frame":"frame_05.jpg","step":"gripper closes to grasp handle"},
+      {"frame":"frame_06.jpg","step":"door opening motion executed"},
+      {"frame":"frame_07.jpg","step":"verify door opened and retreat"}
+    ],
+    "timing": {"model_reported_tokens": null, "client_elapsed_ms": null}
+  }
+  

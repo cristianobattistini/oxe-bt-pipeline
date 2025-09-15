@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="SetBlackboard" key="target" value="drawer_handle"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="drawer_handle"/>
+      <Action ID="ScanForTarget" target="drawer_handle" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <Action ID="ApproachAndAlign" target="drawer_handle" tolerance="0.01" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="CloseGripper" force="20" timeout_ms="1500"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="OpenContainer" target="drawer_A" container_type="drawer" timeout_ms="1500"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>
