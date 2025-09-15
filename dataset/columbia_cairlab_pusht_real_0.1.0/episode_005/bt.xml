@@ -1,5 +1,21 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Action ID="SetBlackboard" key="object_id" value="block_T"/>
+    <Action ID="SetBlackboard" key="goal_id" value="goal_T_outline"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="block_T"/>
+      <Action ID="ScanForTarget" target="block_T" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="MoveTo" target="prepush_pose" timeout_ms="800"/>
+    </RetryUntilSuccessful>
+    <Condition ID="IsAt" target="prepush_pose"/>
+    <Action ID="ApproachAndAlign" target="block_T" tolerance="0.01" timeout_ms="1200"/>
+    <Action ID="SetTCPYaw" yaw_deg="90"/>
+    <Action ID="Push" target="block_T" distance="0.2" direction_deg="180" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="goal_T_outline" tolerance="0.01" timeout_ms="1200"/>
+    <Action ID="Push" target="block_T" distance="0.1" direction_deg="90" timeout_ms="800"/>
+    <Action ID="Push" target="block_T" distance="0.05" direction_deg="180" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>

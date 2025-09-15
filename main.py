@@ -95,7 +95,7 @@ def main():
 
             exported += 1
             grand_total += 1
-            if exported >= per_ds_limit:
+            if per_ds_limit and exported >= per_ds_limit:
                 break
 
         print(f"[SUMMARY] {ds} → {exported} episodio/i esportati. Output: {ds_root}")

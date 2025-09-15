@@ -1,11 +1,61 @@
 {
   "dataset_id": "columbia_cairlab_pusht_real_0.1.0",
   "episode_id": "episode_004",
-  "created_at": "2025-09-15T17:32:54",
-  "instruction": "The task requires pushing a T-shaped block (gray) to a fixed target (green) with a circular end-effector (blue). Both observation and control frequencies are 10Hz.",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/columbia_cairlab_pusht_real_0.1.0/episode_004",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/PROMPT.md"
+  "task_summary": "Robot perceives a T-shaped block and a fixed goal region, approaches, then executes two orthogonal push strokes (0° then 90°) to seat the block into the target before retreating.",
+  "assumptions": [
+    "goal_region is static and planar",
+    "pushing with circular end-effector (no grasp)",
+    "friction sufficient to move the block without slipping excessively",
+    "workspace is collision-free in planned push directions"
+  ],
+  "objects": ["t_block", "goal_region", "prepush_pose", "home"],
+  "blackboard_keys": ["object", "goal"],
+  "node_specs": [
+    {"id":"SetBlackboard","type":"Action","ports":{"key":"string","value":"string"},"description":"Write a string value to the blackboard."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"string"},"description":"Checks if the specified target is visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"string","pattern":"string","max_attempts":"int","timeout_ms":"int"},"description":"Active visual search using a predefined scan pattern."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Run perception to localize a symbolic target."},
+    {"id":"MoveTo","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Move the end-effector to a symbolic pose within a time limit."},
+    {"id":"IsAt","type":"Condition","ports":{"target":"string"},"description":"Verify the robot is at the given symbolic target pose."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"string","tolerance":"float","timeout_ms":"int"},"description":"Approach the object and align the TCP with the planned push contact."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":"int"},"description":"Set the tool yaw to one of the discrete allowed angles."},
+    {"id":"Push","type":"Action","ports":{"target":"string","distance":"float","direction_deg":"int","timeout_ms":"int"},"description":"Apply a straight-line push on the target for a set distance and direction."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back off from the workspace after task completion."}
+  ],
+  "tree_stats": {"nodes_total": 16, "actions": 12, "conditions": 2, "composites": 2, "depth": 3},
+  "failure_modes": [
+    "t_block not detected",
+    "approach alignment outside tolerance",
+    "push direction blocked or causes rotation",
+    "insufficient displacement to reach goal",
+    "localization drift between pushes"
+  ],
+  "recovery_strategy": [
+    "fallback to ScanForTarget if visibility fails",
+    "re-run ApproachAndAlign if contact pose deviates",
+    "repeat the second push if final alignment is off"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "centroid of t_block within goal_region and orientation consistent with outline",
+      "no further contact after retreat"
+    ],
+    "test_scenarios": [
+      "happy path straight-line pushes",
+      "block starts farther from goal",
+      "partial occlusion requiring scan",
+      "over-rotation during first push"
+    ]
   },
-  "notes": "Fill after model generation."
+  "timing": { "observation_hz": 10, "control_hz": 10 },
+  "frame_annotations": [
+    {"frame":"frame_00.jpg","t":0,"label":"scene-init; object & goal visible"},
+    {"frame":"frame_01.jpg","t":1,"label":"approach to prepush pose"},
+    {"frame":"frame_02.jpg","t":2,"label":"align TCP with block"},
+    {"frame":"frame_03.jpg","t":3,"label":"first push along 0° toward goal"},
+    {"frame":"frame_04.jpg","t":4,"label":"post-push check near goal"},
+    {"frame":"frame_05.jpg","t":5,"label":"reorient yaw 90° and settle with lateral push"},
+    {"frame":"frame_06.jpg","t":6,"label":"retreat from contact"},
+    {"frame":"frame_07.jpg","t":7,"label":"move to home; task complete"}
+  ]
 }
