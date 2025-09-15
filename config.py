@@ -41,7 +41,7 @@ dataset_keys = {
 
 
 # Quanti frame max per episodio (GIF inclusa se ≥2)
-max_frames = 100
+max_frames = 300
 
 # Limite episodi per dataset (fase di prova)
 limit_episodes_per_dataset = 10
@@ -50,6 +50,20 @@ limit_episodes_per_dataset = 10
 eps_pos = 0.02
 eps_rot = 0.087
 delta_move = 1e-3
-
+# TODO: sarebbe da tunare e capire se effettivamente può funzionare...
 
 tfds_data_dir = "/home/kcbat/tensorflow_datasets"
+
+
+# Embedding-based selection
+embeds = {
+    "mode": "embed_kcenter",      # "embed_kcenter" (default) oppure "k_only"
+    "backbone": "mobilenet_v2",   # anche: "efficientnet_b0"
+    "img_size": 224,
+    "k_slicing": 10,              # usa 1 frame ogni 10 come candidati
+    "K": 8,                      # quanti frame finali tenere
+    "batch_size": 32,
+    "include_boundaries": False,   # include primo/ultimo del sottoinsieme
+    "force_global_boundaries": False,  # se True, forza anche 0 e T-1 globali
+    "cache_embeddings": True
+}

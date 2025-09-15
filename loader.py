@@ -11,6 +11,7 @@ import json
 import numpy as np
 import tensorflow_datasets as tfds
 from PIL import Image
+from utils import _to_1d
 
 # =============================================================================
 #  Utility: accesso a chiavi annidate ("a/b/c" o "a.b.c")
@@ -391,6 +392,25 @@ def dump_episode_rlds(
         imgs[0].save(gif_path, save_all=True, append_images=imgs[1:], duration=120, loop=0)
         gif_flag = True
 
+        # GIF standard (tutti i frame o max_frames)
+    gif_flag = False
+    if T >= 2:
+        gif_path = os.path.join(out_dir, "preview.gif")
+        imgs = [Image.fromarray(arr[t]) for t in range(T)]
+        imgs[0].save(gif_path, save_all=True, append_images=imgs[1:], duration=120, loop=0)
+        gif_flag = True
+
+    # GIF campionata: frame ogni k
+    k_gif = 10  #  cambia qui per decidere ogni quanti frame
+    if T >= 2 and T > k_gif:
+
+        arr_sampled, _ = sample_every_k(arr, k=k_gif)
+        gif_sampled_path = os.path.join(out_dir, "preview_sampled.gif")
+        imgs = [Image.fromarray(f) for f in arr_sampled]
+        imgs[0].save(gif_sampled_path, save_all=True, append_images=imgs[1:], duration=120, loop=0)
+        print(f"[GIF] preview_sampled.gif salvata con {len(imgs)} frame (1 ogni {k_gif})")
+
+
     # Istruzione
     instr = resolve_instruction(episode, instruction_key)
     instr_flag = bool(instr)
@@ -408,3 +428,71 @@ def dump_episode_rlds(
         "instruction": instr_flag,
         "out_dir": out_dir,
     }
+
+
+
+def sample_every_k(arr: np.ndarray, k: int) -> tuple[np.ndarray, list[int]]:
+    """
+    Restituisce una sotto-sequenza di frame, prendendo 1 ogni k.
+    
+    Args:
+        arr: array (T, H, W, C) con tutti i frame.
+        k: passo di campionamento (es. 5 = prendi un frame ogni 5)
+    
+    Returns:
+        - subset: array (T', H, W, C) con T' ≤ T
+        - indices: lista degli indici originali selezionati
+    """
+    T = arr.shape[0]
+    indices = list(range(0, T, k))
+    if indices[-1] != T - 1:   # se l’ultimo non è incluso
+        indices.append(T - 1)  # aggiungi ultimo frame
+    subset = arr[indices]
+    return subset, indices
+
+
+
+
+def parse_action_fields(step: Dict[str, Any]) -> Dict[str, Any]:
+    out = {
+        "world_vector": None,
+        "rotation_delta": None,
+        "gripper_closedness_action": None,
+        "terminate_episode": 0.0,
+    }
+
+    a = step.get("action", None)
+    if a is None:
+        g_obs = step.get("observation", {}).get("gripper_closed", None)
+        if g_obs is not None and np.size(g_obs) > 0:
+            out["gripper_closedness_action"] = float(np.asarray(g_obs).squeeze())
+        return out
+
+    if isinstance(a, dict):
+        if "world_vector" in a and a["world_vector"] is not None and np.size(a["world_vector"]) > 0:
+            out["world_vector"] = _to_1d(a["world_vector"])[:3]
+        if "rotation_delta" in a and a["rotation_delta"] is not None and np.size(a["rotation_delta"]) > 0:
+            out["rotation_delta"] = _to_1d(a["rotation_delta"])[:3]
+        if "gripper_closedness_action" in a and a["gripper_closedness_action"] is not None:
+            out["gripper_closedness_action"] = float(np.asarray(a["gripper_closedness_action"]).squeeze())
+        if "terminate_episode" in a and a["terminate_episode"] is not None:
+            out["terminate_episode"] = float(np.asarray(a["terminate_episode"]).squeeze())
+        return out
+
+    # Caso vettoriale (Stretch, PR2, etc.)
+    v = _to_1d(a)
+    n = v.size
+    if n >= 3:
+        out["world_vector"] = v[0:3]
+    if n >= 6:
+        out["rotation_delta"] = v[3:6]
+    if n >= 7:
+        out["gripper_closedness_action"] = float(v[6])
+    else:
+        g_obs = step.get("observation", {}).get("gripper_closed", None)
+        if g_obs is not None and np.size(g_obs) > 0:
+            out["gripper_closedness_action"] = float(np.asarray(g_obs).squeeze())
+    if n >= 8:
+        out["terminate_episode"] = float(v[7])
+
+    return out

@@ -4,9 +4,12 @@
 
 import os
 import re
+import json
 from datetime import datetime
 import config as CFG
-from loader import iterate_episodes, dump_attributes, dump_episode_rlds
+from loader import iterate_episodes, dump_attributes, dump_episode_rlds, parse_action_fields
+from episode_phases import build_all_episode_phases
+
 
 def _sanitize(s: str) -> str:
     """
@@ -16,6 +19,7 @@ def _sanitize(s: str) -> str:
     """
     return re.sub(r"[^A-Za-z0-9._-]+", "_", s)
 
+
 def _resolve_dataset_list() -> list[str]:
     """
     Se CFG.datasets è non vuota, usa quella; altrimenti usa [CFG.dataset].
@@ -23,10 +27,10 @@ def _resolve_dataset_list() -> list[str]:
     """
     if hasattr(CFG, "datasets") and CFG.datasets:
         return CFG.datasets
-    # fallback singolo dataset (stringa non vuota)
     if getattr(CFG, "dataset", ""):
         return [CFG.dataset]
     raise ValueError("Nessun dataset specificato: configura 'dataset' o 'datasets' in config.py.")
+
 
 def _keys_for_dataset(ds_name: str) -> tuple[str, str]:
     """
@@ -40,13 +44,14 @@ def _keys_for_dataset(ds_name: str) -> tuple[str, str]:
     return getattr(CFG, "image_key", "steps/observation/image"), \
            getattr(CFG, "instruction_key", "natural_language_instruction")
 
+
 def main():
     out_root     = CFG.out_root
     split        = CFG.split
     max_frames   = CFG.max_frames
     per_ds_limit = getattr(CFG, "limit_episodes_per_dataset", 10)
-    data_dir    = getattr(CFG, "tfds_data_dir", None)
-
+    data_dir     = getattr(CFG, "tfds_data_dir", None)
+    k_sampling   = getattr(CFG, "k_sampling", 10)
 
     os.makedirs(out_root, exist_ok=True)
     run_started = datetime.utcnow().isoformat()
@@ -73,6 +78,7 @@ def main():
 
             # 2) frame + gif + instruction
             try:
+                print(f"[INFO] Dumping ep#{exported:03d}...")
                 summary = dump_episode_rlds(
                     episode=episode,
                     out_dir=ep_dir,
@@ -80,10 +86,11 @@ def main():
                     instruction_key=instruction_key,
                     max_frames=max_frames,
                 )
-                print(f"[OK] {ds} ep#{exported:03d} → frames={summary['frames_saved']}  "
-                      f"instr={summary['instruction']}  gif={summary['preview_gif']}")
+                print(f"[INFO] Dump success, now building all phases...")
+                build_all_episode_phases(ep_dir, episode_steps=None)
+                print(f"[INFO] All phases built for ep#{exported:03d}")
+
             except Exception as e:
-                # Non blocchiamo il run intero: saltiamo l’episodio problematico
                 print(f"[WARN] {ds} ep#{exported:03d} skipped: {e}")
 
             exported += 1
@@ -94,6 +101,7 @@ def main():
         print(f"[SUMMARY] {ds} → {exported} episodio/i esportati. Output: {ds_root}")
 
     print(f"\n[DONE] started={run_started}  total_exported={grand_total}  out_root={out_root}")
+
 
 if __name__ == "__main__":
     main()

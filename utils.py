@@ -1,59 +1,39 @@
-import os
-import tensorflow_datasets as tfds
-from PIL import Image
+# utils.py
 import numpy as np
-import json
+from PIL import Image
 
-from rlds import rlds_metadata
+def make_gif(frames, out_path: str, duration: int = 300):
+    """
+    Salva una GIF animata da una lista di immagini (array o PIL).
+    """
+    if not frames:
+        return
+    pil_frames = [Image.fromarray(f) if not isinstance(f, Image.Image) else f for f in frames]
+    pil_frames[0].save(out_path, save_all=True, append_images=pil_frames[1:], duration=duration, loop=0)
 
-# === CONFIG ===
-DATASET_PATH = "C:/Users/Crist/tensorflow_datasets/columbia_cairlab_pusht_real/0.1.0"
-OUTPUT_DIR = "out/triplets_columbia"
-SPLIT = "train[:3]"  # usa solo 3 episodi per test
-IMAGE_SIZE = (256, 256)
 
-# === CREA CARTELLA DI OUTPUT ===
-os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# === CARICAMENTO DATASET ===
-builder = tfds.builder_from_directory(DATASET_PATH)
-ds = builder.as_dataset(split=SPLIT, shuffle_files=False)
+def _to_1d(x):
+    """
+    Converte x in un array NumPy monodimensionale.
+    Gestisce liste, array con shape arbitraria, scalari.
+    """
+    return np.asarray(x).reshape(-1)
 
-# === PARSING EPISODI CON RLDS ===
-episodes = rlds_metadata.get_episodes(ds)
+# utils.py
 
-print(f"[INFO] Episodi trovati: {len(episodes)}")
+def to_json_safe(obj):
+    """Ricorsivamente converte np.ndarray e np.float32/64 in tipi compatibili con JSON."""
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, (np.float32, np.float64)):
+        return float(obj)
+    elif isinstance(obj, (np.int32, np.int64)):
+        return int(obj)
+    elif isinstance(obj, dict):
+        return {k: to_json_safe(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [to_json_safe(x) for x in obj]
+    else:
+        return obj
 
-for i, ep in enumerate(episodes):
-    steps = ep["steps"]
-    metadata = ep.get("episode_metadata", {})
-
-    # === ESTRATTORE: immagine iniziale ===
-    first_obs = steps[0]["observation"]
-    img_array = first_obs["rgb_static"]  # RGB image (HxWx3), dtype=uint8
-    pil_img = Image.fromarray(np.array(img_array))
-    pil_img = pil_img.resize(IMAGE_SIZE)
-    
-    # === PATH DI SALVATAGGIO ===
-    img_path = os.path.join(OUTPUT_DIR, f"ep_{i:03d}.jpg")
-    json_path = os.path.join(OUTPUT_DIR, f"ep_{i:03d}.json")
-
-    # === ISTRUZIONE ===
-    instruction = metadata.get("language_instruction", "No instruction")
-
-    # === AZIONI (primi 5 step per esempio) ===
-    actions = []
-    for step in steps[:5]:
-        action = step["action"]
-        actions.append({k: action[k] for k in action})  # copia pulita
-
-    # === SALVATAGGIO ===
-    pil_img.save(img_path)
-
-    with open(json_path, "w") as f:
-        json.dump({
-            "instruction": instruction,
-            "actions": actions
-        }, f, indent=2)
-
-    print(f"[OK] Episodio {i}: salvato {img_path} + {json_path}")
