@@ -1,54 +1,151 @@
 {
   "dataset_id": "cmu_stretch_0.1.0",
   "episode_id": "episode_005",
+  "task_summary": "Detect the green bin and its lid, align near the hinge/handle area, and execute an open-lid action. Verify openness and retreat.",
+  "task_long_description": {
+    "overview": "A mobile manipulator with a parallel gripper approaches a green garbage bin with a hinged lid and plastic liner. The objective is to lift/open the lid. The behavior first perceives the bin and lid, positions above the lid, orients the wrist to a side approach, and refines alignment. The gripper is pre-opened to avoid collisions, then an OpenContainer primitive for a bin lid is executed. A brief wait allows the lid to settle before the system confirms the lid state and retreats to a safe distance. The scene includes a table and wall near the bin, imposing clearance constraints.",
+    "preconditions": [
+      "Robot has free workspace in front of the bin",
+      "Green bin and lid are visible to perception",
+      "Gripper functional and free of objects",
+      "No human/obstacle blocking the lid motion arc"
+    ],
+    "stepwise_plan": [
+      "Detect green bin and detect its lid.",
+      "Move above the lid and set wrist yaw to 90°.",
+      "Approach and align to the lid edge/handle with tight tolerance.",
+      "Open gripper to clearance width.",
+      "Execute bin-lid open primitive; wait briefly.",
+      "Verify lid is open and retreat to safe standoff."
+    ],
+    "success_criteria": [
+      "Lid visibly rotated open from closed state",
+      "No collision with bin, table, or wall",
+      "Robot ends at safe standoff pose"
+    ],
+    "failure_and_recovery": [
+      "Perception fails: re-detect target and re-approach",
+      "Misalignment: re-run alignment and yaw set",
+      "Lid stuck: reattempt OpenContainer with slightly different contact point",
+      "Occlusion: reposition and re-detect"
+    ],
+    "termination": "Terminate once the lid is confirmed open or after repeated failures that exceed safety thresholds."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
   "task_instruction": "lift open green garbage can lid",
-  "task_summary": "Perceive the green bin lid, approach and align, grasp the lid handle, lift along +Z to open the lid, then retreat.",
-  "objects": ["green_bin", "green_bin_lid", "workspace"],
-  "blackboard_keys": ["target"],
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["green_bin","bin_lid","robot_arm","gripper","table","plastic_bag_liner","floor","wall"],
+  "objects_from_instruction": ["green garbage can","lid"],
+  "blackboard_keys": [],
   "node_specs": [
-    {"id":"SetBlackboard","type":"Action","ports":{"key":"string","value":"string"},"description":"Store symbolic targets/params."},
-    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"string"},"description":"Check if target is visible."},
-    {"id":"ScanForTarget","type":"Action","ports":{"target":"string","pattern":"string","max_attempts":"int","timeout_ms":"int"},"description":"Actively scan to find the target."},
-    {"id":"MoveAbove","type":"Action","ports":{"target":"string","offset_z":"float","timeout_ms":"int"},"description":"Move to a pose above the target."},
-    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"string","tolerance":"float","timeout_ms":"int"},"description":"Refine pose and align to grasp."},
-    {"id":"OpenGripper","type":"Action","ports":{"width":"float","timeout_ms":"int"},"description":"Open gripper to specified width."},
-    {"id":"CloseGripper","type":"Action","ports":{"force":"float","timeout_ms":"int"},"description":"Close gripper with given force."},
-    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verify grasp stability before lifting."},
-    {"id":"MoveDelta","type":"Action","ports":{"axis":"string","dist":"float","timeout_ms":"int"},"description":"Cartesian delta move (lift lid)."},
-    {"id":"ContainerOpen","type":"Condition","ports":{"target":"string"},"description":"Confirm the container/lid is open."},
-    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back off to a safe distance."}
+    {"id":"DetectObject(bin)","type":"Action","ports":{"target":"green_bin","timeout_ms":1500},"description":"Detect the green bin."},
+    {"id":"DetectObject(lid)","type":"Action","ports":{"target":"bin_lid","timeout_ms":1500},"description":"Detect the bin lid."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"bin_lid","offset_z":0.05,"timeout_ms":1500},"description":"Move to a pregrasp pose above the lid."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":90},"description":"Rotate wrist for side approach."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"bin_lid","tolerance":0.01,"timeout_ms":1500},"description":"Refine pose/alignment to lid edge."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":800},"description":"Pre-open gripper for clearance."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"green_bin","container_type":"bin_lid","timeout_ms":1500},"description":"Execute lid opening primitive."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":400},"description":"Allow lid motion to settle."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"green_bin"},"description":"Check if lid is open."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":1200},"description":"Back away to safe standoff."}
   ],
-  "tree_stats": {"nodes_total": 11, "actions": 8, "conditions": 3, "decorators": 1, "composites": 2, "depth": 3},
-  "assumptions": [
-    "Green bin lid has a graspable lip/handle accessible from the side/top.",
-    "Hinge allows upward opening with modest torque.",
-    "Workspace around the bin is collision-free for a short vertical lift."
-  ],
+  "tree_stats": {"nodes_total": 14, "actions": 9, "conditions": 2, "depth": 5},
   "failure_modes": [
-    "Lid not detected or occluded",
-    "Misalignment leads to failed grasp",
-    "Insufficient lift due to hinge friction",
-    "Gripper slips during lift"
+    "Bin/lid not detected",
+    "Poor alignment causing slip",
+    "Lid obstructed by table or wall",
+    "Timeout during OpenContainer"
   ],
   "recovery_strategy": [
-    "If not visible, ScanForTarget via Fallback",
-    "Retry MoveAbove (decorator) before declaring failure",
-    "If ContainerOpen not satisfied, re-align and re-lift",
-    "Fallback to operator if repeated grasp instability"
+    "Re-detect and re-approach",
+    "Adjust yaw and tolerance, then retry alignment",
+    "Slightly change contact point and re-execute OpenContainer",
+    "Abort safely if repeated failures"
   ],
-  "local_annotations": [
-    {"frame":"frame_00.jpg","note":"Scene with green bin under desk; arm far right, approaching."},
-    {"frame":"frame_01.jpg","note":"Arm advances toward lid zone."},
-    {"frame":"frame_02.jpg","note":"Near-lid approach; alignment begins."},
-    {"frame":"frame_03.jpg","note":"End-effector at lid handle area; ready to grasp."},
-    {"frame":"frame_04.jpg","note":"Minor re-alignment before closing gripper."},
-    {"frame":"frame_05.jpg","note":"Grasp stabilized; preparing to lift."},
-    {"frame":"frame_06.jpg","note":"Upward motion consistent with lid opening."},
-    {"frame":"frame_07.jpg","note":"Retreat from bin after opening action."}
+  "assumptions": [
+    "Symbolic targets 'green_bin' and 'bin_lid' bound to the visible green garbage can and its hinged lid.",
+    "OpenContainer with container_type='bin_lid' encapsulates the required lift motion.",
+    "Frames show side approach near a table; clearance is sufficient to open."
   ],
-  "symbols_map": {
-    "green_bin_lid": "target lid surface/handle on the green garbage can",
-    "axis:+z": "lifting direction to open the hinged lid"
+  "evaluation_notes": {
+    "expected_success_criteria": ["ContainerOpen returns success and robot retreats"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
   },
-  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null}
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"green_bin","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","DetectObject"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"bin_lid","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","DetectObject"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"bin_lid","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"bin_lid","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"bin_lid","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.09,"timeout_ms":800}},
+      "active_path_ids": ["Sequence","OpenGripper"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"green_bin","container_type":"bin_lid","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","Fallback","Sequence","OpenContainer"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"green_bin","container_type":"bin_lid","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","Fallback","Sequence","OpenContainer"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": ["Sequence","Retreat"]
+    }
+  ]
 }

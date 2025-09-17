@@ -12,6 +12,7 @@ import numpy as np
 import tensorflow_datasets as tfds
 from PIL import Image
 from utils import _to_1d
+from contact_sheet import create_from_dir  
 
 # =============================================================================
 #  Utility: accesso a chiavi annidate ("a/b/c" o "a.b.c")

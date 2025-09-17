@@ -1,0 +1,63 @@
+{
+  "dataset_id": "cmu_stretch_0.1.0",
+  "episode_id": "episode_007",
+  "task_summary": "Robot localizes the green bin lid, approaches and grasps the tab, lifts to open the bin lid, verifies it is open, and retreats.",
+  "assumptions": [
+    "Green bin and lid are reachable without moving the base",
+    "Lid has a graspable tab/edge",
+    "Scene remains static during execution",
+    "Hinged lid opens upward without excessive friction"
+  ],
+  "objects": ["green_bin", "green_bin_lid"],
+  "blackboard_keys": ["target"],
+  "node_specs": [
+    {"id":"SetBlackboard","type":"Action","ports":{"key":"string","value":"string"},"description":"Store symbolic targets/values for later nodes."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"string"},"description":"Checks if the target object is visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"string","pattern":"string","max_attempts":"int","timeout_ms":"int"},"description":"Active search for a target with a specified scan pattern."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"string","offset_z":"float","timeout_ms":"int"},"description":"Move to a pose above the target by offset_z."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"string","tolerance":"float","timeout_ms":"int"},"description":"Close in and align the gripper with the target."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":"float","timeout_ms":"int"},"description":"Open the gripper to a specified width."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":"float","timeout_ms":"int"},"description":"Close the gripper with specified force."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verify grasp stability before lifting."},
+    {"id":"MoveDelta","type":"Action","ports":{"axis":"string","dist":"float","timeout_ms":"int"},"description":"Move the end-effector along one axis by a small distance."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"string","container_type":"string","timeout_ms":"int"},"description":"Command to open a specified container type."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"string"},"description":"Check whether the container is open."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back off after task completion."},
+    {"id":"RetryUntilSuccessful","type":"Decorator","ports":{"num_attempts":"int"},"description":"Retry single-child subtree for limited attempts."},
+    {"id":"Sequence","type":"Composite","description":"Run children in order until one fails."},
+    {"id":"Fallback","type":"Composite","description":"Try children in order until one succeeds."}
+  ],
+  "tree_stats": {"nodes_total": 15, "actions": 9, "conditions": 3, "decorators": 1, "composites": 2, "depth": 4},
+  "failure_modes": [
+    "Target not detected",
+    "Alignment fails due to occlusion",
+    "Grasp slips on smooth lid",
+    "Hinge friction too high to lift",
+    "Collision with desk during lift"
+  ],
+  "recovery_strategy": [
+    "Scan again if not visible",
+    "Retry MoveAbove then ApproachAndAlign",
+    "Re-open and re-grasp with higher force (if allowed by policy)",
+    "Abort and notify operator if container does not open"
+  ],
+  "local_annotations": [
+    {"frame":"frame_00.jpg","t":0,"note":"Scene with green bin; robot begins approach."},
+    {"frame":"frame_01.jpg","t":1,"note":"Closer to lid; preparing alignment."},
+    {"frame":"frame_02.jpg","t":2,"note":"Aligning over the lid tab."},
+    {"frame":"frame_03.jpg","t":3,"note":"Gripper open above the tab/edge."},
+    {"frame":"frame_04.jpg","t":4,"note":"Closing gripper on the lid edge."},
+    {"frame":"frame_05.jpg","t":5,"note":"Grasp stabilized on lid."},
+    {"frame":"frame_06.jpg","t":6,"note":"Lifting lid upward."},
+    {"frame":"frame_07.jpg","t":7,"note":"Lid open; gripper holding; ready to retreat."}
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "ContainerOpen condition is true",
+      "Visible increase in lid opening angle between frames 04→07",
+      "No collision with desk or bin rim"
+    ],
+    "test_scenarios": ["nominal open", "low-contrast tab (visibility issues)", "high hinge friction", "misalignment then retry"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null}
+}

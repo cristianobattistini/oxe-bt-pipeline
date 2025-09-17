@@ -1,11 +1,154 @@
 {
   "dataset_id": "columbia_cairlab_pusht_real_0.1.0",
   "episode_id": "episode_008",
-  "created_at": "2025-09-15T17:32:54",
-  "instruction": "The task requires pushing a T-shaped block (gray) to a fixed target (green) with a circular end-effector (blue). Both observation and control frequencies are 10Hz.",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/columbia_cairlab_pusht_real_0.1.0/episode_008",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/PROMPT.md"
+  "task_summary": "Perceive the T-shaped block and the fixed goal marker, align the end-effector, push the block toward the marker, then retreat.",
+  "task_long_description": {
+    "overview": "A tabletop scene shows a T-shaped block and a robot arm with a circular tool tip. The goal is to push the T-block from its initial pose to a fixed goal location on the board. The behavior first ensures both the block and target are detected, then aligns the tool with the block’s pushing face, sets a stable yaw, performs a straight push for a fixed distance, and finally retreats and waits to settle. The control/observation cadence is nominally 10 Hz.",
+    "preconditions": ["Workspace is clear and dry", "Robot homed and calibrated", "Goal marker visible on board", "T-shaped block within reachable area"],
+    "stepwise_plan": [
+      "Detect the T-block.",
+      "Detect the goal marker.",
+      "Approach and align to the T-block with tight tolerance.",
+      "Set yaw for a straight-line push toward the target.",
+      "Push the block a fixed distance toward the goal.",
+      "Retreat to avoid disturbing the final pose.",
+      "Briefly wait to allow motion to settle."
+    ],
+    "success_criteria": [
+      "T-block ends within the goal region",
+      "No collisions with fixtures",
+      "Single continuous push without lifting"
+    ],
+    "failure_and_recovery": [
+      "Perception failure: re-run detection and re-approach.",
+      "Misalignment or slip: re-approach with the same tolerance and repeat push with smaller distance.",
+      "Overshoot: retreat and plan a corrective push in the opposite direction."
+    ],
+    "termination": "Terminate after the retreat and wait once the push completes or if detection repeatedly fails."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.15, "frame_1": 0.40, "frame_2": 0.63, "frame_3": 0.93,
+      "frame_4": 0.35, "frame_5": 0.82, "frame_6": 0.55, "frame_7": 0.22, "frame_8": 0.08
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Clear first push motion with contact established and alignment cue visible.",
+        "predicts_next": "Continuation of push and expected translation toward goal.",
+        "uncertainty_reduction": "high"
+      },
+      "frame_5": {
+        "now_evidence": "Largest visible displacement of the T-block.",
+        "predicts_next": "Retreat phase should follow.",
+        "uncertainty_reduction": "high"
+      },
+      "frame_2": {
+        "now_evidence": "End-effector aligned at contact onset.",
+        "predicts_next": "Start of transfer (push).",
+        "uncertainty_reduction": "medium"
+      }
+    }
+  },
+  "task_instruction": "The task requires pushing a T-shaped block (gray) to a fixed target (green) with a circular end-effector (blue). Both observation and control frequencies are 10Hz.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["t_block", "goal_marker", "robot_end_effector", "table_workspace"],
+  "objects_from_instruction": ["block_T_gray", "target_fixed_green", "end_effector_circular_blue"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"t_block","timeout_ms":800},"description":"Locate the T-shaped block."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"goal_marker","timeout_ms":800},"description":"Locate the fixed goal region."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"t_block","tolerance":0.01,"timeout_ms":1200},"description":"Approach and align the tool to the T-block face."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":90},"description":"Orient tool for a straight push."},
+    {"id":"Push","type":"Action","ports":{"target":"t_block","distance":0.1,"direction_deg":90,"timeout_ms":1500},"description":"Execute the push toward the goal."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off to avoid disturbing final pose."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":400},"description":"Allow motion to settle."}
+  ],
+  "tree_stats": {"nodes_total": 8, "actions": 7, "conditions": 0, "depth": 2},
+  "failure_modes": [
+    "Target or block not detected due to occlusion or lighting",
+    "Tool misalignment causing lateral slip",
+    "Push distance insufficient or excessive",
+    "Block rotates unpredictably due to friction anisotropy"
+  ],
+  "recovery_strategy": [
+    "Re-run detection and re-approach before pushing again",
+    "Reduce push distance to 0.05 and repeat",
+    "Adjust yaw to 0 or 135 degrees if drift observed"
+  ],
+  "assumptions": [
+    "Frames show a red T-block and a small blue circle on the board; instruction mentions gray block and green target. We treat the blue circle as the fixed goal marker.",
+    "End-effector appears cylindrical; treated as a circular tip per instruction."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Post-push, block centroid overlaps the goal marker region",
+      "No secondary contacts after retreat"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"t_block","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"goal_marker","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"t_block","tolerance":0.01,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.1,"direction_deg":90,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.1,"direction_deg":90,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.1,"direction_deg":90,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":400}},
+      "active_path_ids": []
+    }
+  ]
 }

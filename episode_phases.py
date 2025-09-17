@@ -10,6 +10,11 @@ from loader import sample_every_k, parse_action_fields
 from frame_selection import embedding_select_from_raw
 import config as CFG
 
+try:
+    from contact_sheet import create_from_dir as _cs_create
+except Exception:
+    _cs_create = None
+
 
 def _load_raw_frames_from_disk(ep_dir: str) -> Tuple[np.ndarray, List[str]]:
     """Carica i frame già salvati in raw_frames/ come array uint8 e lista path."""
@@ -220,6 +225,31 @@ def build_all_episode_phases(ep_dir: str, episode_steps: Optional[list] = None):
                     filename_mode="sequential"
                 )
                 print(f"[EMBEDS] selected {len(sel_idx)} frames (k_slicing={sel['k_slicing']}, K={sel['K']}).")
+
+                if _cs_create is not None:
+                    phase_root = os.path.join(ep_dir, "final_selected")
+                    frames_dir = os.path.join(phase_root, "sampled_frames")  # <- percorso corretto
+                    if not os.path.isdir(frames_dir):
+                        print(f"[CS][WARN] frames dir not found: {frames_dir}")
+                    else:
+                        out_cs = os.path.join(phase_root, "episode.jpeg") 
+                        try:
+                            _cs_create(
+                                frames_dir=frames_dir,
+                                dataset_id=os.path.basename(os.path.dirname(ep_dir)) or "DATASET",
+                                episode_id=f"{os.path.basename(ep_dir)}/final_selected",
+                                out_path=out_cs,
+                                k=1,            # già selezionati, no ricampionamento
+                                n=9,            # 4×2
+                                cols=3, rows=3,
+                                tile_max_w=960, # aumenta risoluzione tile per qualità
+                                force=False
+                            )
+                            print(f"[CS] wrote {out_cs}")
+                        except Exception as e:
+                            print(f"[CS][WARN] contact sheet failed: {e}")
+                else:
+                    print("[CS] contact_sheet module not available; skipped.")
             else:
                 print("[EMBEDS] no frames to select (selection returned empty).")
         except Exception as e:

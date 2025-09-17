@@ -61,7 +61,7 @@ embeds = {
     "backbone": "mobilenet_v2",   # anche: "efficientnet_b0"
     "img_size": 224,
     "k_slicing": 10,              # usa 1 frame ogni 10 come candidati
-    "K": 8,                      # quanti frame finali tenere
+    "K": 9,                      # quanti frame finali tenere
     "batch_size": 32,
     "include_boundaries": False,   # include primo/ultimo del sottoinsieme
     "force_global_boundaries": False,  # se True, forza anche 0 e T-1 globali

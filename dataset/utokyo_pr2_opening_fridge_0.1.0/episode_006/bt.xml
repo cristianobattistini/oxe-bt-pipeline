@@ -1,5 +1,20 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <ContainerOpen target="fridge_door"/>
+      <Sequence>
+        <OpenGripper width="0.09" timeout_ms="500"/>
+        <ScanForTarget target="fridge_handle" pattern="arc" max_attempts="3" timeout_ms="1500"/>
+        <DetectObject target="fridge_handle" timeout_ms="800"/>
+        <ComputeGraspPose target="fridge_handle" strategy="pull" result_key="grasp_handle"/>
+        <ApproachAndAlign target="fridge_handle" tolerance="0.01" timeout_ms="1500"/>
+        <SetTCPYaw yaw_deg="90"/>
+        <CloseGripper force="20" timeout_ms="800"/>
+        <OpenContainer target="fridge_door" container_type="hinged_door" timeout_ms="1500"/>
+      </Sequence>
+    </Fallback>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <OpenGripper width="0.08" timeout_ms="500"/>
+    <Wait timeout_ms="400"/>
   </Sequence>
 </BehaviorTree>

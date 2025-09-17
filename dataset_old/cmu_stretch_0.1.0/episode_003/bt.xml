@@ -1,0 +1,18 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="SetBlackboard" key="target" value="pot_lid"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="pot_lid"/>
+      <Action ID="ScanForTarget" target="pot_lid" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="MoveAbove" target="pot_lid" offset_z="0.06" timeout_ms="800"/>
+    </RetryUntilSuccessful>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="500"/>
+    <Action ID="ApproachAndAlign" target="pot_lid" tolerance="0.01" timeout_ms="1200"/>
+    <Action ID="CloseGripper" force="20" timeout_ms="1500"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="MoveDelta" axis="z" dist="0.1" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

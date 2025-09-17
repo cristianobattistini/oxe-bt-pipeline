@@ -1,0 +1,16 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="SetBlackboard" key="target" value="block_T"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="block_T"/>
+      <Action ID="ScanForTarget" target="block_T" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <Action ID="MoveTo" target="prepush_left" timeout_ms="800"/>
+    <Condition ID="IsAt" target="prepush_left"/>
+    <Action ID="SetTCPYaw" yaw_deg="0"/>
+    <Action ID="ApproachAndAlign" target="block_T" tolerance="0.01" timeout_ms="1200"/>
+    <Action ID="Push" target="block_T" distance="0.2" direction_deg="90" timeout_ms="1500"/>
+    <Action ID="Push" target="block_T" distance="0.2" direction_deg="90" timeout_ms="1500"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

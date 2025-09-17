@@ -1,0 +1,18 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="SetBlackboard" key="target" value="dishwasher_handle"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="dishwasher_handle"/>
+      <Action ID="ScanForTarget" target="dishwasher_handle" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="ApproachAndAlign" target="dishwasher_handle" tolerance="0.01" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="CloseGripper" force="20" timeout_ms="1500"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="MoveDelta" axis="x" dist="0.2" timeout_ms="800"/>
+    <Condition ID="ContainerOpen" target="dishwasher"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

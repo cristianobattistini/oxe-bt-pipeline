@@ -1,0 +1,74 @@
+{
+  "dataset_id": "columbia_cairlab_pusht_real_0.1.0",
+  "episode_id": "episode_002",
+  "task_summary": "Robot perceives a T-shaped block, approaches, aligns, and executes a series of pushes to drive the block toward a fixed target zone, then retreats.",
+  "assumptions": [
+    "t_block and target_zone are visible or discoverable by scanning",
+    "workspace is planar and obstacle-free",
+    "pushing is sufficient (no grasping required)",
+    "friction allows incremental translation/rotation",
+    "end-effector yaw can be discretely set to 0° or 90°"
+  ],
+  "objects": ["t_block", "target_zone"],
+  "blackboard_keys": ["object", "target"],
+  "symbolic_targets": {
+    "t_block": "the red T-shaped block",
+    "target_zone": "the green/blue outlined goal shape on the table"
+  },
+  "node_specs": [
+    {"id":"SetBlackboard","type":"Action","ports":{"key":"string","value":"string"},"description":"Store symbolic names for later nodes."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"string"},"description":"Check if the object is currently detected."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"string","pattern":"string","max_attempts":"int","timeout_ms":"int"},"description":"Active search for the target with a specified scan pattern."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"string","offset_z":"float","timeout_ms":"int"},"description":"Move above the object at a safe Z offset."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":"int"},"description":"Discretely set the tool yaw for pushing direction."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"string","tolerance":"float","timeout_ms":"int"},"description":"Approach the block and align contact normal within tolerance."},
+    {"id":"Push","type":"Action","ports":{"target":"string","distance":"float","direction_deg":"int","timeout_ms":"int"},"description":"Execute a directed push of the specified distance."},
+    {"id":"MoveDelta","type":"Action","ports":{"axis":"string","dist":"float","timeout_ms":"int"},"description":"Small Cartesian reposition between pushes."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":"int"},"description":"Brief stabilization wait after motion."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back off from the object after task completion."},
+    {"id":"RetryUntilSuccessful","type":"Decorator","ports":{"num_attempts":"int"},"description":"Retry its single child until success or attempts exhausted."},
+    {"id":"Sequence","type":"Composite","description":"Run children in order; stop on first failure."},
+    {"id":"Fallback","type":"Composite","description":"Try children in order until one succeeds."}
+  ],
+  "tree_stats": {
+    "nodes_total": 18,
+    "actions": 14,
+    "conditions": 1,
+    "decorators": 1,
+    "composites": 2,
+    "depth": 4
+  },
+  "local_annotations": [
+    {"frame": "frame_00.jpg", "event": "scene_setup", "description": "EE over table; goal outline visible; preparing to detect t_block."},
+    {"frame": "frame_01.jpg", "event": "visibility_check", "description": "t_block and target outline visible; align yaw for side push."},
+    {"frame": "frame_02.jpg", "event": "first_contact", "description": "Approach and align to initiate first push along -X (180°)."},
+    {"frame": "frame_03.jpg", "event": "push_segment_1", "description": "Execute push distance 0.1 along 180°; block translates toward goal."},
+    {"frame": "frame_04.jpg", "event": "reposition_1", "description": "Small reposition to set up a second translation push."},
+    {"frame": "frame_05.jpg", "event": "push_segment_2", "description": "Second push 0.1 along 180°; block advances closer to outline."},
+    {"frame": "frame_06.jpg", "event": "fine_alignment", "description": "Yaw set to 0°; small reposition and corrective push 0.05 along 270°."},
+    {"frame": "frame_07.jpg", "event": "stabilize_and_retreat", "description": "Block rests near/within target outline; wait and retreat."}
+  ],
+  "timing": {
+    "observation_hz": 10,
+    "control_hz": 10,
+    "frame_indices": {"t0": 0, "t1": 1, "t2": 2, "t3": 3, "t4": 4, "t5": 5, "t6": 6, "t7": 7}
+  },
+  "failure_modes": [
+    "object not detected after scan",
+    "misalignment causing slip during push",
+    "insufficient push distance due to friction or obstruction"
+  ],
+  "recovery_strategy": [
+    "re-scan and re-approach if visibility is lost",
+    "repeat push sequence with adjusted yaw (0°/90°) if drift observed",
+    "fallback to operator if repeated retries fail"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "t_block overlaps target_zone with position error < 2 cm",
+      "final yaw within 10° of target orientation",
+      "no sustained contact after retreat"
+    ],
+    "test_scenarios": ["nominal path", "high friction surface", "target partially occluded"]
+  }
+}

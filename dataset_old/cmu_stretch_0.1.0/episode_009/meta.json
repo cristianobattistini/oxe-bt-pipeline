@@ -1,0 +1,53 @@
+{
+  "dataset_id": "cmu_stretch_0.1.0",
+  "episode_id": "episode_009",
+  "task_summary": "Robot detects the drawer handle, approaches and grasps it, opens the drawer, verifies it is open, then retreats.",
+  "assumptions": [
+    "drawer is reachable and unobstructed",
+    "handle geometry supports grasping",
+    "perception provides a stable target pose"
+  ],
+  "objects": ["drawer", "drawer_handle", "pregrasp_drawer"],
+  "blackboard_keys": ["target"],
+  "node_specs": [
+    {"id":"SetBlackboard","type":"Action","ports":{"key":"string","value":"string"},"description":"Write a key/value on the blackboard."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"string"},"description":"Checks whether the target object is currently visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"string","pattern":"string","max_attempts":"int","timeout_ms":"int"},"description":"Active scan to find the target using a specified pattern."},
+    {"id":"MoveTo","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Move the end-effector/base to a symbolic pose."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"string","tolerance":"float","timeout_ms":"int"},"description":"Refine approach and align with the handle before grasping."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":"float","timeout_ms":"int"},"description":"Open gripper to preset width."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":"float","timeout_ms":"int"},"description":"Close gripper with specified force to secure the handle."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Confirm grasp stability before pulling."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"string","container_type":"string","timeout_ms":"int"},"description":"Open the specified container (drawer)."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"string"},"description":"Check that the container is open."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back off to create clearance after opening."}
+  ],
+  "tree_stats": {"nodes_total": 14, "actions": 8, "conditions": 3, "composites": 2, "decorators": 1, "depth": 3},
+  "failure_modes": [
+    "drawer_handle not detected",
+    "alignment fails due to occlusion",
+    "grasp slips during pull",
+    "drawer jammed or blocked"
+  ],
+  "recovery_strategy": [
+    "re-scan with ScanForTarget and retry MoveTo",
+    "adjust approach tolerance and retry",
+    "increase grasp force within safe limits",
+    "abort and request human assistance if jam persists"
+  ],
+  "local_annotations": [
+    {"frame":"frame_00.jpg","t":0,"desc":"Initial view; approach to drawer begins."},
+    {"frame":"frame_01.jpg","t":1,"desc":"Moving toward pregrasp pose near handle."},
+    {"frame":"frame_02.jpg","t":2,"desc":"Refining approach and alignment to handle."},
+    {"frame":"frame_03.jpg","t":3,"desc":"Gripper opened and positioned at handle."},
+    {"frame":"frame_04.jpg","t":4,"desc":"Gripper closes on handle; grasp secured."},
+    {"frame":"frame_05.jpg","t":5,"desc":"Pull motion initiates; drawer starts to open."},
+    {"frame":"frame_06.jpg","t":6,"desc":"Drawer further open; continue pulling."},
+    {"frame":"frame_07.jpg","t":7,"desc":"Open state verified; begin retreat."}
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["ContainerOpen returns success", "drawer visibly displaced outward in frames 5–7"],
+    "test_scenarios": ["happy path", "low-visibility handle", "high-friction drawer", "slippery handle"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null}
+}

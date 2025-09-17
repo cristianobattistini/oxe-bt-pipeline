@@ -1,0 +1,61 @@
+{
+  "dataset_id": "columbia_cairlab_pusht_real_0.1.0",
+  "episode_id": "episode_005",
+  "task_summary": "Robot detects the T-shaped block, approaches, sets tool yaw, executes a primary leftward push toward the outlined target, performs small corrective pushes, and retreats.",
+  "assumptions": [
+    "block_T and goal_T_outline are detectable",
+    "workspace is planar and quasi-static",
+    "pushing dynamics are predictable under friction"
+  ],
+  "objects": ["block_T", "goal_T_outline", "prepush_pose"],
+  "blackboard_keys": ["object_id", "goal_id"],
+  "frequencies_hz": {"observation": 10, "control": 10},
+  "node_specs": [
+    {"id":"SetBlackboard","type":"Action","ports":{"key":"string","value":"string"},"description":"Store symbolic identifiers for later nodes."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"string"},"description":"Checks if the target is currently visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"string","pattern":"string","max_attempts":"int","timeout_ms":"int"},"description":"Active search when the target is not visible."},
+    {"id":"MoveTo","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Move to a symbolic pose."},
+    {"id":"IsAt","type":"Condition","ports":{"target":"string"},"description":"Verify arrival at a symbolic pose."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"string","tolerance":"float","timeout_ms":"int"},"description":"Establish gentle contact and align to push direction."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":"int"},"description":"Orient the tool about the vertical axis."},
+    {"id":"Push","type":"Action","ports":{"target":"string","distance":"float","direction_deg":"int","timeout_ms":"int"},"description":"Apply a directional push with a set travel distance."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back off after completion."}
+  ],
+  "tree_stats": {"nodes_total": 13, "actions": 11, "conditions": 2, "depth": 4},
+  "failure_modes": [
+    "target not detected",
+    "approach alignment error",
+    "push overshoot or insufficient travel",
+    "object jams on table friction"
+  ],
+  "recovery_strategy": [
+    "scan for target and retry MoveTo",
+    "re-align with ApproachAndAlign",
+    "apply corrective short Push in orthogonal/primary direction",
+    "retreat and re-approach if contact lost"
+  ],
+  "local_annotations": [
+    {"frame":"frame_00.jpg","t":0,"note":"EE approaches block_T; goal_T_outline visible on left."},
+    {"frame":"frame_01.jpg","t":1,"note":"Closing in to establish pushing contact."},
+    {"frame":"frame_02.jpg","t":2,"note":"Initial contact on block edge; yaw aligned."},
+    {"frame":"frame_03.jpg","t":3,"note":"Primary leftward push toward outline."},
+    {"frame":"frame_04.jpg","t":4,"note":"Block reaches outline; corrective alignment begins."},
+    {"frame":"frame_05.jpg","t":5,"note":"Small corrective push."},
+    {"frame":"frame_06.jpg","t":6,"note":"Final settling push."},
+    {"frame":"frame_07.jpg","t":7,"note":"EE retreats; block remains near target."}
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "block_T lies within goal_T_outline after pushes",
+      "no collisions with non-target surfaces",
+      "EE retreats by at least 0.1 m"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "low visibility requiring scan",
+      "high friction causing under-travel",
+      "overshoot requiring corrective pushes"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null}
+}

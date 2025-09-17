@@ -1,19 +1,19 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <Action ID="SetBlackboard" key="target" value="green_bin_lid"/>
+    <Action ID="DetectObject" target="green_bin" timeout_ms="1500"/>
+    <Action ID="DetectObject" target="bin_lid" timeout_ms="1500"/>
+    <Action ID="MoveAbove" target="bin_lid" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="SetTCPYaw" yaw_deg="90"/>
+    <Action ID="ApproachAndAlign" target="bin_lid" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
     <Fallback>
-      <Condition ID="IsObjectVisible" target="green_bin_lid"/>
-      <Action ID="ScanForTarget" target="green_bin_lid" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
+      <Condition ID="ContainerOpen" target="green_bin"/>
+      <Sequence>
+        <Action ID="OpenContainer" target="green_bin" container_type="bin_lid" timeout_ms="1500"/>
+        <Action ID="Wait" timeout_ms="400"/>
+        <Condition ID="ContainerOpen" target="green_bin"/>
+      </Sequence>
     </Fallback>
-    <RetryUntilSuccessful num_attempts="3">
-      <Action ID="MoveAbove" target="green_bin_lid" offset_z="0.1" timeout_ms="1200"/>
-    </RetryUntilSuccessful>
-    <Action ID="ApproachAndAlign" target="green_bin_lid" tolerance="0.01" timeout_ms="1200"/>
-    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
-    <Action ID="CloseGripper" force="20" timeout_ms="1500"/>
-    <Condition ID="IsGraspStable"/>
-    <Action ID="MoveDelta" axis="z" dist="0.1" timeout_ms="800"/>
-    <Condition ID="ContainerOpen" target="green_bin_lid"/>
-    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

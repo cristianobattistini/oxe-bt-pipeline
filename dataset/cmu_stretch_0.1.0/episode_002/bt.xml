@@ -1,23 +1,13 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <Action ID="SetBlackboard" key="target" value="dishwasher_handle"/>
-    <Fallback>
-      <Condition ID="IsObjectVisible" target="dishwasher_handle"/>
-      <Action ID="ScanForTarget" target="dishwasher_handle" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
-    </Fallback>
-    <Fallback>
-      <Condition ID="IsAt" target="pregrasp_dishwasher"/>
-      <RetryUntilSuccessful num_attempts="3">
-        <Action ID="MoveTo" target="pregrasp_dishwasher" timeout_ms="1200"/>
-      </RetryUntilSuccessful>
-    </Fallback>
-    <Action ID="MoveAbove" target="dishwasher_handle" offset_z="0.1" timeout_ms="1200"/>
-    <Action ID="ApproachAndAlign" target="dishwasher_handle" tolerance="0.01" timeout_ms="1200"/>
-    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
-    <Action ID="CloseGripper" force="20" timeout_ms="1500"/>
-    <Condition ID="IsGraspStable"/>
-    <Action ID="OpenContainer" target="dishwasher" container_type="door" timeout_ms="1500"/>
-    <Condition ID="ContainerOpen" target="dishwasher"/>
-    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+    <ScanForTarget target="dishwasher" pattern="line" max_attempts="3" timeout_ms="1500"/>
+    <DetectObject target="dishwasher_handle" timeout_ms="1500"/>
+    <OpenGripper width="0.08" timeout_ms="800"/>
+    <ApproachAndAlign target="dishwasher_handle" tolerance="0.01" timeout_ms="1500"/>
+    <CloseGripper force="20" timeout_ms="800"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <OpenContainer target="dishwasher" container_type="hinged_door" timeout_ms="1500"/>
+    <ContainerOpen target="dishwasher"/>
+    <Retreat distance="0.1" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>
