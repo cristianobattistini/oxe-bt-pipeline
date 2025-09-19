@@ -1,5 +1,18 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <IsObjectVisible target="fridge_handle"/>
+      <Sequence>
+        <ScanForTarget target="fridge_handle" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+        <DetectObject target="fridge_handle" timeout_ms="800"/>
+      </Sequence>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="3">
+      <Sequence>
+        <ApproachAndAlign target="fridge_handle" tolerance="0.005" timeout_ms="1200"/>
+        <OpenContainer target="fridge_door" container_type="hinged_door" timeout_ms="1500"/>
+      </Sequence>
+    </RetryUntilSuccessful>
+    <ContainerOpen target="fridge_door"/>
   </Sequence>
 </BehaviorTree>
