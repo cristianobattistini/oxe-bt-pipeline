@@ -89,44 +89,70 @@ INPUTS
 - GLOBAL_BT (authoritative structure, do not modify here):
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <OpenGripper width="0.08" timeout_ms="500"/>
-    <Fallback>
-      <IsObjectVisible target="drawer_handle"/>
-      <RetryUntilSuccessful num_attempts="3">
-        <ScanForTarget target="drawer_handle" pattern="raster" max_attempts="3" timeout_ms="1500"/>
-      </RetryUntilSuccessful>
-    </Fallback>
-    <DetectObject target="drawer_handle" timeout_ms="1200"/>
-    <MoveAbove target="drawer_handle" offset_z="0.02" timeout_ms="1200"/>
-    <ApproachAndAlign target="drawer_handle" tolerance="0.005" timeout_ms="1500"/>
-    <CloseGripper force="20" timeout_ms="800"/>
-    <OpenContainer target="drawer_A" container_type="drawer" timeout_ms="1500"/>
-    <Retreat distance="0.1" timeout_ms="800"/>
+    <Action ID="DetectObject" target="drawer_handle" timeout_ms="1200"/>
+    <Action ID="ApproachAndAlign" target="drawer_handle" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="SetTCPYaw" yaw_deg="90"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="500"/>
+    <Action ID="ComputeGraspPose" target="drawer_handle" strategy="pull" result_key="grasp_handle"/>
+    <Action ID="Pick" grasp_key="grasp_handle" timeout_ms="1500"/>
+    <Action ID="MoveDelta" axis="x" dist="0.1" timeout_ms="1200"/>
+    <Action ID="Retreat" distance="0.05" timeout_ms="800"/>
+    <Condition ID="ContainerOpen" target="drawer"/>
   </Sequence>
 </BehaviorTree>
 
 - GLOBAL_DESCRIPTION (task_long_description; keep semantics consistent):
 {
-  "overview": "",
-  "preconditions": [],
-  "stepwise_plan": [],
-  "success_criteria": [],
-  "failure_and_recovery": [],
-  "termination": ""
+  "overview": "The scene shows a mobile manipulator (Stretch) at a kitchen cabinet with a drawer and visible handle beneath a countertop. The goal is to open the drawer. The robot must first perceive the handle, approach precisely, orient its gripper, and grasp. It then performs a straight pull motion along the drawer axis to open the drawer, followed by a short retreat to avoid collisions. The sequence concludes with a state check that the drawer is open. Timeouts and discrete parameter bins ensure stable behavior under moderate perception noise.",
+  "preconditions": [
+    "Drawer front and handle visible from current view",
+    "Handle within manipulator reach",
+    "No objects obstructing the pull path",
+    "Gripper empty and operational"
+  ],
+  "stepwise_plan": [
+    "Detect drawer handle",
+    "Approach and align with small tolerance",
+    "Set gripper yaw to match handle",
+    "Open gripper to max width",
+    "Compute grasp pose for pull strategy",
+    "Execute pick using computed grasp",
+    "Pull outward along x-axis to open drawer",
+    "Retreat slightly from the front",
+    "Verify drawer open state"
+  ],
+  "success_criteria": [
+    "Drawer transitions from closed to open state",
+    "No collision with cabinet or countertop",
+    "Grasp remains stable during pull",
+    "Final retreat leaves clearance from furniture"
+  ],
+  "failure_and_recovery": [
+    "Handle not detected → re-run detection and small viewpoint adjustment (not modeled here)",
+    "Misalignment → re-approach with same tolerance",
+    "Grasp slip → re-compute pose and pick again",
+    "Drawer sticks → increase pull distance in follow-up trials"
+  ],
+  "termination": "Terminate when ContainerOpen(target=\"drawer\") returns success or upon any action timeout/failure."
 }
 
 - FRAME (single image; indexing is authoritative):
-frame_index: null
-frame_name: "frame_.jpg"
-frame_ranking_hint: null
+frame_index: 3
+frame_name: "frame_03.jpg"
+frame_ranking_hint: 0.92
 
 - LOCAL_ANNOTATION (authoritative for current micro-goal):
 {
-  "frame": "frame_<k>",
-  "phase": "<perceive|approach|align|act|verify|retreat>",
-  "active_leaf": {"id": "<leaf_id_from_library>", "attrs": {}},
-  "active_path_ids": ["MainTree"],
-  "lookahead_hint": {"next_phase": "<phase>", "next_leaf_id": null, "reason": "<visual cue>"}
+  "frame": "frame_3",
+  "phase": "grasp",
+  "active_leaf": {
+    "id": "Pick",
+    "attrs": {
+      "grasp_key": "grasp_handle",
+      "timeout_ms": 1500
+    }
+  },
+  "active_path_ids": []
 }
 
 - REPLACEMENT_TARGET (where the subtree will plug):
@@ -147,14 +173,14 @@ REQUIRED OUTPUT
 
 (1) XML subtree
 <BehaviorTree ID="MainTree">
-  <Sequence>
-    <!-- minimal, binned, library-only -->
-  </Sequence>
+    <Sequence>
+        <!-- minimal, binned, library-only -->
+    </Sequence>
 </BehaviorTree>
 
 (2) JSON metadata
 {
-  "frame_index": null,
+  "frame_index": 3,
   "local_intent": "",
   "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],

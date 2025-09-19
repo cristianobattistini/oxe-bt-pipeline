@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="bin_lid"/>
+      <Action ID="DetectObject" target="bin_lid" timeout_ms="1500"/>
+    </Fallback>
+    <Condition ID="AtOrientation" yaw_deg="90"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="ApproachAndAlign" target="bin_lid" tolerance="0.01" timeout_ms="1500"/>
+    </RetryUntilSuccessful>
+    <Condition ID="IsAt" target="bin_lid"/>
   </Sequence>
 </BehaviorTree>
