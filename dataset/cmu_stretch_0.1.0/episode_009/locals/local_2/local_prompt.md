@@ -146,13 +146,11 @@ STRICT RULES
 REQUIRED OUTPUT
 
 (1) XML subtree
-<root main_tree_to_execute="MainTree">
-  <BehaviorTree ID="MainTree">
-    <Sequence name="LocalSubtask">
-      <!-- minimal, binned, library-only -->
-    </Sequence>
-  </BehaviorTree>
-</root>
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <!-- minimal, binned, library-only -->
+  </Sequence>
+</BehaviorTree>
 
 (2) JSON metadata
 {

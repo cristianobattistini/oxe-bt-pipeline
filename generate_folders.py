@@ -43,7 +43,7 @@ BT_XML_SKELETON = """<BehaviorTree ID="MainTree">
 """
 
 SUBTREE_XML_SKELETON = """<BehaviorTree ID="MainTree">
-  <Sequence name="LocalSubtask">
+  <Sequence>
     <!-- perceive / align / act / verify -->
   </Sequence>
 </BehaviorTree>
@@ -96,13 +96,11 @@ STRICT RULES
 REQUIRED OUTPUT
 
 (1) XML subtree
-<root main_tree_to_execute="MainTree">
-  <BehaviorTree ID="MainTree">
-    <Sequence name="LocalSubtask">
-      <!-- minimal, binned, library-only -->
+<BehaviorTree ID="MainTree">
+    <Sequence>
+        <!-- minimal, binned, library-only -->
     </Sequence>
-  </BehaviorTree>
-</root>
+</BehaviorTree>
 
 (2) JSON metadata
 {{
