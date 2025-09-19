@@ -1,5 +1,9 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="DetectObject" target="white_plate" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Action ID="ApproachAndAlign" target="white_plate" tolerance="0.005" timeout_ms="1200"/>
+    <Condition ID="IsAt" target="white_plate"/>
   </Sequence>
 </BehaviorTree>
