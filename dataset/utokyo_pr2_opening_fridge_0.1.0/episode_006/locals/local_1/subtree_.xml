@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <ContainerOpen target="fridge_door"/>
+      <Sequence>
+        <IsObjectVisible target="fridge_door"/>
+        <SetTCPYaw yaw_deg="90"/>
+        <OpenContainer target="fridge_door" container_type="hinged_door" timeout_ms="1500"/>
+      </Sequence>
+    </Fallback>
+    <ContainerOpen target="fridge_door"/>
   </Sequence>
 </BehaviorTree>
