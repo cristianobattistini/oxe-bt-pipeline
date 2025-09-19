@@ -496,7 +496,7 @@ python generate_folders.py \
 python generate_folders.py \
   --mode locals \
   --dest-root dataset \
-  --node-lib library/node_library.json
+  --node-lib library/node_library_v_01.json
   
 
 '''
