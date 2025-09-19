@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 4,
+  "local_intent": "Execute pinch grasp on the grape using the stored grasp pose and verify stability.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_grape"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "The grape is still visible at grasp time.",
+    "Blackboard key 'grasp_grape' was produced earlier by ComputeGraspPose and validated by PoseAvailable."
+  ],
+  "coherence_with_global": "Matches global sequence after detection and pose computation: align to grape, perform Pick(grasp_grape,1200), then confirm IsGraspStable; retreat occurs in the parent tree.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

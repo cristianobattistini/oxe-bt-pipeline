@@ -1,5 +1,16 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <IsObjectVisible target="plate"/>
+      <ScanForTarget target="plate" pattern="grid" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="plate" timeout_ms="800"/>
+    </RetryUntilSuccessful>
+    <MoveAbove target="plate" offset_z="0.05" timeout_ms="1200"/>
+    <PlaceAt pose_key="plate_center" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <Inverter>
+      <ObjectInGripper target="bread"/>
+    </Inverter>
   </Sequence>
 </BehaviorTree>

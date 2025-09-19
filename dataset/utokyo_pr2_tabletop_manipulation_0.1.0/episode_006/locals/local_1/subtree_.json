@@ -1,9 +1,15 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 4,
+  "local_intent": "Align to the bread and execute the grasp using the precomputed key, then verify the grasp is stable.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["bread_grasp"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": ["'bread_grasp' was computed earlier by ComputeGraspPose.", "Bread may require a re-detect if not currently visible."],
+  "coherence_with_global": "Implements the grasp phase: (perceive) visibility or re-detect, (align) precise approach, (act) Pick with 'bread_grasp', (verify) IsGraspStable, matching the GLOBAL_BT sequence.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }
