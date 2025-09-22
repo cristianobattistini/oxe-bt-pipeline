@@ -1,11 +1,119 @@
 {
   "dataset_id": "cmu_stretch_0.1.0",
   "episode_id": "episode_121",
-  "created_at": "2025-09-22T12:10:07",
-  "instruction": "lift up a lid from the pot",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/cmu_stretch_0.1.0/episode_121",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "Detect the pot and lid, grasp the lid handle, lift the lid vertically, and retreat.",
+  "task_long_description": {
+    "overview": "A mobile manipulator with a parallel gripper must remove a metal lid from a small pot placed on a tabletop. The sequence begins with visual confirmation of the lid, approaches above the pot, and aligns precisely over the lid’s knob or handle. The gripper opens, makes gentle contact while descending, then closes to secure the handle. After verifying grasp stability, the robot lifts the lid straight up to clear the pot and slightly retreats to avoid collisions. The behavior emphasizes precise alignment, safe contact, and verification before lifting.",
+    "preconditions": ["Robot has workspace access to the pot on the table", "Camera provides view of the lid", "Gripper operational and empty", "No obstructions above the pot"],
+    "stepwise_plan": ["Confirm the lid is visible or scan to find it", "Move to a pregrasp above the pot", "Align over the lid handle with tight tolerance", "Open gripper and descend until contact", "Close gripper and verify grasp", "Lift lid vertically", "Retreat to a safe pose"],
+    "success_criteria": ["Lid is held securely in the gripper", "Pot opening is no longer covered", "No collisions with pot or table", "Robot reaches a safe retreat distance"],
+    "failure_and_recovery": ["If the lid is not visible, perform a local scan", "If contact not detected, repeat the descend-contact step", "If grasp unstable, reopen and retry the grasp", "If lift meets resistance, stop and reassess alignment"],
+    "termination": "Terminate when the lid is firmly grasped, lifted clear of the pot, and the arm has retreated to a safe distance."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_4","frame_6","frame_1","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.22, "frame_1": 0.41, "frame_2": 0.63, "frame_3": 0.9,
+      "frame_4": 0.58, "frame_5": 0.8, "frame_6": 0.55, "frame_7": 0.3, "frame_8": 0.12
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Tool is centered over the lid with imminent contact, indicating alignment achieved.",
+        "predicts_next": "Descent to contact followed by gripper closure is expected.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "lift up a lid from the pot",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["pot","lid","lid_handle","table","robot_arm","camera"],
+  "objects_from_instruction": ["lid","pot"],
+  "blackboard_keys": ["lid_grasp"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"lid"},"description":"Checks if the lid is currently visible to perception."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"lid","pattern":"spiral","max_attempts":3,"timeout_ms":1200},"description":"Performs a spiral scan to locate the lid if not visible."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"pot","offset_z":0.08,"timeout_ms":1200},"description":"Moves to a pregrasp pose above the pot."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"lid","tolerance":0.005,"timeout_ms":1200},"description":"Aligns the tool center above the lid with tight tolerance."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":800},"description":"Opens the gripper before descent."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"lid_handle","strategy":"pinch","result_key":"lid_grasp"},"description":"Computes a pinch grasp on the lid’s handle/knob and stores it."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":1200},"description":"Descends until a gentle contact with the lid is detected."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":800},"description":"Closes the gripper to secure the handle."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verifies that the grasp is stable before lifting."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"lid_grasp","timeout_ms":1200},"description":"Executes the stored grasp plan."},
+    {"id":"MoveDelta","type":"Action","ports":{"axis":"z","dist":0.1,"timeout_ms":800},"description":"Lifts the lid vertically upward."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"lid"},"description":"Confirms the lid is held in the gripper."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":1200},"description":"Backs away to a safe pose after lifting."}
+  ],
+  "tree_stats": {"nodes_total": 17, "actions": 10, "conditions": 3, "depth": 4},
+  "failure_modes": ["Lid not detected due to glare or blur", "Misalignment causing missed handle", "Insufficient grip force on smooth knob", "Collision with pot rim during lift"],
+  "recovery_strategy": ["Invoke scanning when visibility fails", "Repeat alignment and descent with tight tolerance", "Reopen and retry grasp via decorator", "Abort lift and retreat if unexpected resistance is sensed"],
+  "assumptions": ["The lid has a graspable central knob or handle compatible with a pinch grasp", "Lid is not latched and can be lifted vertically", "Workspace around the pot is clear enough for retreat"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Lid is lifted clear of the pot and held securely", "No collisions or scraping on the pot rim", "Robot achieves the retreat distance"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"lid"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"pot","offset_z":0.08,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"lid","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveDelta","attrs":{"axis":"z","dist":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"lid"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

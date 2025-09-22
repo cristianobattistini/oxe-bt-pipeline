@@ -1,5 +1,18 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="dishwasher_handle"/>
+      <Action ID="ScanForTarget" target="dishwasher_handle" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <Action ID="MoveTo" target="dishwasher" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="dishwasher_handle" tolerance="0.005" timeout_ms="1200"/>
+    <Action ID="SetTCPYaw" yaw_deg="90"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Action ID="ComputeGraspPose" target="dishwasher_handle" strategy="pull" result_key="handle_grasp"/>
+    <Condition ID="PoseAvailable" key="handle_grasp"/>
+    <Action ID="Pick" grasp_key="handle_grasp" timeout_ms="1200"/>
+    <Action ID="OpenContainer" target="dishwasher" container_type="hinged_door" timeout_ms="1500"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>

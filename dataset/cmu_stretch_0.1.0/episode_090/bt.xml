@@ -1,5 +1,20 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <IsObjectVisible target="green_can"/>
+      <ScanForTarget target="green_can" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <DetectObject target="green_can" timeout_ms="1200"/>
+    <MoveTo target="green_can" timeout_ms="1500"/>
+    <MoveAbove target="lid_edge" offset_z="0.05" timeout_ms="1200"/>
+    <ApproachAndAlign target="lid_edge" tolerance="0.01" timeout_ms="1500"/>
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <ComputeGraspPose target="lid_edge" strategy="pinch" result_key="lid_grasp"/>
+    <PoseAvailable key="lid_grasp"/>
+    <Pick grasp_key="lid_grasp" timeout_ms="1200"/>
+    <MoveDelta axis="z" dist="0.2" timeout_ms="1200"/>
+    <OpenContainer target="green_can" container_type="bin_lid" timeout_ms="1500"/>
+    <ContainerOpen target="green_can"/>
+    <Retreat distance="0.1" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

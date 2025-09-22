@@ -1,5 +1,24 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <DetectObject target="cabinet_drawer" timeout_ms="1200"/>
+      <ScanForTarget target="cabinet_drawer" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <MoveTo target="cabinet_drawer" timeout_ms="1500"/>
+    <IsAt target="cabinet_drawer"/>
+    <Fallback>
+      <DetectObject target="drawer_handle" timeout_ms="1200"/>
+      <ScanForTarget target="drawer_handle" pattern="line" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <MoveAbove target="drawer_handle" offset_z="0.02" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="0"/>
+    <OpenGripper width="0.08" timeout_ms="800"/>
+    <ApproachAndAlign target="drawer_handle" tolerance="0.005" timeout_ms="1200"/>
+    <ComputeGraspPose target="drawer_handle" strategy="pull" result_key="handle_grasp"/>
+    <Pick grasp_key="handle_grasp" timeout_ms="1500"/>
+    <IsGraspStable/>
+    <OpenContainer target="cabinet_drawer" container_type="drawer" timeout_ms="1500"/>
+    <ContainerOpen target="cabinet_drawer"/>
+    <Retreat distance="0.1" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

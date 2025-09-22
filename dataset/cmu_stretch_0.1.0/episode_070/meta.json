@@ -1,11 +1,159 @@
 {
   "dataset_id": "cmu_stretch_0.1.0",
   "episode_id": "episode_070",
-  "created_at": "2025-09-22T12:10:07",
-  "instruction": "pull open a dishwasher",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/cmu_stretch_0.1.0/episode_070",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "Detect the dishwasher handle, approach and align, grasp it, pull to open the hinged door, verify opened state, release, and retreat.",
+  "task_long_description": {
+    "overview": "A mobile manipulator with a parallel gripper must pull open a stainless-steel dishwasher door. The contact sheet shows approach to a horizontal bar handle, grasp, and a forward pull that swings the hinged door downward and outward. The plan prioritizes reliable perception, tight alignment before grasp, and a controlled pulling motion while monitoring for an open state. After opening, the robot releases the handle and retreats to clear the door and cavity. Timeouts and binned parameters are chosen conservatively to balance reliability and speed.",
+    "preconditions": [
+      "Dishwasher with bar handle is within reachable workspace",
+      "Handle is unobstructed and visible to the camera",
+      "End-effector free and gripper operational",
+      "No humans or objects blocking the door path"
+    ],
+    "stepwise_plan": [
+      "Detect dishwasher handle and move to a pre-grasp pose",
+      "Open gripper, approach and align precisely to the handle",
+      "Close gripper on the handle and pull by retreating",
+      "Pause briefly, release the handle",
+      "Check that the dishwasher is open, then retreat to clear"
+    ],
+    "success_criteria": [
+      "Door angle noticeably increased and cavity visible",
+      "ContainerOpen(dishwasher) condition returns success",
+      "Robot is clear of the open door at the end"
+    ],
+    "failure_and_recovery": [
+      "If detection fails, re-scan and reattempt approach",
+      "If grasp slips, reopen, re-align with tighter tolerance, and retry",
+      "If pull insufficient, perform an additional retreat while grasping",
+      "If door rebounds, repeat pull with same parameters"
+    ],
+    "termination": "Terminate after the door is reported open and the robot has retreated to a safe distance."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_5","frame_6","frame_3","frame_4","frame_7","frame_2","frame_1","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.20, "frame_1": 0.40, "frame_2": 0.55, "frame_3": 0.82,
+      "frame_4": 0.70, "frame_5": 0.92, "frame_6": 0.85, "frame_7": 0.65, "frame_8": 0.10
+    },
+    "rationale_per_frame": {
+      "frame_5": {
+        "now_evidence": "Door is clearly opening with cavity visible; strong confirmation of pull phase.",
+        "predicts_next": "Release handle and retreat are expected.",
+        "uncertainty_reduction": "high"
+      },
+      "frame_3": {
+        "now_evidence": "Secure contact and grasp just before pull.",
+        "predicts_next": "Retreat motion to actuate the door.",
+        "uncertainty_reduction": "medium"
+      }
+    }
+  },
+  "task_instruction": "pull open a dishwasher",
+  "instruction_to_ports": {
+    "force": 20,
+    "timeout_ms": 1500,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["dishwasher","dishwasher_handle","refrigerator","counter","toaster"],
+  "objects_from_instruction": ["dishwasher"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"dishwasher_handle","timeout_ms":1500},"description":"Detect the dishwasher handle in view."},
+    {"id":"MoveTo","type":"Action","ports":{"target":"dishwasher_handle_pregrasp","timeout_ms":1200},"description":"Navigate/position to a pre-grasp pose near the handle."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":800},"description":"Ensure gripper is open before approaching the handle."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"dishwasher_handle","tolerance":0.005,"timeout_ms":1500},"description":"Close in and align precisely with the bar handle."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":800},"description":"Grip the handle with moderate force."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.2,"timeout_ms":1500},"description":"Pull by moving the arm/BASE backward to open the door."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":500},"description":"Brief pause to damp oscillations."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":800},"description":"Release the handle after opening."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"dishwasher"},"description":"Verify the dishwasher is open."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":1200},"description":"Back off to clear the open door."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 9, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Handle not detected due to glare or pose",
+    "Misalignment causing slip during closing",
+    "Insufficient pull distance",
+    "Door rebound after partial opening"
+  ],
+  "recovery_strategy": [
+    "Repeat detection and approach with slight viewpoint change",
+    "Reopen gripper, re-align with tolerance 0.005, then re-grasp",
+    "Perform an additional Retreat(distance=0.2)",
+    "Add a second pull cycle if ContainerOpen fails"
+  ],
+  "assumptions": [
+    "Dishwasher door behaves as a hinged_door; opening achieved by pulling outward while grasping bar handle.",
+    "No explicit 'pull' primitive exists; using Retreat while grasping approximates the pull motion.",
+    "Contact sheet frames confirm bar-handle grasp and outward opening; instruction matches visuals."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "ContainerOpen(dishwasher) succeeds",
+      "Cavity visible in frames consistent with an opened door",
+      "Robot ends clear of the door"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"dishwasher_handle","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveTo","attrs":{"target":"dishwasher_handle_pregrasp","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"dishwasher_handle","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.2,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.09,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

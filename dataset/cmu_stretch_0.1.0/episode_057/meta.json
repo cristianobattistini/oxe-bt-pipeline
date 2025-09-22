@@ -1,11 +1,152 @@
 {
   "dataset_id": "cmu_stretch_0.1.0",
   "episode_id": "episode_057",
-  "created_at": "2025-09-22T12:10:07",
-  "instruction": "pull open a dishwasher",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/cmu_stretch_0.1.0/episode_057",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "Detect the dishwasher door, grasp its handle, and pull to open the hinged door until visibly open, then release and verify open state.",
+  "task_long_description": {
+    "overview": "A mobile manipulator must open a stainless-steel dishwasher seen frontally. The gripper approaches the handle, aligns with it, grasps with moderate force, and pulls outward to lower the hinged door. The surrounding scene includes a fridge on the left and wooden cabinets on the right. The plan emphasizes reliable perception, careful alignment (tight tolerance), and a controlled pull distance. After motion, the robot releases the handle, pauses briefly to settle the door, and checks that the dishwasher door is open.",
+    "preconditions": [
+      "Dishwasher front and handle are visible from the camera viewpoint",
+      "Manipulator has free workspace to pull 0.2 m",
+      "No obstructions in the swing path of the hinged door",
+      "Gripper operational and clear"
+    ],
+    "stepwise_plan": [
+      "Perceive the dishwasher door and localize the handle",
+      "Move to a pre-grasp waypoint near the handle",
+      "Refine alignment to the handle within 0.01 m tolerance",
+      "Open gripper and finalize approach/alignment",
+      "Close gripper with force 20 to secure the handle",
+      "Pull by retreating 0.2 m to open the door",
+      "Release the handle and wait briefly",
+      "Verify the door is open"
+    ],
+    "success_criteria": [
+      "Door rotates outward/down; interior racks become visible",
+      "ContainerOpen(dishwasher_door) condition is true",
+      "Gripper safely released and robot clear of the door"
+    ],
+    "failure_and_recovery": [
+      "Handle not detected: re-attempt perception or adjust view",
+      "Misalignment: repeat ApproachAndAlign with same tolerance",
+      "Grip slip: reopen, realign, and regrasp with force 20 or 30",
+      "Door stuck: increase pull distance in controlled increments"
+    ],
+    "termination": "Terminate when ContainerOpen(dishwasher_door) succeeds after the wait."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_7","frame_6","frame_5","frame_8","frame_4","frame_3","frame_2","frame_1","frame_0"],
+    "scores": {
+      "frame_0": 0.20, "frame_1": 0.38, "frame_2": 0.52, "frame_3": 0.60,
+      "frame_4": 0.66, "frame_5": 0.82, "frame_6": 0.88, "frame_7": 0.95, "frame_8": 0.45
+    },
+    "rationale_per_frame": {
+      "frame_7": {
+        "now_evidence": "Door clearly open with racks visible while gripper holds handle—peak task completion signal.",
+        "predicts_next": "Release and verification follow; minimal residual uncertainty.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pull open a dishwasher",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["dishwasher_door","dishwasher_handle","dishwasher_interior_rack","fridge","cabinet","countertop"],
+  "objects_from_instruction": ["dishwasher"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"dishwasher_door","timeout_ms":1200},"description":"Detect the dishwasher door to initialize pose estimates."},
+    {"id":"MoveTo","type":"Action","ports":{"target":"dishwasher_handle_pregrasp","timeout_ms":1500},"description":"Navigate the end-effector to a safe pre-grasp waypoint near the handle."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"dishwasher_handle","tolerance":0.01,"timeout_ms":1200},"description":"Refine approach and alignment to the handle within tight tolerance."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":800},"description":"Prepare to grasp the handle."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"dishwasher_handle","tolerance":0.01,"timeout_ms":1200},"description":"Final micro-alignment before closing the gripper."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":800},"description":"Secure the handle with moderate force."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.2,"timeout_ms":1500},"description":"Pull outward to open the hinged door."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Release the handle after the door opens."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":400},"description":"Allow the door motion to settle."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"dishwasher_door"},"description":"Verify that the dishwasher door is open."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 9, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Perception fails to localize handle",
+    "Alignment error causes missed grasp",
+    "Insufficient grip leading to slip",
+    "Door jam or unexpected obstruction"
+  ],
+  "recovery_strategy": [
+    "Repeat detection or adjust viewpoint",
+    "Re-run ApproachAndAlign with same tolerance",
+    "Re-open and re-grasp; optionally increase force to 30",
+    "Incrementally increase Retreat distance up to 0.2 and retry"
+  ],
+  "assumptions": [
+    "Frames depict a hinged dishwasher door; instruction says 'pull open a dishwasher' which aligns with the observed motion.",
+    "Robot base pose is already suitable for the pull without base motion."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Door open and interior visible", "ContainerOpen condition returns success"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"dishwasher_door","timeout_ms":1200}},
+      "active_path_ids": ["Sequence","DetectObject"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveTo","attrs":{"target":"dishwasher_handle_pregrasp","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","MoveTo"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"dishwasher_handle","tolerance":0.01,"timeout_ms":1200}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.09,"timeout_ms":800}},
+      "active_path_ids": ["Sequence","OpenGripper"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"dishwasher_handle","tolerance":0.01,"timeout_ms":1200}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":800}},
+      "active_path_ids": ["Sequence","CloseGripper"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.2,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","Retreat"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.2,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","Retreat"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": ["Sequence","OpenGripper"]
+    }
+  ]
 }

@@ -1,11 +1,165 @@
 {
   "dataset_id": "cmu_stretch_0.1.0",
   "episode_id": "episode_019",
-  "created_at": "2025-09-22T12:10:07",
-  "instruction": "open drawer",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/cmu_stretch_0.1.0/episode_019",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "Grasp the drawer handle and pull to open the drawer, then release and retreat.",
+  "task_long_description": {
+    "overview": "A mobile manipulator (Stretch) must open a wooden cabinet drawer. The scene shows a counter with tissue box and red cup; below are drawers with bar handles. The robot’s gripper approaches the handle, aligns, grasps, and pulls to create an opening gap. Perception ensures the handle is visible; alignment keeps approach straight. After pulling, the robot verifies that the drawer is open, releases the handle, and backs away to avoid collision with the moving front.",
+    "preconditions": [
+      "Drawer handle is within reachable workspace",
+      "No obstructions around the drawer front",
+      "Perception pipeline can detect 'drawer_handle'",
+      "Gripper calibrated and responsive"
+    ],
+    "stepwise_plan": [
+      "Check/scan until the drawer handle is visible.",
+      "Detect precise handle pose and move to pregrasp above it.",
+      "Open gripper, approach and align to the handle.",
+      "Close gripper on the handle with moderate force.",
+      "Pull back to open the drawer.",
+      "Confirm drawer open state.",
+      "Release handle and retreat to a safe distance."
+    ],
+    "success_criteria": [
+      "Drawer front translates outward creating a clear opening",
+      "Robot maintains stable grasp during pull",
+      "No collisions with counter or drawer edges",
+      "Robot retreats safely after release"
+    ],
+    "failure_and_recovery": [
+      "Handle not visible: perform grid scan and retry detection",
+      "Misalignment or failed grasp: reopen gripper, realign, and retry",
+      "Insufficient pull: perform another retreat motion",
+      "Unexpected contact: stop and retreat slightly before re-approach"
+    ],
+    "termination": "Terminate when drawer is detected open and the robot has released the handle and retreated."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Gripper nearly aligned with drawer handle, indicating imminent grasp.",
+        "predicts_next": "Closing gripper followed by a pulling motion.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "open drawer",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["drawer", "drawer_handle", "cabinet", "countertop", "tissue_box", "cup", "robot_gripper"],
+  "objects_from_instruction": ["drawer"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"drawer_handle"},"description":"Checks if the drawer handle is currently visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"drawer_handle","pattern":"grid","max_attempts":3,"timeout_ms":1500},"description":"Camera scan to locate the handle if not visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"drawer_handle","timeout_ms":1200},"description":"Runs detector to localize the handle pose."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"drawer_handle","offset_z":0.05,"timeout_ms":800},"description":"Move to a safe pregrasp above the handle."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Open gripper for approaching the handle."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"drawer_handle","tolerance":0.01,"timeout_ms":1200},"description":"Approach along the surface normal and align to the handle."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":800},"description":"Close gripper to grasp the handle."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":1200},"description":"Pull back to open the drawer."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"drawer_A"},"description":"Confirms that the drawer state is open."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Slightly open gripper to release handle."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off to a safe distance after release."}
+  ],
+  "tree_stats": {"nodes_total": 13, "actions": 9, "conditions": 2, "depth": 3},
+  "failure_modes": [
+    "Handle not detected due to glare or occlusion",
+    "Approach misalignment causing edge collision",
+    "Insufficient gripping force leading to slip",
+    "Pull direction not parallel to slide rails"
+  ],
+  "recovery_strategy": [
+    "Re-scan with grid pattern up to 3 attempts",
+    "Re-align using ApproachAndAlign then retry grasp",
+    "Increase pull distance via additional Retreat",
+    "Abort and back off if unexpected contact is sensed"
+  ],
+  "assumptions": [
+    "Handle is a bar type compatible with parallel gripper.",
+    "Pulling along the approach axis opens the drawer.",
+    "Symbolic targets 'drawer_handle' and 'drawer_A' refer to the same physical drawer shown in the frames."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "ContainerOpen('drawer_A') becomes true",
+      "Drawer front displacement exceeds a small threshold",
+      "Robot ends in safe, collision-free pose"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"drawer_handle","pattern":"grid","max_attempts":3,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"drawer_handle","offset_z":0.05,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.09,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"drawer_handle","tolerance":0.01,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }

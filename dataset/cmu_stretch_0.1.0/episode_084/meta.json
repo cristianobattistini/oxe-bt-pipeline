@@ -1,11 +1,140 @@
 {
   "dataset_id": "cmu_stretch_0.1.0",
   "episode_id": "episode_084",
-  "created_at": "2025-09-22T12:10:07",
-  "instruction": "lift up a lid from the pot",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/cmu_stretch_0.1.0/episode_084",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "Perceive pot and lid, grasp the lid handle, lift the lid vertically to open the pot, then retreat.",
+  "task_long_description": {
+    "overview": "A mobile manipulator with a parallel gripper must open a small metal pot by lifting its lid. The scene shows the pot on a table, the lid having a small handle, and the robot approaching from the right. The robot should perceive the pot/lid, prepare a top–pinch grasp on the handle, make gentle contact, close the gripper, and lift straight up to open the pot without sliding the lid. After lifting, it should verify openness and retreat to a safe height.",
+    "preconditions": [
+      "Pot and lid are on the table within reachable workspace",
+      "Camera view provides visibility of pot and lid",
+      "Gripper free and operational"
+    ],
+    "stepwise_plan": [
+      "Scan and detect pot and lid.",
+      "Open gripper and compute grasp on lid handle.",
+      "Move above the handle, align, and descend until contact.",
+      "Close gripper and confirm stable grasp.",
+      "Lift vertically to open the lid.",
+      "Optionally verify container is open and retreat."
+    ],
+    "success_criteria": [
+      "Lid is detached/lifted from the pot",
+      "No collision with pot rim or environment",
+      "Stable grasp maintained during lift"
+    ],
+    "failure_and_recovery": [
+      "If handle not detected, rescan and re-approach.",
+      "If contact not found within depth limit, retry alignment.",
+      "If grasp unstable, reopen gripper and recompute grasp."
+    ],
+    "termination": "End when lid is lifted and robot has retreated to a safe pose (or after verification that the pot is open)."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "lift up a lid from the pot",
+  "instruction_to_ports": {
+    "force": 20,
+    "timeout_ms": 1200,
+    "tolerance": 0.01,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["pot","lid","lid_handle","robot_gripper","table"],
+  "objects_from_instruction": ["lid","pot"],
+  "blackboard_keys": ["grasp_lid"],
+  "node_specs": [
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"pot","pattern":"arc","max_attempts":3,"timeout_ms":1200},"description":"Wide scan to localize the pot."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"lid","timeout_ms":800},"description":"Detects the lid geometry/pose."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Prepare for grasp."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"lid_handle","strategy":"pinch","result_key":"grasp_lid"},"description":"Compute pinch grasp on the lid handle."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"grasp_lid"},"description":"Check grasp pose computed."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"lid_handle","offset_z":0.05,"timeout_ms":1200},"description":"Move above handle with clearance."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":90},"description":"Orient gripper for handle alignment."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"lid_handle","tolerance":0.01,"timeout_ms":1200},"description":"Refine approach to align with handle."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.03,"force_threshold":5.0,"timeout_ms":800},"description":"Descend gently until contact sensed."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":500},"description":"Close on the handle."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verify grasp stability."},
+    {"id":"MoveDelta","type":"Action","ports":{"axis":"z","dist":0.1,"timeout_ms":1200},"description":"Lift lid vertically to open."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"pot"},"description":"Confirm pot is open."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off to safe distance."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":400},"description":"Brief settle after opening."}
+  ],
+  "tree_stats": {"nodes_total": 16, "actions": 12, "conditions": 3, "depth": 2},
+  "failure_modes": ["Lid handle not detected", "Contact not reached within limit", "Grasp slip during lift", "Collision with pot rim"],
+  "recovery_strategy": ["Re-scan and re-detect", "Re-align and retry descent", "Re-open, recompute grasp, and reattempt", "Abort and retreat if force spikes"],
+  "assumptions": ["Frames show a pot with a small lid handle; the instruction matches visuals. The lift is vertical; no placement target is specified."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Lid is visibly separated from pot and held above rim", "No excessive contact with pot body", "Robot ends in safe pose"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"pot","pattern":"arc","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"lid","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"lid_handle","offset_z":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"lid_handle","tolerance":0.01,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.03,"force_threshold":5.0,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveDelta","attrs":{"axis":"z","dist":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveDelta","attrs":{"axis":"z","dist":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }

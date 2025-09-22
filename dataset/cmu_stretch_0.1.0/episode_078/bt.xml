@@ -1,5 +1,14 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <ScanForTarget target="green_bin_lid" pattern="line" max_attempts="3" timeout_ms="1500"/>
+    <DetectObject target="green_bin_lid" timeout_ms="1200"/>
+    <ApproachAndAlign target="green_bin_lid" tolerance="0.005" timeout_ms="1500"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <OpenGripper width="0.09" timeout_ms="400"/>
+    <MoveAbove target="green_bin_lid" offset_z="0.05" timeout_ms="1200"/>
+    <CloseGripper force="20" timeout_ms="1500"/>
+    <OpenContainer target="green_bin" container_type="bin_lid" timeout_ms="1500"/>
+    <ContainerOpen target="green_bin"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>

@@ -1,5 +1,19 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <IsObjectVisible target="lid"/>
+      <ScanForTarget target="lid" pattern="spiral" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <DetectObject target="lid" timeout_ms="1200"/>
+    <ComputeGraspPose target="lid" strategy="top" result_key="grasp_lid_top"/>
+    <PoseAvailable key="grasp_lid_top"/>
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <ApproachAndAlign target="lid" tolerance="0.01" timeout_ms="1500"/>
+    <LowerUntilContact speed="slow" max_depth="0.02" force_threshold="5.0" timeout_ms="1200"/>
+    <CloseGripper force="10" timeout_ms="1200"/>
+    <IsGraspStable/>
+    <MoveDelta axis="z" dist="0.1" timeout_ms="1200"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <Wait timeout_ms="400"/>
   </Sequence>
 </BehaviorTree>
