@@ -49,7 +49,7 @@ def main():
     out_root     = CFG.out_root
     split        = CFG.split
     max_frames   = CFG.max_frames
-    per_ds_limit = getattr(CFG, "limit_episodes_per_dataset", 10)
+    per_ds_limit = getattr(CFG, "limit_episodes_per_dataset", None)
     data_dir     = getattr(CFG, "tfds_data_dir", None)
     k_sampling   = getattr(CFG, "k_sampling", 10)
 

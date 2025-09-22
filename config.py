@@ -44,7 +44,7 @@ dataset_keys = {
 max_frames = 300
 
 # Limite episodi per dataset (fase di prova)
-limit_episodes_per_dataset = 10
+limit_episodes_per_dataset = None
 
 # Soglie (per step successivi)
 eps_pos = 0.02

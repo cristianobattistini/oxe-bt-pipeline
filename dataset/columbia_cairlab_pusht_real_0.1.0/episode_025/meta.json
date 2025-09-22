@@ -1,0 +1,150 @@
+{
+  "dataset_id": "columbia_cairlab_pusht_real_0.1.0",
+  "episode_id": "episode_025",
+  "task_summary": "Detect the T-shaped block, align the tool, and execute a sequence of pushes that drive the block onto the marked target, then retreat.",
+  "task_long_description": {
+    "overview": "A fixed-base manipulator with a circular tool must push a T-shaped block across a planar workspace until it reaches a marked target circle. The behavior coordinates perception (locating the block and target), approach and alignment to establish a stable pushing direction, and a short sequence of pushes to translate and finely adjust the block. Parameters are snapped to discrete bins for repeatability. The robot maintains contact during transfer, verifies the final placement relative to the target, and then retreats to clear the scene.",
+    "preconditions": ["Workspace is clear except for the T-shaped block and a target mark.", "Camera/pose estimation available.", "Robot tool is calibrated and within reach of the object."],
+    "stepwise_plan": [
+      "Detect T-shaped block and scan for the target mark.",
+      "Move above the block and align precisely to the intended push direction.",
+      "Set tool yaw for rightward pushing.",
+      "Execute a long push toward the target.",
+      "Apply a small orthogonal correction push.",
+      "Perform a short finishing push toward the target.",
+      "Verify pose near the target and retreat."
+    ],
+    "success_criteria": ["Block center overlaps/enters target region.", "No object flips or loss of contact during transfer.", "Robot retreats clear of the block after placement."],
+    "failure_and_recovery": [
+      "Perception miss: retry detection/scan.",
+      "Misalignment: re-run ApproachAndAlign before pushing.",
+      "Insufficient displacement: add another short finishing Push.",
+      "Unexpected contact force: abort push and re-approach."
+    ],
+    "termination": "Terminate after successful target verification and a safe retreat."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "The task requires pushing a T-shaped block (gray) to a fixed target (green) with a circular end-effector (blue). Both observation and control frequencies are 10Hz.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["t_block_red", "target_marker_circle_blue", "circular_end_effector", "robot_arm", "table_workspace"],
+  "objects_from_instruction": ["T-shaped block (gray)", "fixed target (green)", "circular end-effector (blue)"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"t_block","timeout_ms":800},"description":"Find the T-shaped block in the scene."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"target_marker","pattern":"grid","max_attempts":3,"timeout_ms":1200},"description":"Search the workspace to localize the target region."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"t_block","offset_z":0.03,"timeout_ms":1200},"description":"Move to a pre-push pose above the block."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"t_block","tolerance":0.005,"timeout_ms":1200},"description":"Approach and align the tool to the block for pushing."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":0},"description":"Orient the tool to push rightward."},
+    {"id":"Push","type":"Action","ports":{"target":"t_block","distance":0.2,"direction_deg":0,"timeout_ms":1500},"description":"Primary push toward the target."},
+    {"id":"Push","type":"Action","ports":{"target":"t_block","distance":0.05,"direction_deg":90,"timeout_ms":800},"description":"Orthogonal correction push."},
+    {"id":"Push","type":"Action","ports":{"target":"t_block","distance":0.1,"direction_deg":0,"timeout_ms":1200},"description":"Finishing push to settle on target."},
+    {"id":"IsAt","type":"Condition","ports":{"target":"target_marker"},"description":"Verify final position near the target."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off to clear the object."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 9, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Block rotates unexpectedly during the long push",
+    "Target mislocalized due to lighting or occlusion",
+    "Tool yaw not set correctly, causing drift",
+    "Robot stops early due to false contact detection"
+  ],
+  "recovery_strategy": [
+    "Re-run ApproachAndAlign with tighter tolerance before continuing.",
+    "Repeat ScanForTarget up to allowed attempts and re-evaluate direction.",
+    "Add an extra short Push along 0° or 90° based on residual error.",
+    "If contact anomaly occurs, Retreat and re-approach."
+  ],
+  "assumptions": [
+    "Frames show a red T-block and a blue target circle; instruction mentions gray block and green target. We follow the frames for grounding.",
+    "Push direction assumed rightward (0°) toward the visible circle, with a small 90° correction as seen in mid-sequence frames.",
+    "IsAt checks the tool relative to the target as a proxy for block-at-target due to library limitations."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Block overlaps the target circle after the finishing push", "Robot retreats to a safe height/offset"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"t_block","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"target_marker","pattern":"grid","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"t_block","offset_z":0.03,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"t_block","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"SetTCPYaw","attrs":{"yaw_deg":0}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.2,"direction_deg":0,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.05,"direction_deg":90,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"IsAt","attrs":{"target":"target_marker"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}
