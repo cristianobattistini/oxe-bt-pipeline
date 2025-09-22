@@ -1,11 +1,147 @@
 {
   "dataset_id": "columbia_cairlab_pusht_real_0.1.0",
   "episode_id": "episode_083",
-  "created_at": "2025-09-22T11:24:36",
-  "instruction": "The task requires pushing a T-shaped block (gray) to a fixed target (green) with a circular end-effector (blue). Both observation and control frequencies are 10Hz.",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/columbia_cairlab_pusht_real_0.1.0/episode_083",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "Push a T-shaped block into its outlined target region using a circular end-effector, then retract safely while maintaining 10 Hz control/observation cadence as seen in Push-T real setups.", 
+  "task_long_description": {
+    "overview": "A fixed-base manipulator with a circular tool must push a T-shaped block so that it overlaps a marked goal region on the table, as depicted by the contact-sheet frames where the arm makes contact and sweeps the piece along planar directions [attached_image:1][web:8]. The real-world Push-T task is commonly executed with policies issuing commands at 10 Hz, which matches the stated sensing and control frequencies for this episode [attached_image:1][web:8]. The environment includes the T block, the drawn goal outline, and a clean planar workspace enabling point-contact pushes [attached_image:1][web:8]. The behavior emphasizes alignment before contact, short straight pushes, and a final retraction to clear occlusions and signal task completion [attached_image:1][web:8].",
+    "preconditions": [
+      "T block and goal outline are both detectable in the workspace view before approaching [attached_image:1][web:8]",
+      "End-effector is collision-free above the table and ready to descend for contact [attached_image:1][web:8]",
+      "Controller runs at 10 Hz so push segments and perception update consistently [attached_image:1][web:8]"
+    ],
+    "stepwise_plan": [
+      "Perceive the T block and the goal region; if not immediately visible, perform a short spiral scan [attached_image:1][web:8]",
+      "Move above the block, align to the intended push edge, and descend slowly until contact is detected [attached_image:1][web:8]",
+      "Execute one or two straight pushes to translate the block toward and into the outline while maintaining alignment [attached_image:1][web:8]",
+      "Verify approximate placement, then retract to a safe height/offset to end the episode cleanly [attached_image:1][web:8]"
+    ],
+    "success_criteria": [
+      "The T block lies within the goal outline with acceptable overlap comparable to Push-T IoU-style thresholds used in literature [attached_image:1][web:8]",
+      "The end-effector retreats clear of the object and goal region after placement [attached_image:1][web:8]"
+    ],
+    "failure_and_recovery": [
+      "If the block is not detected, perform a bounded spiral scan before reattempting perception [attached_image:1][web:8]",
+      "If contact is not reached within the descent limit, retreat slightly, realign, and retry approach [attached_image:1][web:8]",
+      "If the push overshoots or under-shoots, execute an orthogonal corrective push followed by re-verification [attached_image:1][web:8]"
+    ],
+    "termination": "Terminate when the block is inside the goal region and the tool has retracted to a safe distance, or when perception/approach repeatedly fails causing the sequence to return failure [attached_image:1][web:8]"
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible [attached_image:1]",
+        "predicts_next": "push actuation expected; confirms goal direction [attached_image:1]",
+        "uncertainty_reduction": "high [attached_image:1]"
+      }
+    }
+  },
+  "task_instruction": "The task requires pushing a T-shaped block (gray) to a fixed target (green) with a circular end-effector (blue). Both observation and control frequencies are 10Hz.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["t_block", "goal_outline", "end_effector", "table_surface"],
+  "objects_from_instruction": ["T-shaped block (gray)", "fixed target (green)", "circular end-effector (blue)"],
+  "blackboard_keys": ["t_block", "goal", "block_at_goal"],
+  "node_specs": [
+    {"id":"IsObjectVisible", "type":"Condition", "ports":{"target":"t_block"}, "description":"Checks if the T block is visible before scanning [attached_image:1][web:8]"},
+    {"id":"ScanForTarget", "type":"Action", "ports":{"target":"t_block","pattern":"spiral","max_attempts":3,"timeout_ms":800}, "description":"Spiral scan to locate the T block if not immediately visible [attached_image:1][web:8]"},
+    {"id":"IsObjectVisible", "type":"Condition", "ports":{"target":"goal"}, "description":"Checks if the goal outline is visible [attached_image:1][web:8]"},
+    {"id":"ScanForTarget", "type":"Action", "ports":{"target":"goal","pattern":"spiral","max_attempts":3,"timeout_ms":800}, "description":"Spiral scan to locate goal outline if needed [attached_image:1][web:8]"},
+    {"id":"MoveAbove", "type":"Action", "ports":{"target":"t_block","offset_z":0.03,"timeout_ms":800}, "description":"Moves above the block to prepare for contact [attached_image:1][web:8]"},
+    {"id":"ApproachAndAlign", "type":"Action", "ports":{"target":"t_block","tolerance":0.005,"timeout_ms":800}, "description":"Approaches and aligns to the push face of the T block [attached_image:1][web:8]"},
+    {"id":"LowerUntilContact", "type":"Action", "ports":{"speed":"slow","max_depth":0.02,"force_threshold":10,"timeout_ms":800}, "description":"Descends slowly until contact with the block is detected [attached_image:1][web:8]"},
+    {"id":"Push", "type":"Action", "ports":{"target":"t_block","distance":0.1,"direction_deg":90,"timeout_ms":800}, "description":"Primary straight push along one axis toward the goal [attached_image:1][web:8]"},
+    {"id":"Push", "type":"Action", "ports":{"target":"t_block","distance":0.1,"direction_deg":0,"timeout_ms":800}, "description":"Orthogonal corrective push to seat the T inside the outline [attached_image:1][web:8]"},
+    {"id":"Retreat", "type":"Action", "ports":{"distance":0.1,"timeout_ms":800}, "description":"Retract the tool to avoid occlusion after placement [attached_image:1][web:8]"},
+    {"id":"IsAt", "type":"Condition", "ports":{"target":"block_at_goal"}, "description":"Verifies the block is at the goal after pushes [attached_image:1][web:8]"}
+  ],
+  "tree_stats": {"nodes_total": 14, "actions": 8, "conditions": 3, "depth": 3},
+  "failure_modes": [
+    "Perception misses either the block or goal due to viewpoint or lighting, preventing alignment [attached_image:1][web:8]",
+    "Contact not achieved due to height error, causing ineffective push initiation [attached_image:1][web:8]",
+    "Under/over-shoot pushes leading to partial overlap with goal outline [attached_image:1][web:8]"
+  ],
+  "recovery_strategy": [
+    "Invoke spiral scan to re-detect targets when visibility checks fail [attached_image:1][web:8]",
+    "Back off, realign, and reattempt a slow descent to make contact [attached_image:1][web:8]",
+    "Apply an orthogonal corrective push followed by re-check [attached_image:1][web:8]"
+  ],
+  "assumptions": [
+    "Frames show a red T block and a blue goal outline, whereas the instruction mentions gray block and green target; the outline color is assumed non-critical to semantics [attached_image:1][web:8]",
+    "Policy/control frequency at 10 Hz is consistent with real-world Push-T reports and is treated as a scheduling constraint rather than a hard per-node timeout [attached_image:1][web:8]"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Block overlapping the outline comparable to IoU-based success criteria used in real Push-T evaluations [attached_image:1][web:8]",
+      "End-effector safely retracted after placement [attached_image:1][web:8]"
+    ],
+    "test_scenarios": ["happy path", "object_missing", "grasp_fail", "perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"t_block"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"t_block","offset_z":0.03,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"t_block","tolerance":0.005,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.02,"force_threshold":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.1,"direction_deg":90,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.1,"direction_deg":0,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.1,"direction_deg":0,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }

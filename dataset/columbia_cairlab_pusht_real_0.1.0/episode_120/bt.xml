@@ -1,5 +1,17 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <ScanForTarget target="t_block" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    <DetectObject target="t_block" timeout_ms="800"/>
+    <DetectObject target="goal_region" timeout_ms="800"/>
+    <ComputeGraspPose target="t_block" strategy="push" result_key="push_start"/>
+    <PoseAvailable key="push_start"/>
+    <MoveTo target="push_start" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <ApproachAndAlign target="t_block" tolerance="0.005" timeout_ms="1200"/>
+    <LowerUntilContact speed="slow" max_depth="0.02" force_threshold="10" timeout_ms="800"/>
+    <Push target="t_block" distance="0.2" direction_deg="45" timeout_ms="1500"/>
+    <ApproachAndAlign target="goal_region" tolerance="0.02" timeout_ms="1200"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <Wait timeout_ms="500"/>
   </Sequence>
 </BehaviorTree>

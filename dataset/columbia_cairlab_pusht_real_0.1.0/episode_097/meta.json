@@ -1,11 +1,157 @@
 {
   "dataset_id": "columbia_cairlab_pusht_real_0.1.0",
   "episode_id": "episode_097",
-  "created_at": "2025-09-22T11:24:36",
-  "instruction": "The task requires pushing a T-shaped block (gray) to a fixed target (green) with a circular end-effector (blue). Both observation and control frequencies are 10Hz.",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/columbia_cairlab_pusht_real_0.1.0/episode_097",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "Detect the T-shaped block, align the circular end-effector, execute one or more push strokes toward the drawn T target, verify final pose, then retreat.",
+  "task_long_description": {
+    "overview": "A tabletop scene shows a UR-style arm with a circular end-effector pushing a T-shaped block toward a fixed, drawn T target on the board. The objective is to deliver the block into the target outline using planar pushes rather than grasping. The behavior emphasizes perception of both block and target, alignment of tool yaw to the push direction, controlled pushes with retries, and a brief verification before retreat. Observations and actuation occur effectively at ~10 Hz, so actions include conservative timeouts and short waits.",
+    "preconditions": [
+      "Workspace is clear with a single T-shaped block present",
+      "Target outline is visible on the board",
+      "End-effector has sufficient clearance and correct tool frame",
+      "Camera view provides visibility of block and target"
+    ],
+    "stepwise_plan": [
+      "Detect the T-shaped block and the target outline.",
+      "Align the tool relative to the block for pushing.",
+      "Set yaw for a lateral push toward the target.",
+      "Push the block toward the target; allow a retry if the first stroke under-shoots.",
+      "Fine-align around the target outline and verify position.",
+      "Retreat the tool and briefly wait."
+    ],
+    "success_criteria": [
+      "Block’s footprint overlaps the target T outline within a tight tolerance",
+      "No collisions except intentional contact with the block",
+      "End-effector returns to a safe, non-contact pose"
+    ],
+    "failure_and_recovery": [
+      "Perception miss: re-run detection.",
+      "Minor undershoot: retry push stroke.",
+      "Yaw misalignment: re-align and repeat push.",
+      "Slip or rotation: perform a second alignment and push."
+    ],
+    "termination": "Tree succeeds when the block is verified at the target and the arm has safely retreated."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "First clear pushing contact with the T-block aligned toward the outline.",
+        "predicts_next": "Continued push or corrective stroke expected; tool yaw already set.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "The task requires pushing a T-shaped block (gray) to a fixed target (green) with a circular end-effector (blue). Both observation and control frequencies are 10Hz.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["t_block", "target_T_outline", "circular_end_effector"],
+  "objects_from_instruction": ["gray T-shaped block", "green fixed target", "blue circular end-effector"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"t_block","timeout_ms":800},"description":"Locate the T-shaped block."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"t_target","timeout_ms":800},"description":"Locate the fixed T target outline."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"t_block","tolerance":0.01,"timeout_ms":1200},"description":"Align tool normal to block face for pushing."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":90},"description":"Set yaw to achieve a lateral push."},
+    {"id":"Push","type":"Action","ports":{"target":"t_block","distance":0.2,"direction_deg":180,"timeout_ms":1500},"description":"Execute push stroke toward the target; wrapped by retry."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"t_target","tolerance":0.01,"timeout_ms":1200},"description":"Fine-align near the target outline."},
+    {"id":"IsAt","type":"Condition","ports":{"target":"t_target"},"description":"Check that block pose matches target region."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off to a safe height/pose."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":400},"description":"Short dwell to stabilize after retreat."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 8, "conditions": 1, "depth": 3},
+  "failure_modes": [
+    "Block not detected or occluded",
+    "Yaw misalignment causing rotation of the block",
+    "Insufficient push distance due to friction",
+    "Overshoot past the target outline"
+  ],
+  "recovery_strategy": [
+    "Re-run detection and re-approach",
+    "Retry push with same yaw (decorator)",
+    "Realign to target and verify again"
+  ],
+  "assumptions": [
+    "In frames the block appears red and the target outline light blue; instruction mentions gray/green/blue. We follow frames.",
+    "Push direction assumed toward the left (180 deg) based on frame 2→5 geometry.",
+    "Target is a drawn outline on the board, not a 3D fixture."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Final overlap of block with target outline, then safe retreat"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"t_block","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"t_target","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"t_block","tolerance":0.01,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.2,"direction_deg":180,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.2,"direction_deg":180,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"t_target","tolerance":0.01,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"t_target","tolerance":0.01,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"t_target","tolerance":0.01,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }
+

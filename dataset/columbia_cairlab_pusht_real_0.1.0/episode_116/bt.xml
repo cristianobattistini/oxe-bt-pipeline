@@ -1,5 +1,22 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <ScanForTarget target="t_block" pattern="raster" max_attempts="3" timeout_ms="800"/>
+    <IsObjectVisible target="t_block"/>
+    <ScanForTarget target="goal" pattern="grid" max_attempts="3" timeout_ms="800"/>
+    <IsObjectVisible target="goal"/>
+    <MoveAbove target="t_block" offset_z="0.05" timeout_ms="1200"/>
+    <ApproachAndAlign target="t_block" tolerance="0.01" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <LowerUntilContact speed="slow" max_depth="0.02" force_threshold="10" timeout_ms="800"/>
+    <Repeat num_cycles="3">
+      <Sequence>
+        <Push target="t_block" distance="0.1" direction_deg="135" timeout_ms="1500"/>
+        <Retreat distance="0.05" timeout_ms="500"/>
+        <ApproachAndAlign target="t_block" tolerance="0.01" timeout_ms="1200"/>
+      </Sequence>
+    </Repeat>
+    <MoveTo target="goal" timeout_ms="1500"/>
+    <Wait timeout_ms="400"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>
