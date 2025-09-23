@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <DetectObject target="cabinet_door_handle" timeout_ms="1200"/>
+    <ApproachAndAlign target="cabinet_door_handle" tolerance="0.01" timeout_ms="1500"/>
+    <ComputeGraspPose target="cabinet_door_handle" strategy="side" result_key="door_handle_grasp"/>
+    <Condition ID="PoseAvailable" key="door_handle_grasp"/>
+    <Pick grasp_key="door_handle_grasp" timeout_ms="1500"/>
+    <OpenContainer target="cabinet_door" container_type="hinged_door" timeout_ms="1500"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <Wait timeout_ms="500"/>
   </Sequence>
 </BehaviorTree>

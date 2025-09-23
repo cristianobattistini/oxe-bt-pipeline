@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Action ID="DetectObject" target="pot_lid" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Action ID="MoveAbove" target="pot_lid" offset_z="0.06" timeout_ms="1200"/>
+    <Action ID="ApproachAndAlign" target="pot_lid_handle" tolerance="0.005" timeout_ms="1200"/>
+    <Action ID="ComputeGraspPose" target="pot_lid_handle" strategy="pinch" result_key="grasp_lid"/>
+    <Action ID="Pick" grasp_key="grasp_lid" timeout_ms="1500"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="MoveDelta" axis="z" dist="0.1" timeout_ms="1200"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

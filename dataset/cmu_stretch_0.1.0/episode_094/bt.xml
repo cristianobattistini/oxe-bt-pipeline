@@ -1,5 +1,17 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="drawer_handle" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <IsObjectVisible target="drawer_handle"/>
+    <MoveAbove target="drawer_handle" offset_z="0.03" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <ApproachAndAlign target="drawer_handle" tolerance="0.005" timeout_ms="1500"/>
+    <CloseGripper force="20" timeout_ms="1200"/>
+    <MoveDelta axis="y" dist="0.2" timeout_ms="1500"/>
+    <ContainerOpen target="drawer"/>
+    <Retreat distance="0.1" timeout_ms="1200"/>
+    <OpenGripper width="0.08" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>

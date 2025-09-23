@@ -1,11 +1,165 @@
 {
   "dataset_id": "cmu_stretch_0.1.0",
   "episode_id": "episode_108",
-  "created_at": "2025-09-22T12:10:07",
-  "instruction": "lift up a lid from the pot",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/cmu_stretch_0.1.0/episode_108",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "Perceive the pot lid, approach from top, grasp the knob gently, lift the lid upward, then retreat.",
+  "task_long_description": {
+    "overview": "A mobile manipulator interacts with a small pot placed on a cube on a tabletop. The goal is to lift the lid off the pot. The robot must first ensure the lid is visible, localize it, compute a top-down grasp, and align above it. It opens the gripper, descends until contact, closes with low force on the lid’s knob or handle, verifies grasp stability, lifts vertically to clear the pot, briefly stabilize, and retreat to a safe distance. Timing and forces are kept conservative to avoid knocking the pot.",
+    "preconditions": [
+      "Workspace clear around pot",
+      "Robot gripper operational and centered",
+      "Pot lid is present on the pot"
+    ],
+    "stepwise_plan": [
+      "If lid not visible, scan in a short arc until it is.",
+      "Detect and localize the lid; compute a top grasp pose.",
+      "Move above the lid with a small vertical offset.",
+      "Open the gripper and descend slowly until contact.",
+      "Close gripper with low force and verify grasp stability.",
+      "Lift straight up, pause briefly, then retreat."
+    ],
+    "success_criteria": [
+      "Lid is lifted clear of the pot rim",
+      "No tipping or collision with the pot",
+      "Stable grasp maintained during lift and retreat"
+    ],
+    "failure_and_recovery": [
+      "Lid not detected: rescan using arc pattern up to 3 attempts",
+      "Slipped grasp: reopen, re-approach, increase force by one bin if safe",
+      "Unexpected contact: stop descent, retreat small distance, retry approach"
+    ],
+    "termination": "End when the lid is held in the gripper above the pot and the arm has retreated to a safe standoff."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_4","frame_5","frame_6","frame_3","frame_2","frame_1","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.22, "frame_1": 0.40, "frame_2": 0.58, "frame_3": 0.65,
+      "frame_4": 0.91, "frame_5": 0.88, "frame_6": 0.85, "frame_7": 0.35, "frame_8": 0.18
+    },
+    "rationale_per_frame": {
+      "frame_4": {
+        "now_evidence": "End-effector descending near lid center; imminent contact.",
+        "predicts_next": "Grasp closure is expected next.",
+        "uncertainty_reduction": "high"
+      },
+      "frame_5": {
+        "now_evidence": "Gripper closed on knob; grasp event.",
+        "predicts_next": "Vertical lifting motion.",
+        "uncertainty_reduction": "high"
+      },
+      "frame_6": {
+        "now_evidence": "End-effector higher than rim; lid separation evident.",
+        "predicts_next": "Stabilize then retreat.",
+        "uncertainty_reduction": "medium"
+      }
+    }
+  },
+  "task_instruction": "lift up a lid from the pot",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["table", "robot_arm", "gripper", "pot", "pot_lid", "cube_base"],
+  "objects_from_instruction": ["lid", "pot"],
+  "blackboard_keys": ["lid_grasp"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"pot_lid"},"description":"Quick check if the lid is already visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"pot_lid","pattern":"arc","max_attempts":3,"timeout_ms":1200},"description":"Active scan to make the lid visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"pot_lid","timeout_ms":800},"description":"Detect and localize the lid."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"pot_lid","strategy":"top","result_key":"lid_grasp"},"description":"Compute top-down grasp over the lid knob."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"pot_lid","offset_z":0.03,"timeout_ms":1500},"description":"Move to pre-grasp above the lid."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":800},"description":"Prepare to descend over the knob."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.03,"force_threshold":10.0,"timeout_ms":1200},"description":"Descend gently until contact with the lid."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":10,"timeout_ms":800},"description":"Close on the knob with low force."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Ensure the grasp is secure before lifting."},
+    {"id":"MoveDelta","type":"Action","ports":{"axis":"z","dist":0.1,"timeout_ms":1200},"description":"Lift the lid vertically to clear the pot."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":400},"description":"Brief stabilization pause while holding the lid."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off to a safe distance with the lid."}
+  ],
+  "tree_stats": {"nodes_total": 14, "actions": 10, "conditions": 2, "depth": 3},
+  "failure_modes": [
+    "Lid not visible due to viewpoint",
+    "Contact occurs off-center causing slip",
+    "Insufficient closing force on knob",
+    "Collision with pot rim during lift"
+  ],
+  "recovery_strategy": [
+    "Re-run arc scan and re-detect",
+    "Recompute grasp pose and realign above center",
+    "Retry grasp with the next force bin if safe",
+    "Abort lift, raise slightly, and re-approach"
+  ],
+  "assumptions": [
+    "Frames show a metal pot with a removable lid on a cube; robot approaches from the right.",
+    "Lid has a small central knob suitable for a top grasp.",
+    "If frames differed from instruction, visual evidence would take precedence."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Lid clearly separated from pot and held by gripper",
+      "No displacement of the pot beyond minor jitter",
+      "Stable hold during retreat"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"pot_lid","pattern":"arc","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"pot_lid","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"pot_lid","offset_z":0.03,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.03,"force_threshold":10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveDelta","attrs":{"axis":"z","dist":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":400}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }
