@@ -1,5 +1,25 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="bread"/>
+      <Sequence>
+        <Action ID="ScanForTarget" target="bread" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+        <Condition ID="IsObjectVisible" target="bread"/>
+      </Sequence>
+    </Fallback>
+
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+
+    <Action ID="MoveAbove" target="bread" offset_z="0.10" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="bread" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.03" force_threshold="3.0" timeout_ms="1500"/>
+    <Action ID="CloseGripper" force="10" timeout_ms="800"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="MoveDelta" axis="z" dist="0.1" timeout_ms="1200"/>
+
+    <Action ID="MoveAbove" target="plate" offset_z="0.10" timeout_ms="1500"/>
+    <Action ID="PlaceAt" pose_key="plate_center" yaw_deg="0" press_force="5.0" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

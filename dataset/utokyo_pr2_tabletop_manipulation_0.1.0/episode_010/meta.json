@@ -1,11 +1,127 @@
 {
   "dataset_id": "utokyo_pr2_tabletop_manipulation_0.1.0",
   "episode_id": "episode_010",
-  "created_at": "2025-09-22T11:24:36",
-  "instruction": "picking a bread",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/utokyo_pr2_tabletop_manipulation_0.1.0/episode_010",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "Detect, grasp, and relocate a bread roll onto the nearby white plate, then release and retreat.",
+  "task_long_description": {
+    "overview": "A PR2 end-effector must pick a bread-like orange item from a tabletop with a white plate present. The robot opens its gripper, detects and verifies the bread, computes a pinch grasp, approaches from above while aligning yaw, executes the grasp, checks stability, moves over the plate, lowers until gentle contact is detected, releases the bread, and retreats. Timing and tolerances are set to reasonable bins, prioritizing reliable contact and alignment on a flat surface.",
+    "preconditions": ["Workspace is clear except for a bread and a plate", "Camera view provides bread visibility after scanning", "Gripper operational and initially open"],
+    "stepwise_plan": ["Open gripper", "Detect bread; if not visible, scan", "Compute grasp pose (pinch)", "Move above bread and align", "Pick using computed grasp", "Verify grasp stability", "Move above plate", "Lower until contact with plate", "Open gripper to release", "Retreat to a safe height"],
+    "success_criteria": ["Bread lifted from table", "Bread placed stably on plate center area", "No collisions with plate edges or table", "Gripper released and retracted"],
+    "failure_and_recovery": ["Bread not detected → perform grid scan", "Grasp slip → reattempt full sequence from detect", "Early contact while lowering → retreat slightly and retry placement", "Timeouts → abort current leaf and escalate"],
+    "termination": "Terminate after successful release on plate and retreat, or on repeated detection/grasp timeouts."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "picking a bread",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["bread", "plate", "table"],
+  "objects_from_instruction": ["bread"],
+  "blackboard_keys": ["bread_grasp"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":800},"description":"Open gripper to maximum width bin."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"bread","timeout_ms":1200},"description":"Perception step to localize bread."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"bread"},"description":"Quick check for visibility."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"bread","pattern":"grid","max_attempts":3,"timeout_ms":1500},"description":"Grid scan to find bread if not visible."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"bread","strategy":"pinch","result_key":"bread_grasp"},"description":"Compute pinch grasp pose and store to blackboard."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"bread","offset_z":0.05,"timeout_ms":1200},"description":"Move above bread for approach."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":90},"description":"Align gripper yaw with bread orientation."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"bread","tolerance":0.01,"timeout_ms":1500},"description":"Tight approach with small tolerance."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"bread_grasp","timeout_ms":1200},"description":"Execute grasp using computed pose."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Confirm grasp stability before transport."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"plate","offset_z":0.08,"timeout_ms":1200},"description":"Transit to above the plate."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.04,"force_threshold":10,"timeout_ms":1200},"description":"Gently lower until contact with plate is detected."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":800},"description":"Release bread on plate."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off to a safe distance."}
+  ],
+  "tree_stats": {"nodes_total": 16, "actions": 12, "conditions": 2, "depth": 3},
+  "failure_modes": ["Bread not detected", "Scan exceeds timeout", "Grasp fails or slips", "Premature contact with plate", "Timeouts on motion primitives"],
+  "recovery_strategy": ["Fallback to grid scan when not visible", "Re-run detect→grasp if stability fails", "Slightly increase offset_z and retry placement if contact early", "Abort and report on repeated timeouts"],
+  "assumptions": ["Instruction mentions only picking, but frames clearly show a pick-and-place onto the plate; tree follows visual evidence.", "Symbolic targets 'bread' and 'plate' represent the observed objects.", "Pinch grasp and yaw=90 chosen to match elongated bread orientation."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Bread is grasped and transported", "Bread is released on plate without rolling", "No collisions with table edges"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"bread","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"bread","offset_z":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"bread"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"bread_grasp","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"plate","offset_z":0.08,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.04,"force_threshold":10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.09,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }

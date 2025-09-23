@@ -1,5 +1,14 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <DetectObject target="pink_cloth" timeout_ms="1200"/>
+    <ComputeGraspPose target="pink_cloth" strategy="pinch" result_key="cloth_grasp"/>
+    <PoseAvailable key="cloth_grasp"/>
+    <MoveAbove target="pink_cloth" offset_z="0.05" timeout_ms="1200"/>
+    <ApproachAndAlign target="pink_cloth" tolerance="0.01" timeout_ms="1200"/>
+    <CloseGripper force="20" timeout_ms="800"/>
+    <IsGraspStable/>
+    <MoveDelta axis="z" dist="0.1" timeout_ms="800"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>
