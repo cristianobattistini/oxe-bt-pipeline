@@ -1,11 +1,151 @@
 {
   "dataset_id": "utokyo_pr2_opening_fridge_0.1.0",
   "episode_id": "episode_048",
-  "created_at": "2025-09-22T11:24:36",
-  "instruction": "opening the fridge",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/utokyo_pr2_opening_fridge_0.1.0/episode_048",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "PR2 perceives the fridge handle, aligns, grasps, and pulls the hinged door open, then releases and retreats.",
+  "task_long_description": {
+    "overview": "A PR2 manipulator opens a small refrigerator door in a cluttered lab corner. The sequence begins with visual search for the handle, followed by approach and fine alignment. The gripper is oriented sideways, grasps the bar handle, and the robot pulls to swing the hinged door open. Once the door reaches a clearly open angle, the robot releases the handle and backs off to a safe standoff. Timing and tolerances are modest; no objects are removed from the fridge.",
+    "preconditions": ["Robot and fridge are powered and reachable", "Workspace free of immediate obstacles along pull arc", "Fridge door is initially closed", "Handle is visible or discoverable by scan"],
+    "stepwise_plan": [
+      "Scan and detect the fridge handle",
+      "Prepare gripper and approach with precise alignment",
+      "Rotate tool yaw to match handle orientation",
+      "Close gripper to grasp the handle",
+      "Execute door opening on a hinged door",
+      "Release handle and retreat to standoff"
+    ],
+    "success_criteria": [
+      "Door angle visibly increases to an open state",
+      "No collisions with adjacent cabinets or robot base",
+      "Handle grasp maintained during pull",
+      "Robot ends at safe standoff with gripper open"
+    ],
+    "failure_and_recovery": [
+      "If handle not detected, rescan using the defined pattern and attempts",
+      "If alignment fails, re-approach with tighter tolerance",
+      "If pull stalls, attempt again with stable grasp",
+      "If door already open, skip opening and finish safely"
+    ],
+    "termination": "Terminate when the fridge door is confirmed open and the robot has released the handle and retreated."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "opening the fridge",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["fridge_door","fridge_handle","robot_arm","adjacent_cabinets"],
+  "objects_from_instruction": ["fridge"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"fridge_door"},"description":"Checks whether the fridge door is already open."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"fridge_handle","pattern":"line","max_attempts":3,"timeout_ms":1500},"description":"Active scan to localize the handle."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"fridge_handle","timeout_ms":1200},"description":"Confirm visual detection of the handle."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Prepare gripper to envelope the handle."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"fridge_handle","tolerance":0.005,"timeout_ms":1500},"description":"Approach and align the end-effector to the handle."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":90},"description":"Orient the gripper yaw to match the vertical bar handle."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":800},"description":"Securely grasp the handle with low-to-moderate force."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"fridge_door","container_type":"hinged_door","timeout_ms":2000},"description":"Pull the hinged door to an open state."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Release the handle after opening."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":1200},"description":"Back off to a safe standoff from the door."}
+  ],
+  "tree_stats": {"nodes_total": 13, "actions": 9, "conditions": 1, "depth": 4},
+  "failure_modes": [
+    "Handle not detected due to occlusion or glare",
+    "Misalignment causing slip during pull",
+    "Insufficient pull causing door not to unlatch",
+    "Collision with adjacent furniture during swing"
+  ],
+  "recovery_strategy": [
+    "Rescan up to 3 attempts with line pattern",
+    "Re-approach with precise tolerance",
+    "Re-close gripper and try opening again",
+    "Abort if collision risk detected and retreat"
+  ],
+  "assumptions": [
+    "Door is hinged on the right; handle is a vertical bar on the left edge of the door.",
+    "Robot uses the bar handle (seen in frames) rather than pushing on the surface.",
+    "If the door appears already ajar, the ContainerOpen condition short-circuits the opening sequence."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "ContainerOpen evaluates true after OpenContainer",
+      "Door visibly open in subsequent frames",
+      "Robot ends with OpenGripper and safe standoff"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"fridge_handle","pattern":"line","max_attempts":3,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"fridge_handle","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"fridge_handle","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"SetTCPYaw","attrs":{"yaw_deg":90}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"fridge_door","container_type":"hinged_door","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"fridge_door","container_type":"hinged_door","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.09,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

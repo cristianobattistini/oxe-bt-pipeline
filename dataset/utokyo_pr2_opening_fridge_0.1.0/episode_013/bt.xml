@@ -1,5 +1,16 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="fridge_handle"/>
+      <Action ID="ScanForTarget" target="fridge_handle" pattern="grid" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <Action ID="DetectObject" target="fridge_handle" timeout_ms="1200"/>
+    <Action ID="ApproachAndAlign" target="fridge_handle" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="CloseGripper" force="20" timeout_ms="800"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="OpenContainer" target="fridge_door" container_type="hinged_door" timeout_ms="2000"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.2" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

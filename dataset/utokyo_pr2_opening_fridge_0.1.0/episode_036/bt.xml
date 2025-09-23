@@ -1,5 +1,19 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="fridge_handle"/>
+      <Action ID="ScanForTarget" target="fridge_handle" pattern="arc" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <Action ID="DetectObject" target="fridge_door" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Action ID="MoveTo" target="fridge_handle_pregrasp" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="fridge_handle" strategy="pull" result_key="grasp_handle"/>
+    <Condition ID="PoseAvailable" key="grasp_handle"/>
+    <Action ID="ApproachAndAlign" target="fridge_handle" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="CloseGripper" force="10" timeout_ms="1200"/>
+    <Action ID="OpenContainer" target="fridge_door" container_type="hinged_door" timeout_ms="2000"/>
+    <Condition ID="ContainerOpen" target="fridge_door"/>
+    <Action ID="Retreat" distance="0.2" timeout_ms="1200"/>
+    <Action ID="Wait" timeout_ms="400"/>
   </Sequence>
 </BehaviorTree>
