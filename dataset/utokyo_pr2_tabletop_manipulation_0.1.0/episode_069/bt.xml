@@ -1,5 +1,16 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <DetectObject target="cloth" timeout_ms="800"/>
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <MoveAbove target="cloth_center" offset_z="0.05" timeout_ms="1200"/>
+    <ApproachAndAlign target="cloth_edge" tolerance="0.005" timeout_ms="1200"/>
+    <LowerUntilContact speed="slow" max_depth="0.03" force_threshold="10" timeout_ms="800"/>
+    <CloseGripper force="10" timeout_ms="800"/>
+    <Repeat num_cycles="2">
+      <Push target="cloth_edge" distance="0.1" direction_deg="180" timeout_ms="1200"/>
+    </Repeat>
+    <OpenGripper width="0.08" timeout_ms="500"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <Wait timeout_ms="400"/>
   </Sequence>
 </BehaviorTree>

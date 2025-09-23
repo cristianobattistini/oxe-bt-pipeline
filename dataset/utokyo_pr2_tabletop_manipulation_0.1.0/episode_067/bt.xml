@@ -1,5 +1,45 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible">
+        <IsObjectVisible target="cloth"/>
+      </Condition>
+      <Action ID="ScanForTarget">
+        <ScanForTarget target="cloth" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+      </Action>
+    </Fallback>
+    <Action ID="DetectObject">
+      <DetectObject target="cloth" timeout_ms="800"/>
+    </Action>
+    <Action ID="MoveAbove">
+      <MoveAbove target="cloth" offset_z="0.05" timeout_ms="1200"/>
+    </Action>
+    <Action ID="SetTCPYaw">
+      <SetTCPYaw yaw_deg="90"/>
+    </Action>
+    <Action ID="ApproachAndAlign">
+      <ApproachAndAlign target="cloth_edge" tolerance="0.01" timeout_ms="1200"/>
+    </Action>
+    <Action ID="OpenGripper">
+      <OpenGripper width="0.06" timeout_ms="500"/>
+    </Action>
+    <Action ID="LowerUntilContact">
+      <LowerUntilContact speed="slow" max_depth="0.02" force_threshold="5.0" timeout_ms="1200"/>
+    </Action>
+    <Action ID="CloseGripper">
+      <CloseGripper force="10" timeout_ms="800"/>
+    </Action>
+    <Action ID="Push">
+      <Push target="cloth_edge" distance="0.1" direction_deg="180" timeout_ms="1200"/>
+    </Action>
+    <Action ID="OpenGripper">
+      <OpenGripper width="0.08" timeout_ms="500"/>
+    </Action>
+    <Action ID="Retreat">
+      <Retreat distance="0.1" timeout_ms="800"/>
+    </Action>
+    <Action ID="Wait">
+      <Wait timeout_ms="400"/>
+    </Action>
   </Sequence>
 </BehaviorTree>

@@ -1,11 +1,158 @@
 {
   "dataset_id": "utokyo_pr2_tabletop_manipulation_0.1.0",
   "episode_id": "episode_089",
-  "created_at": "2025-09-22T12:10:07",
-  "instruction": "folding a cloth",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/utokyo_pr2_tabletop_manipulation_0.1.0/episode_089",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "Fold the pink cloth by grasping an edge, moving it to a fold region, placing and pressing the fold, then retreating.",
+  "task_long_description": {
+    "overview": "A robotic arm folds a small pink cloth on a wooden tabletop. The sequence begins by locating the cloth, approaching an edge precisely, and setting the gripper yaw to align with the edge. The robot pinches the cloth, lifts slightly, and transfers the grasped edge toward a fold region. It lowers until contact, places the edge to create a fold, releases the cloth, and performs a short press/wipe along the seam to stabilize the fold before retreating. Timing and tolerances are kept moderate, emphasizing reliable alignment and gentle contact with the surface.",
+    "preconditions": [
+      "Cloth present on table within reachable workspace",
+      "Gripper operational and empty",
+      "Camera view unobstructed enough to localize the cloth"
+    ],
+    "stepwise_plan": [
+      "Open gripper and confirm cloth visibility; scan if needed.",
+      "Move above the cloth and compute a pinch grasp on an accessible edge.",
+      "Approach and align with tight tolerance; set yaw for edge alignment.",
+      "Pick the edge, retrying once if necessary.",
+      "Transfer above the fold region and define the target fold pose.",
+      "Lower until contact and place the edge at the fold pose.",
+      "Release, lightly wipe/press along the fold seam, then retreat."
+    ],
+    "success_criteria": [
+      "Cloth ends in a visibly folded configuration (edge overlapped onto itself)",
+      "No slipping during place and release",
+      "Arm retreats clear of the cloth"
+    ],
+    "failure_and_recovery": [
+      "If cloth not detected: raster scan and retry perception",
+      "If grasp fails: retry pick once",
+      "If placement misaligned: re-approach and re-place with same pose key"
+    ],
+    "termination": "Tree ends after retreat once the fold is formed and the manipulator is clear."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.22, "frame_1": 0.48, "frame_2": 0.62, "frame_3": 0.90,
+      "frame_4": 0.44, "frame_5": 0.78, "frame_6": 0.55, "frame_7": 0.40, "frame_8": 0.18
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Gripper aligned at the cloth edge indicating imminent grasp.",
+        "predicts_next": "Successful pinch followed by transfer toward fold region.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "folding a cloth",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["cloth", "table", "gripper", "fold_region", "fold_seam"],
+  "objects_from_instruction": ["cloth"],
+  "blackboard_keys": ["grasp_cloth_edge", "fold_pose"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":"0.08","timeout_ms":"800"},"description":"Prepare gripper for approach."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"cloth"},"description":"Quick visibility gate for cloth."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"cloth","pattern":"raster","max_attempts":"3","timeout_ms":"1200"},"description":"Fallback search if cloth not immediately visible."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"cloth","offset_z":"0.05","timeout_ms":"1500"},"description":"Hover over the cloth before grasp planning."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"cloth_edge","strategy":"pinch","result_key":"grasp_cloth_edge"},"description":"Plan a pinch grasp on an edge."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"cloth_edge","tolerance":"0.005","timeout_ms":"1200"},"description":"Tight alignment to the edge."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":"90"},"description":"Align gripper jaw relative to the edge."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"grasp_cloth_edge","timeout_ms":"1500"},"description":"Execute the pinch grasp; retried once."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"fold_region","offset_z":"0.1","timeout_ms":"1500"},"description":"Carry the grasped edge to the fold area."},
+    {"id":"SetBlackboard","type":"Action","ports":{"key":"fold_pose","value":"cloth_half_fold"},"description":"Define symbolic target pose for folding."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":"0.02","force_threshold":"10.0","timeout_ms":"1200"},"description":"Controlled descent to the table."},
+    {"id":"PlaceAt","type":"Action","ports":{"pose_key":"fold_pose","yaw_deg":"0","press_force":"10.0","timeout_ms":"1500"},"description":"Place and press the edge to form fold."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":"0.06","timeout_ms":"800"},"description":"Release fabric."},
+    {"id":"WipeArea","type":"Action","ports":{"area_id":"fold_seam","pattern":"line","passes":"2","timeout_ms":"1200"},"description":"Light seam press/wipe to settle fold."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"0.1","timeout_ms":"1200"},"description":"Clear the workspace."}
+  ],
+  "tree_stats": {"nodes_total": 18, "actions": 14, "conditions": 1, "depth": 3},
+  "failure_modes": [
+    "Cloth not detected due to lighting or pose",
+    "Edge grasp slips during lift/transfer",
+    "Misalignment at place step causes improper fold",
+    "Cloth sticks to gripper after opening"
+  ],
+  "recovery_strategy": [
+    "Fallback scan when visibility fails",
+    "Retry pick once with same grasp key",
+    "Re-approach and re-place if contact not achieved",
+    "Open gripper wider and perform gentle wipe to release adhesion"
+  ],
+  "assumptions": [
+    "Frames suggest edge manipulation and pressing; exact grasp point is inferred as an edge pinch.",
+    "Fold target region is symbolic; precise coordinates are not available from the frames."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Final frame shows cloth in folded, more compact shape",
+      "No visible tension or sliding after release",
+      "Arm clear of cloth"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"cloth"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"cloth","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"cloth_edge","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"grasp_cloth_edge","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"fold_region","offset_z":0.1,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.02,"force_threshold":10.0,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceAt","attrs":{"pose_key":"fold_pose","yaw_deg":0,"press_force":10.0,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"WipeArea","attrs":{"area_id":"fold_seam","pattern":"line","passes":2,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

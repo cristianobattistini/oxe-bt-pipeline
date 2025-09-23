@@ -1,5 +1,20 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <Fallback>
+      <IsObjectVisible target="cloth"/>
+      <Sequence>
+        <ScanForTarget target="cloth" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+        <DetectObject target="cloth" timeout_ms="1200"/>
+      </Sequence>
+    </Fallback>
+    <MoveAbove target="cloth" offset_z="0.05" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <ApproachAndAlign target="cloth_edge_right" tolerance="0.005" timeout_ms="1500"/>
+    <LowerUntilContact speed="slow" max_depth="0.02" force_threshold="10.0" timeout_ms="1200"/>
+    <Push target="cloth_edge_right" distance="0.1" direction_deg="180" timeout_ms="1500"/>
+    <Wait timeout_ms="400"/>
+    <Retreat distance="0.1" timeout_ms="1200"/>
+    <MoveAbove target="cloth" offset_z="0.05" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

@@ -1,5 +1,22 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <IsObjectVisible target="grape"/>
+      <Sequence>
+        <ScanForTarget target="grape" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+        <DetectObject target="grape" timeout_ms="1200"/>
+      </Sequence>
+    </Fallback>
+    <MoveAbove target="grape" offset_z="0.05" timeout_ms="1200"/>
+    <OpenGripper width="0.06" timeout_ms="500"/>
+    <ComputeGraspPose target="grape" strategy="pinch" result_key="grasp_grape"/>
+    <ApproachAndAlign target="grape" tolerance="0.01" timeout_ms="1200"/>
+    <Pick grasp_key="grasp_grape" timeout_ms="1200"/>
+    <IsGraspStable/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <MoveAbove target="plate" offset_z="0.05" timeout_ms="1200"/>
+    <PlaceAt pose_key="plate_center" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <OpenGripper width="0.06" timeout_ms="500"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>

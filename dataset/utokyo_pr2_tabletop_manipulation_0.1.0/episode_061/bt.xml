@@ -1,5 +1,19 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <DetectObject target="bread" timeout_ms="800"/>
+    <DetectObject target="plate" timeout_ms="800"/>
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <ComputeGraspPose target="bread" strategy="pinch" result_key="bread_grasp"/>
+    <PoseAvailable key="bread_grasp"/>
+    <MoveAbove target="bread" offset_z="0.03" timeout_ms="1200"/>
+    <ApproachAndAlign target="bread" tolerance="0.005" timeout_ms="1500"/>
+    <LowerUntilContact speed="slow" max_depth="0.03" force_threshold="10.0" timeout_ms="1200"/>
+    <Pick grasp_key="bread_grasp" timeout_ms="1200"/>
+    <ObjectInGripper target="bread"/>
+    <MoveDelta axis="z" dist="0.1" timeout_ms="1200"/>
+    <MoveAbove target="plate" offset_z="0.05" timeout_ms="1500"/>
+    <LowerUntilContact speed="slow" max_depth="0.04" force_threshold="10.0" timeout_ms="1200"/>
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <Retreat distance="0.1" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

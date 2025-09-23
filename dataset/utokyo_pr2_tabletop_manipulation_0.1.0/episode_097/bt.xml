@@ -1,5 +1,21 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <DetectObject target="cloth" timeout_ms="800"/>
+    <IsObjectVisible target="cloth"/>
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <ComputeGraspPose target="cloth" strategy="pinch" result_key="grasp_cloth_corner"/>
+    <PoseAvailable key="grasp_cloth_corner"/>
+    <MoveAbove target="grasp_cloth_corner" offset_z="0.02" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <AtOrientation yaw_deg="90"/>
+    <ApproachAndAlign target="grasp_cloth_corner" tolerance="0.005" timeout_ms="1200"/>
+    <CloseGripper force="10" timeout_ms="800"/>
+    <IsGraspStable/>
+    <MoveDelta axis="z" dist="0.05" timeout_ms="1200"/>
+    <SetBlackboard key="fold_pose" value="cloth_center_fold"/>
+    <PoseAvailable key="fold_pose"/>
+    <PlaceAt pose_key="fold_pose" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <OpenGripper width="0.08" timeout_ms="500"/>
+    <Retreat distance="0.1" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

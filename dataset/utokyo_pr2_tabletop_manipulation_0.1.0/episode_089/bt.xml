@@ -1,5 +1,23 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <OpenGripper width="0.08" timeout_ms="800"/>
+    <Fallback>
+      <IsObjectVisible target="cloth"/>
+      <ScanForTarget target="cloth" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <MoveAbove target="cloth" offset_z="0.05" timeout_ms="1500"/>
+    <ComputeGraspPose target="cloth_edge" strategy="pinch" result_key="grasp_cloth_edge"/>
+    <ApproachAndAlign target="cloth_edge" tolerance="0.005" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Pick grasp_key="grasp_cloth_edge" timeout_ms="1500"/>
+    </RetryUntilSuccessful>
+    <MoveAbove target="fold_region" offset_z="0.1" timeout_ms="1500"/>
+    <SetBlackboard key="fold_pose" value="cloth_half_fold"/>
+    <LowerUntilContact speed="slow" max_depth="0.02" force_threshold="10.0" timeout_ms="1200"/>
+    <PlaceAt pose_key="fold_pose" yaw_deg="0" press_force="10.0" timeout_ms="1500"/>
+    <OpenGripper width="0.06" timeout_ms="800"/>
+    <WipeArea area_id="fold_seam" pattern="line" passes="2" timeout_ms="1200"/>
+    <Retreat distance="0.1" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

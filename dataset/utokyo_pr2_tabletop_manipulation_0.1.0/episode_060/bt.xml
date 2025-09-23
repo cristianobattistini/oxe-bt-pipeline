@@ -1,5 +1,23 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="bread"/>
+      <Sequence>
+        <ScanForTarget target="bread" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+        <DetectObject target="bread" timeout_ms="800"/>
+      </Sequence>
+    </Fallback>
+    <MoveAbove target="bread" offset_z="0.05" timeout_ms="1200"/>
+    <ComputeGraspPose target="bread" strategy="pinch" result_key="bread_grasp"/>
+    <ApproachAndAlign target="bread" tolerance="0.005" timeout_ms="1200"/>
+    <Pick grasp_key="bread_grasp" timeout_ms="1200"/>
+    <Condition ID="ObjectInGripper" target="bread"/>
+    <DetectObject target="saucer" timeout_ms="800"/>
+    <SetBlackboard key="place_pose" value="saucer_center"/>
+    <MoveAbove target="saucer" offset_z="0.06" timeout_ms="1200"/>
+    <PlaceAt pose_key="place_pose" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <OpenGripper width="0.08" timeout_ms="500"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>
