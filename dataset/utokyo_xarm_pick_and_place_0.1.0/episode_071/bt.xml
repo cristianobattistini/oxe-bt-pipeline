@@ -1,5 +1,31 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <Fallback>
+      <DetectObject target="white_plate" timeout_ms="1200"/>
+      <Sequence>
+        <ScanForTarget target="white_plate" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+        <DetectObject target="white_plate" timeout_ms="1200"/>
+      </Sequence>
+    </Fallback>
+    <ComputeGraspPose target="white_plate" strategy="top" result_key="white_plate_grasp"/>
+    <MoveAbove target="white_plate" offset_z="0.05" timeout_ms="1200"/>
+    <ApproachAndAlign target="white_plate" tolerance="0.01" timeout_ms="1500"/>
+    <Pick grasp_key="white_plate_grasp" timeout_ms="1200"/>
+    <IsGraspStable/>
+    <MoveDelta axis="z" dist="0.1" timeout_ms="800"/>
+    <Fallback>
+      <DetectObject target="red_plate" timeout_ms="1200"/>
+      <Sequence>
+        <ScanForTarget target="red_plate" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+        <DetectObject target="red_plate" timeout_ms="1200"/>
+      </Sequence>
+    </Fallback>
+    <MoveAbove target="red_plate" offset_z="0.05" timeout_ms="1200"/>
+    <ApproachAndAlign target="red_plate" tolerance="0.01" timeout_ms="1500"/>
+    <LowerUntilContact speed="slow" max_depth="0.05" force_threshold="10" timeout_ms="1200"/>
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <Wait timeout_ms="400"/>
   </Sequence>
 </BehaviorTree>
