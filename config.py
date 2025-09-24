@@ -14,10 +14,7 @@ datasets = [
     "utokyo_pr2_opening_fridge/0.1.0",
     "utokyo_pr2_tabletop_manipulation/0.1.0",
     "utokyo_xarm_pick_and_place/0.1.0",
-    "cmu_stretch/0.1.0",
-    # "utokyo_pr2_opening_fridge_converted_externally_to_rlds/0.1.0",
-    # "utokyo_pr2_tabletop_manipulation_converted_externally_to_rlds/0.1.0",
-    # "utokyo_xarm_pick_and_place_converted_externally_to_rlds/0.1.0",
+    "cmu_stretch/0.1.0"
 ]
 
 # Subset rapido per prove (puoi aumentare in seguito)
