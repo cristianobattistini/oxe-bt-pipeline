@@ -1,5 +1,11 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Action ID="ScanForTarget" target="dishwasher_handle" pattern="line" max_attempts="3" timeout_ms="1500"/>
+    <Condition ID="IsObjectVisible" target="dishwasher_handle"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Action ID="ApproachAndAlign" target="dishwasher_handle" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="dishwasher_handle" strategy="pull" result_key="grasp_dishwasher_handle"/>
+    <Action ID="Pick" grasp_key="grasp_dishwasher_handle" timeout_ms="1200"/>
+    <Condition ID="IsGraspStable"/>
   </Sequence>
 </BehaviorTree>

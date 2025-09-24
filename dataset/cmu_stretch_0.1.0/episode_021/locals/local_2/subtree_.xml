@@ -1,5 +1,15 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <ContainerOpen target="drawer"/>
+      <Sequence>
+        <ObjectInGripper target="drawer_handle"/>
+        <ApproachAndAlign target="drawer_handle" tolerance="0.005" timeout_ms="1200"/>
+        <RetryUntilSuccessful num_attempts="2">
+          <OpenContainer target="drawer" container_type="drawer" timeout_ms="1500"/>
+        </RetryUntilSuccessful>
+        <ContainerOpen target="drawer"/>
+      </Sequence>
+    </Fallback>
   </Sequence>
 </BehaviorTree>

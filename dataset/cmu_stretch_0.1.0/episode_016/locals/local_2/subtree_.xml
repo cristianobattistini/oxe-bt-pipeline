@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="green_bin_lid"/>
+      <Action ID="DetectObject" target="green_bin_lid" timeout_ms="800"/>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="OpenContainer" target="green_bin" container_type="bin_lid" timeout_ms="1500"/>
+    </RetryUntilSuccessful>
+    <Condition ID="ContainerOpen" target="green_bin"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>

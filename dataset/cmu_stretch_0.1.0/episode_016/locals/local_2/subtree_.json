@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 5,
+  "local_intent": "Open the green bin’s hinged lid, confirm it is open, then retreat slightly.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "End effector is already positioned on the lid edge and grasped from prior steps",
+    "TCP yaw is appropriate from earlier alignment",
+    "Bin and lid remain within the current camera view"
+  ],
+  "coherence_with_global": "Keeps perceive→act→verify→retreat around the OpenContainer micro-goal, re-detects lid if not visible, retries open up to 2 times, then checks ContainerOpen and retreats. Targets and parameters match the global plan.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }
