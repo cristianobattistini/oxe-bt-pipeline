@@ -1,9 +1,15 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
-  "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "frame_index": 2,
+  "local_intent": "Verify that a valid top grasp pose for the pot lid exists; if not, re-detect the lid and (re)compute the grasp, writing it to 'lid_grasp'.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["lid_grasp"],
+  "bb_write": ["lid_grasp"],
+  "assumptions": ["Camera can view the lid when re-detecting"],
+  "coherence_with_global": "Uses same target 'pot_lid', strategy 'top', and result_key 'lid_grasp' as in GLOBAL_BT; prepares the blackboard key before subsequent ApproachAndAlign/Pick steps.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

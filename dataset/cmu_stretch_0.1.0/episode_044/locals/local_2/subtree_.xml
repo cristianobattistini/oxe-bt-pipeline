@@ -1,5 +1,12 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <IsObjectVisible target="drawer_handle"/>
+    <IsGraspStable/>
+    <RetryUntilSuccessful num_attempts="2">
+      <OpenContainer target="drawer_1" container_type="drawer" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <ContainerOpen target="drawer_1"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <Wait timeout_ms="500"/>
   </Sequence>
 </BehaviorTree>

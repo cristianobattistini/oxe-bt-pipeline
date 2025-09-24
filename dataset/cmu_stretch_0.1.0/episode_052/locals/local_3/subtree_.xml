@@ -1,5 +1,10 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="green_bin_lid" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <MoveAbove target="green_bin_lid" offset_z="0.1" timeout_ms="1200"/>
+    <ApproachAndAlign target="green_bin_lid_handle" tolerance="0.005" timeout_ms="1500"/>
+    <IsAt target="green_bin_lid_handle"/>
   </Sequence>
 </BehaviorTree>

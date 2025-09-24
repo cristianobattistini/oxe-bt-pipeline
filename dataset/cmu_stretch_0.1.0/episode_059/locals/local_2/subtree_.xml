@@ -1,5 +1,11 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Action ID="ComputeGraspPose" target="dishwasher_handle" strategy="pull" result_key="handle_grasp"/>
+    <Condition ID="PoseAvailable" key="handle_grasp"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="Pick" grasp_key="handle_grasp" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Condition ID="IsGraspStable"/>
   </Sequence>
 </BehaviorTree>
