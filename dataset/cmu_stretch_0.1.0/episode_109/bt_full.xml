@@ -1,0 +1,20 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <Fallback>
+      <IsObjectVisible target="drawer_handle"/>
+      <ScanForTarget target="drawer_handle" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <DetectObject target="drawer_handle" timeout_ms="800"/>
+    <MoveAbove target="drawer_handle" offset_z="0.05" timeout_ms="1200"/>
+    <ApproachAndAlign target="drawer_handle" tolerance="0.01" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <ComputeGraspPose target="drawer_handle" strategy="pinch" result_key="grasp_handle"/>
+    <Pick grasp_key="grasp_handle" timeout_ms="1500"/>
+    <IsGraspStable/>
+    <MoveDelta axis="x" dist="-0.2" timeout_ms="1500"/>
+    <OpenGripper width="0.08" timeout_ms="500"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

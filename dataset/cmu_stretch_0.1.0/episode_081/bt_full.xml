@@ -1,0 +1,20 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="dishwasher_handle"/>
+      <Sequence>
+        <Action ID="ScanForTarget" target="dishwasher_handle" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+        <Action ID="DetectObject" target="dishwasher_handle" timeout_ms="1200"/>
+      </Sequence>
+    </Fallback>
+    <Action ID="ApproachAndAlign" target="dishwasher_handle" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="SetTCPYaw" yaw_deg="90"/>
+    <Action ID="ComputeGraspPose" target="dishwasher_handle" strategy="pull" result_key="handle_grasp"/>
+    <Condition ID="PoseAvailable" key="handle_grasp"/>
+    <Action ID="CloseGripper" force="30" timeout_ms="800"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="OpenContainer" target="dishwasher" container_type="hinged_door" timeout_ms="1500"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

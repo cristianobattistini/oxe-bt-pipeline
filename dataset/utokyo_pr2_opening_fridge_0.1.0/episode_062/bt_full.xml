@@ -1,0 +1,18 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <MoveTo target="fridge_front" timeout_ms="1500"/>
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="fridge_handle" timeout_ms="800"/>
+    </RetryUntilSuccessful>
+    <ComputeGraspPose target="fridge_handle" strategy="pull" result_key="handle_grasp"/>
+    <PoseAvailable key="handle_grasp"/>
+    <ApproachAndAlign target="fridge_handle" tolerance="0.005" timeout_ms="1500"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <CloseGripper force="20" timeout_ms="800"/>
+    <IsGraspStable/>
+    <OpenContainer target="fridge_door" container_type="hinged_door" timeout_ms="2000"/>
+    <ContainerOpen target="fridge_door"/>
+    <Retreat distance="0.2" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

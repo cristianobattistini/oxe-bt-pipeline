@@ -1,0 +1,20 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="grape_bunch"/>
+      <Action ID="DetectObject" target="grape_bunch" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="grape_bunch" offset_z="0.05" timeout_ms="1200"/>
+    <Action ID="ComputeGraspPose" target="grape" strategy="pinch" result_key="grasp_grape"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="800"/>
+    <Action ID="ApproachAndAlign" target="grape_bunch" tolerance="0.005" timeout_ms="1200"/>
+    <Action ID="Pick" grasp_key="grasp_grape" timeout_ms="1200"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="MoveTo" target="plate_prepose" timeout_ms="1500"/>
+    <Action ID="MoveAbove" target="plate" offset_z="0.05" timeout_ms="1200"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.05" force_threshold="10" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="1200"/>
+    <Action ID="Wait" timeout_ms="400"/>
+  </Sequence>
+</BehaviorTree>

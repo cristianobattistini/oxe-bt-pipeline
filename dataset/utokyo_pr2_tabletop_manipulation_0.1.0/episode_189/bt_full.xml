@@ -1,0 +1,16 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <Fallback>
+      <IsObjectVisible target="grape"/>
+      <ScanForTarget target="grape" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
+      <DetectObject target="grape" timeout_ms="1200"/>
+    </Fallback>
+    <ComputeGraspPose target="grape" strategy="pinch" result_key="grape_grasp"/>
+    <MoveAbove target="grape" offset_z="0.03" timeout_ms="1200"/>
+    <ApproachAndAlign target="grape" tolerance="0.005" timeout_ms="1200"/>
+    <Pick grasp_key="grape_grasp" timeout_ms="1500"/>
+    <IsGraspStable/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

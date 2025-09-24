@@ -1,0 +1,19 @@
+<BehaviorTree ID="MainTree">
+  <Fallback>
+    <Condition ID="IsAt" target="t_block_at_target"/>
+    <Sequence>
+      <Action ID="DetectObject" target="t_block" timeout_ms="800"/>
+      <Action ID="DetectObject" target="target_goal" timeout_ms="800"/>
+      <Action ID="MoveAbove" target="t_block" offset_z="0.01" timeout_ms="800"/>
+      <Action ID="ApproachAndAlign" target="t_block" tolerance="0.005" timeout_ms="1200"/>
+      <Action ID="SetTCPYaw" yaw_deg="180"/>
+      <Repeat num_cycles="3">
+        <Action ID="Push" target="t_block_towards_goal" distance="0.1" direction_deg="180" timeout_ms="800"/>
+      </Repeat>
+      <Action ID="DetectObject" target="target_goal" timeout_ms="800"/>
+      <Action ID="ApproachAndAlign" target="target_goal" tolerance="0.01" timeout_ms="1200"/>
+      <Action ID="Push" target="t_block_towards_goal" distance="0.05" direction_deg="180" timeout_ms="500"/>
+      <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+    </Sequence>
+  </Fallback>
+</BehaviorTree>

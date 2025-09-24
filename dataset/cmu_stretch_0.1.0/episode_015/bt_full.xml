@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="DetectObject" target="pot" timeout_ms="1500"/>
+    <Action ID="DetectObject" target="lid" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Action ID="MoveAbove" target="lid_handle" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="lid_handle" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="lid_handle" strategy="pinch" result_key="grasp_lid"/>
+    <Action ID="Pick" grasp_key="grasp_lid" timeout_ms="1200"/>
+    <Action ID="MoveDelta" axis="z" dist="0.1" timeout_ms="1200"/>
+    <Action ID="PlaceAt" pose_key="lid_side" yaw_deg="90" press_force="10.0" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

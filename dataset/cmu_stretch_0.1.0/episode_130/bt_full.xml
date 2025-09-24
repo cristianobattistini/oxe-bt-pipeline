@@ -1,0 +1,17 @@
+<BehaviorTree ID="MainTree">
+  <Fallback>
+    <ContainerOpen target="counter_drawer"/>
+    <Sequence>
+      <ScanForTarget target="drawer_handle" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+      <OpenGripper width="0.09" timeout_ms="800"/>
+      <ComputeGraspPose target="drawer_handle" strategy="pull" result_key="handle_grasp"/>
+      <PoseAvailable key="handle_grasp"/>
+      <ApproachAndAlign target="drawer_handle" tolerance="0.005" timeout_ms="1500"/>
+      <Pick grasp_key="handle_grasp" timeout_ms="1500"/>
+      <SetTCPYaw yaw_deg="0"/>
+      <OpenContainer target="counter_drawer" container_type="drawer" timeout_ms="2000"/>
+      <Retreat distance="0.1" timeout_ms="800"/>
+      <OpenGripper width="0.09" timeout_ms="800"/>
+    </Sequence>
+  </Fallback>
+</BehaviorTree>

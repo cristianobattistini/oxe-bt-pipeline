@@ -1,0 +1,24 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <IsObjectVisible target="t_block"/>
+      <ScanForTarget target="t_block" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <Fallback>
+      <IsObjectVisible target="target_zone"/>
+      <ScanForTarget target="target_zone" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <MoveAbove target="t_block" offset_z="0.03" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="0"/>
+    <ApproachAndAlign target="t_block" tolerance="0.0" timeout_ms="1200"/>
+    <Repeat num_cycles="3">
+      <Sequence>
+        <Push target="t_block" distance="0.1" direction_deg="180" timeout_ms="1200"/>
+        <Wait timeout_ms="500"/>
+      </Sequence>
+    </Repeat>
+    <ApproachAndAlign target="target_zone" tolerance="0.01" timeout_ms="1200"/>
+    <IsAt target="target_zone"/>
+    <Retreat distance="0.05" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

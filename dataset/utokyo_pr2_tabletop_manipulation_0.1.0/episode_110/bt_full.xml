@@ -1,0 +1,17 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <DetectObject target="cloth" timeout_ms="1500"/>
+    <Fallback>
+      <IsObjectVisible target="cloth"/>
+      <ScanForTarget target="cloth" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <OpenGripper width="0.08" timeout_ms="800"/>
+    <MoveAbove target="cloth" offset_z="0.02" timeout_ms="1200"/>
+    <LowerUntilContact speed="slow" max_depth="0.05" force_threshold="10" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <Push target="cloth_edge" distance="0.1" direction_deg="90" timeout_ms="1500"/>
+    <WipeArea area_id="fold_seam" pattern="line" passes="2" timeout_ms="1200"/>
+    <Wait timeout_ms="400"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

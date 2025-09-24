@@ -1,0 +1,19 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="500"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="bread"/>
+      <Action ID="ScanForTarget" target="bread" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="bread" offset_z="0.05" timeout_ms="1200"/>
+    <Action ID="ApproachAndAlign" target="bread" tolerance="0.005" timeout_ms="1200"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.05" force_threshold="10" timeout_ms="1200"/>
+    <Action ID="CloseGripper" force="10" timeout_ms="800"/>
+    <Condition ID="ObjectInGripper" target="bread"/>
+    <Action ID="MoveDelta" axis="z" dist="0.1" timeout_ms="800"/>
+    <Action ID="MoveAbove" target="plate" offset_z="0.10" timeout_ms="1200"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.08" force_threshold="10" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.2" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,17 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <RetryUntilSuccessful num_attempts="3">
+      <ScanForTarget target="green_garbage_bin" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <DetectObject target="green_garbage_bin" timeout_ms="1200"/>
+    <MoveAbove target="green_bin_lid" offset_z="0.05" timeout_ms="1500"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <ApproachAndAlign target="green_bin_lid_edge" tolerance="0.005" timeout_ms="1200"/>
+    <OpenGripper width="0.09" timeout_ms="400"/>
+    <ComputeGraspPose target="green_bin_lid_handle" strategy="pull" result_key="lid_grasp"/>
+    <Pick grasp_key="lid_grasp" timeout_ms="1200"/>
+    <OpenContainer target="green_garbage_bin" container_type="bin_lid" timeout_ms="1500"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <ContainerOpen target="green_garbage_bin"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,19 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <ContainerOpen target="cabinet_door"/>
+      <Sequence>
+        <ScanForTarget target="cabinet_door" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+        <DetectObject target="door_handle" timeout_ms="1200"/>
+        <ApproachAndAlign target="door_handle" tolerance="0.005" timeout_ms="1500"/>
+        <SetTCPYaw yaw_deg="90"/>
+        <OpenGripper width="0.09" timeout_ms="800"/>
+        <ComputeGraspPose target="door_handle" strategy="pull" result_key="door_grasp"/>
+        <Pick grasp_key="door_grasp" timeout_ms="1500"/>
+        <OpenContainer target="cabinet_door" container_type="hinged_door" timeout_ms="1500"/>
+      </Sequence>
+    </Fallback>
+    <Retreat distance="0.1" timeout_ms="1200"/>
+    <OpenGripper width="0.08" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>
