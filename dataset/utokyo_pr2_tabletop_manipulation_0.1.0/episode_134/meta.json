@@ -1,11 +1,157 @@
 {
   "dataset_id": "utokyo_pr2_tabletop_manipulation_0.1.0",
   "episode_id": "episode_134",
-  "created_at": "2025-09-22T12:10:07",
-  "instruction": "folding a cloth",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/utokyo_pr2_tabletop_manipulation_0.1.0/episode_134",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "Detect the pink cloth, pinch-grasp its near edge, lift slightly, drag to fold onto itself, lower to crease, release, and retreat.",
+  "task_long_description": {
+    "overview": "A PR2 arm manipulates a pink cloth on a wooden tabletop. The goal is to create a single, neat fold by grasping one edge, performing a small lift to reduce friction, and pulling the grasped edge across the cloth before lowering to form a crease. The sequence emphasizes reliable perception, gentle grasping, and controlled end-effector motion. The robot should end with the cloth folded and the gripper open, clear of the workspace, while avoiding excessive forces that might shift the cloth unpredictably.",
+    "preconditions": [
+      "Cloth visible on table and within reach",
+      "Workspace clear of obstacles",
+      "Camera pose provides unobstructed view of cloth",
+      "Gripper operational and initially open"
+    ],
+    "stepwise_plan": [
+      "Verify the cloth is visible and detect it.",
+      "Open the gripper and approach above the cloth.",
+      "Align to the target edge, compute a pinch grasp, and pick.",
+      "Lift slightly and translate along the table to fold.",
+      "Lower until contact to crease, release the cloth, and retreat."
+    ],
+    "success_criteria": [
+      "Cloth shows a clear single fold (double layer visible)",
+      "Gripper is empty and open",
+      "End-effector has retreated from the folded cloth",
+      "No significant cloth displacement from the intended folded position"
+    ],
+    "failure_and_recovery": [
+      "Perception failure: re-run detection and re-align",
+      "Grasp slip: reopen, recompute grasp, and retry pick",
+      "Insufficient fold: repeat the translate and lower steps",
+      "Over-dragging: retreat slightly and re-align before re-folding"
+    ],
+    "termination": "After releasing the cloth and retreating to a safe distance with no errors reported."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_6","frame_4","frame_2","frame_7","frame_1","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.22, "frame_1": 0.30, "frame_2": 0.52, "frame_3": 0.92,
+      "frame_4": 0.60, "frame_5": 0.85, "frame_6": 0.74, "frame_7": 0.35, "frame_8": 0.10
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Initial secure contact at the cloth edge is visible and the gripper is aligned for grasp.",
+        "predicts_next": "Subsequent lifting and dragging motions to fold the cloth are expected.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "folding a cloth",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["pink_cloth","table","pr2_gripper"],
+  "objects_from_instruction": ["cloth"],
+  "blackboard_keys": ["edge_grasp"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"cloth"},"description":"Check that the cloth is currently visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"cloth","timeout_ms":1200},"description":"Run detector to localize the cloth pose and edges."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Prepare for grasp with wide opening."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"cloth","offset_z":0.05,"timeout_ms":1200},"description":"Move to a pregrasp height above the cloth."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"cloth_edge","tolerance":0.01,"timeout_ms":1500},"description":"Align TCP with the target edge."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"cloth_edge","strategy":"pinch","result_key":"edge_grasp"},"description":"Compute a pinch grasp on the cloth edge."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"edge_grasp","timeout_ms":1200},"description":"Execute the grasp to pinch the cloth edge."},
+    {"id":"MoveDelta","type":"Action","ports":{"axis":"z","dist":0.05,"timeout_ms":800},"description":"Slight lift to reduce friction."},
+    {"id":"MoveDelta","type":"Action","ports":{"axis":"y","dist":0.1,"timeout_ms":1200},"description":"Drag the grasped edge to fold the cloth."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":1200},"description":"Lower to press/crease the fold gently."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Release the cloth."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off to a safe distance."}
+  ],
+  "tree_stats": {"nodes_total": 13, "actions": 11, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Cloth not detected due to lighting or pose",
+    "Edge grasp fails or slips",
+    "Over-dragging causes misalignment",
+    "Insufficient lowering fails to crease the fold"
+  ],
+  "recovery_strategy": [
+    "Re-detect and re-align before grasping",
+    "Recompute grasp and retry pick",
+    "Short corrective translate in opposite direction",
+    "Repeat lower-release cycle once"
+  ],
+  "assumptions": [
+    "Single fold is intended; no multi-step origami.",
+    "Dragging along +Y achieves the fold direction seen in frames.",
+    "Contact model allows gentle creasing with slow speed and low force threshold."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Visible double-layered cloth with crease",
+      "No object in gripper after release",
+      "End effector outside immediate cloth area"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"cloth","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"cloth","offset_z":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"cloth_edge","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"edge_grasp","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveDelta","attrs":{"axis":"z","dist":0.05,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveDelta","attrs":{"axis":"y","dist":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }

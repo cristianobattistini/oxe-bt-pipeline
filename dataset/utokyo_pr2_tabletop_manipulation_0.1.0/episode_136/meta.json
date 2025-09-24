@@ -1,11 +1,165 @@
 {
   "dataset_id": "utokyo_pr2_tabletop_manipulation_0.1.0",
   "episode_id": "episode_136",
-  "created_at": "2025-09-22T12:10:07",
-  "instruction": "picking a grape",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/utokyo_pr2_tabletop_manipulation_0.1.0/episode_136",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full.md"
+  "task_summary": "Detect, approach, and grasp a grape cluster from a plate, then retreat while confirming the grasp.",
+  "task_long_description": {
+    "overview": "A PR2-like manipulator is tasked with picking a grape cluster from a small plate on a wooden tabletop. The robot must first perceive the grapes, compute a pinch grasp, and approach precisely. After a gentle vertical approach and contact detection, it closes the gripper, verifies grasp stability, and retreats from the plate. Visual frames show approach from the right, contact over the plate, lift, and pull-away. Timing and tolerances are conservative to avoid disturbing the plate while ensuring a secure grasp.",
+    "preconditions": [
+      "Workspace clear around the plate",
+      "Robot gripper calibrated and operable",
+      "Camera view of plate unobstructed",
+      "Robot in reachable configuration for the plate area"
+    ],
+    "stepwise_plan": [
+      "Open gripper.",
+      "Perceive grapes; if detection fails, scan with a raster pattern.",
+      "Compute pinch grasp and check pose availability.",
+      "Move above pregrasp offset and align precisely.",
+      "Lower until contact is detected and close gripper with moderate force.",
+      "Verify grasp stability.",
+      "Retreat from the plate while keeping object secured.",
+      "Confirm object is in gripper."
+    ],
+    "success_criteria": [
+      "Object detected and grasp pose computed",
+      "Gripper closed with grapes secured",
+      "Post-grasp stability verified",
+      "Robot retreats without knocking the plate",
+      "Object presence confirmed in gripper"
+    ],
+    "failure_and_recovery": [
+      "Detection failure → fallback to ScanForTarget with retries",
+      "Misalignment → re-approach after failed alignment",
+      "Contact not reached → repeat LowerUntilContact",
+      "Unstable grasp → reopen, recompute grasp, retry sequence"
+    ],
+    "termination": "Tree succeeds when ObjectInGripper returns SUCCESS after the retreat; otherwise fails."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "picking a grape",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["grape_cluster", "plate", "tabletop", "robot_gripper"],
+  "objects_from_instruction": ["grape"],
+  "blackboard_keys": ["grasp_grape"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Prepare the gripper for grasping."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"grape_cluster","timeout_ms":800},"description":"Detect grapes using vision."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"grape_cluster","pattern":"raster","max_attempts":3,"timeout_ms":1200},"description":"Active scan if initial detection fails."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"grape_cluster","strategy":"pinch","result_key":"grasp_grape"},"description":"Compute pinch grasp pose and store on blackboard."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"grasp_grape"},"description":"Ensure grasp pose is available."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"grasp_grape","offset_z":0.02,"timeout_ms":800},"description":"Move to a pregrasp above the target."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"grasp_grape","tolerance":0.005,"timeout_ms":1200},"description":"Precisely align to the grasp pose."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.03,"force_threshold":10.0,"timeout_ms":800},"description":"Descend gently until contact is detected."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":800},"description":"Close gripper to form the grasp."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check for a stable grasp after closing."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back away from the plate safely."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"grape_cluster"},"description":"Verify the grapes are held."}
+  ],
+  "tree_stats": {"nodes_total": 15, "actions": 9, "conditions": 3, "depth": 5},
+  "failure_modes": [
+    "Grapes not detected due to glare",
+    "Computed grasp collides with plate rim",
+    "Insufficient closing force causing slip",
+    "Object drops during retreat"
+  ],
+  "recovery_strategy": [
+    "Fallback scan with retries on detection",
+    "Recompute grasp with same strategy and re-align",
+    "Reopen and retry with adjusted approach",
+    "If drop detected, restart from detection"
+  ],
+  "assumptions": [
+    "Target is a small grape cluster on a plate; instruction says 'grape' but frames show multiple grapes.",
+    "Final frame appears static; we assume retreat occurs off-frame and object remains secured."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "After Retreat, ObjectInGripper returns SUCCESS for 'grape_cluster'."
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"grape_cluster","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"grasp_grape","offset_z":0.02,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"grasp_grape","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"PoseAvailable","attrs":{"key":"grasp_grape"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.03,"force_threshold":10.0,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"grape_cluster"}},
+      "active_path_ids": []
+    }
+  ]
 }

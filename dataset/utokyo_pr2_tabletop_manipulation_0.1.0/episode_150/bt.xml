@@ -1,5 +1,18 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <OpenGripper width="0.08" timeout_ms="800"/>
+    <Fallback>
+      <IsObjectVisible target="grape"/>
+      <ScanForTarget target="grape" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <DetectObject target="grape" timeout_ms="800"/>
+    <MoveAbove target="grape" offset_z="0.05" timeout_ms="1200"/>
+    <ComputeGraspPose target="grape" strategy="pinch" result_key="grasp_grape"/>
+    <ApproachAndAlign target="grape" tolerance="0.005" timeout_ms="1200"/>
+    <Pick grasp_key="grasp_grape" timeout_ms="1500"/>
+    <MoveAbove target="plate_center" offset_z="0.1" timeout_ms="1200"/>
+    <LowerUntilContact speed="slow" max_depth="0.03" force_threshold="10.0" timeout_ms="1200"/>
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <Retreat distance="0.2" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>
