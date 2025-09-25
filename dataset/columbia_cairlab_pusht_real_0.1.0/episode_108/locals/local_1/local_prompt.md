@@ -89,43 +89,68 @@ INPUTS
 - GLOBAL_BT (authoritative structure, do not modify here):
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <Action ID="DetectObject" target="t_block" timeout_ms="1200"/>
-    <Action ID="DetectObject" target="target_goal" timeout_ms="1200"/>
-    <Action ID="MoveAbove" target="t_block" offset_z="0.02" timeout_ms="1200"/>
-    <Action ID="ApproachAndAlign" target="t_block" tolerance="0.01" timeout_ms="1500"/>
-    <Condition ID="IsObjectVisible" target="t_block"/>
-    <Action ID="SetTCPYaw" yaw_deg="90"/>
-    <RetryUntilSuccessful num_attempts="2">
-      <Action ID="Push" target="t_block" distance="0.1" direction_deg="0" timeout_ms="1500"/>
-    </RetryUntilSuccessful>
-    <Condition ID="IsAt" target="target_goal"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="T_block"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="T_block" pattern="raster" max_attempts="3" timeout_ms="800"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="MoveAbove" target="T_block" offset_z="0.03" timeout_ms="1200"/>
+    <Action ID="SetTCPYaw" yaw_deg="0"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.03" force_threshold="5.0" timeout_ms="1200"/>
+    <Condition ID="ContactDetected" force_threshold="5.0"/>
+    <Action ID="ApproachAndAlign" target="goal_region" tolerance="0.005" timeout_ms="1200"/>
+    <Action ID="Push" target="T_block" distance="0.2" direction_deg="0" timeout_ms="1200"/>
     <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
-    <Action ID="Wait" timeout_ms="400"/>
   </Sequence>
 </BehaviorTree>
 
 - GLOBAL_DESCRIPTION (task_long_description; keep semantics consistent):
 {
-  "overview": "",
-  "preconditions": [],
-  "stepwise_plan": [],
-  "success_criteria": [],
-  "failure_and_recovery": [],
-  "termination": ""
+  "overview": "A UR5-style manipulator with a circular end-effector must push a T-shaped block across a tabletop into a marked goal region. The contact-sheet shows the arm approaching from above, establishing contact near the block’s stem, and executing a planar push while maintaining alignment. The design emphasizes reliable perception, controlled contact establishment, and a straight-line push. Observation and control occur at 10 Hz, but timing bins rely on library-discrete timeouts. Recovery includes re-scanning if the block is not visible and re-approach if contact is lost.",
+  "preconditions": [
+    "Workspace is clear except for the T-shaped block and a goal outline",
+    "Camera feed available for object visibility",
+    "Robot reachable workspace covers block and goal",
+    "End-effector pose control enabled in the plane"
+  ],
+  "stepwise_plan": [
+    "Check visibility or scan for the T-shaped block",
+    "Move above the block with safe clearance",
+    "Yaw-align the tool with intended push direction",
+    "Lower until contact and verify contact",
+    "Align toward goal and execute a straight push",
+    "Retreat to a safe distance"
+  ],
+  "success_criteria": [
+    "Block’s centroid intersects the goal region",
+    "No collisions with table fixtures",
+    "Stable contact during the push"
+  ],
+  "failure_and_recovery": [
+    "If block not detected, raster scan up to 3 attempts",
+    "If contact not detected, re-approach and lower again",
+    "If push deviates, re-align and perform another push segment"
+  ],
+  "termination": "Terminate when the block is pushed into the goal region and the robot has retreated to a safe standoff."
 }
 
 - FRAME (single image; indexing is authoritative):
-frame_index: null
-frame_name: "frame_.jpg"
-frame_ranking_hint: null
+frame_index: 3
+frame_name: "frame_03.jpg"
+frame_ranking_hint: 0.92
 
 - LOCAL_ANNOTATION (authoritative for current micro-goal):
 {
-  "frame": "frame_<k>",
-  "phase": "<perceive|approach|align|act|verify|retreat>",
-  "active_leaf": {"id": "<leaf_id_from_library>", "attrs": {}},
-  "active_path_ids": ["MainTree"],
-  "lookahead_hint": {"next_phase": "<phase>", "next_leaf_id": null, "reason": "<visual cue>"}
+  "frame": "frame_3",
+  "phase": "verify",
+  "active_leaf": {
+    "id": "ContactDetected",
+    "attrs": {
+      "force_threshold": "5.0"
+    }
+  },
+  "active_path_ids": []
 }
 
 - REPLACEMENT_TARGET (where the subtree will plug):
@@ -153,7 +178,7 @@ REQUIRED OUTPUT
 
 (2) JSON metadata
 {
-  "frame_index": null,
+  "frame_index": 3,
   "local_intent": "",
   "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
