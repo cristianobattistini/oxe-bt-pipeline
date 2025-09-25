@@ -4,7 +4,12 @@ from typing import Dict, Any, Optional
 import json
 from .config import PATHS
 from .prompts import build_cached_block, build_local_prompt
-from .validators import split_two_code_blocks, validate_xml, parse_and_validate_json
+from .validators import (
+    split_two_code_blocks,
+    validate_xml,
+    parse_and_validate_json,
+    recover_xml_json_without_fences,
+)
 from .caching import cache_tag_for_block  # NEW
 
 @dataclass
@@ -169,12 +174,51 @@ def run_local_generation(io: EpisodeIO,
     if dump_dir:
         (dump_dir / "response_raw.txt").write_text(text, encoding="utf-8")
 
-    # Parsing e validazione
-    xml_block, json_block = split_two_code_blocks(text)
-    validate_xml(xml_block, set(node_library["allowed_ids"]))
-    _ = parse_and_validate_json(json_block)
 
-    # Persistenza
+    # --- Parsing e validazione (robusto)
+    parse_notes = []
+    try:
+        xml_block, json_block = split_two_code_blocks(text)
+    except Exception as e:
+        # Nessun fence: prova il recupero senza fence
+        from .validators import recover_xml_json_without_fences
+        xml_block, json_block = recover_xml_json_without_fences(text)
+        if not xml_block or not json_block:
+            if dump_dir:
+                (dump_dir / "parse_error.txt").write_text(
+                    f"{type(e).__name__}: {e}\n\n--- RESPONSE BEGIN ---\n{text}\n--- RESPONSE END ---\n",
+                    encoding="utf-8",
+                )
+            return {
+                "skipped": True,
+                "reason": "missing_code_blocks",
+                "error": "no_fences_and_recovery_failed",
+            }
+        else:
+            parse_notes.append("recovered_without_fences")
+            if dump_dir:
+                (dump_dir / "parse_warning_recovered.txt").write_text(
+                    "XML/JSON estratti senza fence usando fallback.\n",
+                    encoding="utf-8",
+                )
+
+    # --- Validazione
+    try:
+        validate_xml(xml_block, set(node_library["allowed_ids"]))
+        _ = parse_and_validate_json(json_block)
+    except Exception as e:
+        if dump_dir:
+            (dump_dir / "validation_error.txt").write_text(
+                f"{type(e).__name__}: {e}\n\n--- XML ---\n{xml_block}\n\n--- JSON ---\n{json_block}\n",
+                encoding="utf-8",
+            )
+        return {
+            "skipped": True,
+            "reason": "validation_failed",
+            "error": str(e),
+        }
+
+    # --- Persistenza
     io.subtree_xml_path.write_text(xml_block, encoding="utf-8")
     io.subtree_json_path.write_text(json_block, encoding="utf-8")
 
@@ -185,7 +229,5 @@ def run_local_generation(io: EpisodeIO,
         "cost_usd": cost,
         "xml_path": str(io.subtree_xml_path),
         "json_path": str(io.subtree_json_path),
-        "debug": {"dump_dir": str(dump_dir) if dump_dir else None,
-                  "cache_tag": cache_tag,
-                  "used_cached_block": used_cached},
+        "notes": parse_notes,
     }

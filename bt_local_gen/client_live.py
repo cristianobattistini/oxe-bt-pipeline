@@ -30,7 +30,14 @@ class LiveLLM:
             content.append({"type": "text", "text": prompt_text})
         if image_bytes is not None:
             b64 = b64encode(image_bytes).decode("ascii")
-            content.append({"type": "image_url", "image_url": f"data:image/jpeg;base64,{b64}"})
+            data_uri = f"data:image/jpeg;base64,{b64}"
+            content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": data_uri
+                    # facoltativo: "detail": "auto" | "high" | "low"
+                }
+            })
 
         system_txt = "You are GPT-5 Thinking. Follow the instructions precisely."
         # Inseriamo un hint per il caching: il provider può ignorarlo, ma se supportato riduce costo
@@ -44,9 +51,8 @@ class LiveLLM:
                 {"role": "system", "content": system_txt},
                 {"role": "user", "content": content},
             ],
-            temperature=MODEL.temperature,
-            top_p=MODEL.top_p,
         )
+        
         ch = resp.choices[0]
         text = ch.message.content or ""
         in_t = getattr(resp.usage, "prompt_tokens", 0)

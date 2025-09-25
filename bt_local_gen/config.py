@@ -3,7 +3,7 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class ModelCfg:
-    name: str = "gpt-5-thinking"
+    name: str = "gpt-5"
     temperature: float = 0.2
     top_p: float = 1.0
     use_provider_cache: bool = True

@@ -13,7 +13,6 @@ def main():
     ap = argparse.ArgumentParser(description="Generate local subtrees via GPT-5 Thinking (mock/live)")
     ap.add_argument("--dataset", required=True, choices=SUPPORTED_DATASETS)
     ap.add_argument("--version", default="0.1.0")
-    group = ap.add_mutually_exclusive_group()
 
     # consenti usare from/to insieme, ma impedisci mixing con --ids
     ap.add_argument("--from", dest="start", type=int)
@@ -29,11 +28,17 @@ def main():
     ap.add_argument("--dump-prompts", action="store_true", help="salva cached_block, local_prompt e prompt fuso per ogni chiamata")
     ap.add_argument("--print-prompt", action="store_true", help="stampa a stdout il prompt fuso")
     ap.add_argument("--print-max-chars", type=int, default=0, help="limite stampa prompt (0 = completo)")
+    ap.add_argument("--model", type=str, help="override del model id (es. gpt-5, gpt-4o, gpt-4o-mini)")
+
     args = ap.parse_args()
 
     if args.ids and (args.start or args.end):
         raise SystemExit("usa o --ids oppure --from/--to, non entrambi")
 
+    # Override modello se richiesto (MODEL è dataclass frozen: usa object.__setattr__)
+    if args.model:
+        object.__setattr__(MODEL, "name", args.model)
+        
     episodes = list_episodes(args.dataset)
     if not episodes:
         raise SystemExit("nessun episodio trovato")
@@ -85,3 +90,13 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# python -m bt_local_gen.cli \
+#   --mode live \
+#   --dataset columbia_cairlab_pusht_real_0.1.0 \
+#   --from 11 --to 11 \
+#   --model gpt-5 \
+#   --dry-run \
+#   --print-prompt --print-max-chars 1200 \
+#   --dump-prompts
