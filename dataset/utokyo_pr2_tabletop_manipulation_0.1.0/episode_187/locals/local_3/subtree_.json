@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
-  "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "frame_index": 2,
+  "local_intent": "Compute pinch grasp for the cloth, approach, execute pick, and verify a stable hold.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["cloth", "grasp_cloth"],
+  "bb_write": ["grasp_cloth"],
+  "assumptions": [
+    "Blackboard key 'cloth' resolves to the pink cloth target",
+    "Object is visible enough to compute a grasp",
+    "Gripper is empty and operational"
+  ],
+  "coherence_with_global": "Uses pinch strategy on 'cloth', opens gripper, aligns, performs Pick(grasp_cloth,1500), then verifies via IsGraspStable and ObjectInGripper, matching the GLOBAL_BT grasp phase semantics.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

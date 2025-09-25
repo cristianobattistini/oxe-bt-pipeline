@@ -1,5 +1,14 @@
 <BehaviorTree ID="MainTree">
-  <Sequence>
-    <!-- perceive / align / act / verify -->
-  </Sequence>
+  <Fallback>
+    <IsGraspStable/>
+    <Sequence>
+      <OpenGripper width="0.09" timeout_ms="800"/>
+      <DetectObject target="bread" timeout_ms="1500"/>
+      <ApproachAndAlign target="bread" tolerance="0.005" timeout_ms="1500"/>
+      <ComputeGraspPose target="bread" strategy="pinch" result_key="bread_grasp"/>
+      <PoseAvailable key="bread_grasp"/>
+      <Pick grasp_key="bread_grasp" timeout_ms="1200"/>
+      <IsGraspStable/>
+    </Sequence>
+  </Fallback>
 </BehaviorTree>

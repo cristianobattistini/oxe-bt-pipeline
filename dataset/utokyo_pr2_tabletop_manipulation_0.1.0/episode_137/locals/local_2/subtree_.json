@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 5,
+  "local_intent": "Ensure plate is perceived, move to a safe pose above it, and verify arrival for transfer phase.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "Plate pose becomes available after detection",
+    "Path planner can reach above-plate pose with 0.02 m offset"
+  ],
+  "coherence_with_global": "Replicates plate-perception fallback, executes MoveAbove(plate, 0.02, 1500), then verifies position via IsAt, matching the transfer step prior to placement.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

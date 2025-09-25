@@ -1,9 +1,15 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
-  "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "frame_index": 2,
+  "local_intent": "Ensure cloth is perceived, compute push pose, move to it, then approach and align to the cloth edge with a retry and verify position.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["push_pose"],
+  "bb_write": ["push_pose"],
+  "assumptions": ["Computed push_pose is reachable", "Cloth remains visible during approach"],
+  "coherence_with_global": "Matches global sequence up to and including ApproachAndAlign, adds retry for misalignment and verifies arrival before subsequent yaw and pushing steps.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

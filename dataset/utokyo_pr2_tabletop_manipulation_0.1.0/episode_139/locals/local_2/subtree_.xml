@@ -1,5 +1,11 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <PoseAvailable key="bread_grasp"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Pick grasp_key="bread_grasp" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <MoveDelta axis="z" dist="0.1" timeout_ms="800"/>
+    <ObjectInGripper target="bread"/>
+    <IsGraspStable/>
   </Sequence>
 </BehaviorTree>

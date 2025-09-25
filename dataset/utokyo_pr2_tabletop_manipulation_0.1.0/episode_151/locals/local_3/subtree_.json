@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 6,
+  "local_intent": "Perform a planar push on the cloth edge (0.1 m at 180 deg) after confirming visibility and aligning pose/yaw.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "Arm is already above the workspace with safe clearance from prior steps",
+    "Cloth is within reachable area"
+  ],
+  "coherence_with_global": "Matches the push phase of the global plan: detect -> visible check -> approach/align -> set yaw (90) -> execute push -> verify visibility. Omits MoveAbove and LowerUntilContact as prior steps are presumed satisfied at this frame.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

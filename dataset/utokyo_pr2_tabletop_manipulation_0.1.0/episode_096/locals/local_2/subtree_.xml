@@ -1,5 +1,12 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <RetryUntilSuccessful num_attempts="2">
+      <Sequence>
+        <DetectObject target="plate" timeout_ms="800"/>
+        <IsObjectVisible target="plate"/>
+      </Sequence>
+    </RetryUntilSuccessful>
+    <MoveAbove target="plate" offset_z="0.03" timeout_ms="1500"/>
+    <IsAt target="plate"/>
   </Sequence>
 </BehaviorTree>

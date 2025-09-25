@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Condition ID="IsObjectVisible" target="grape"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Sequence>
+        <Action ID="MoveDelta" axis="z" dist="0.05" timeout_ms="800"/>
+        <Action ID="ApproachAndAlign" target="grape" tolerance="0.005" timeout_ms="1200"/>
+      </Sequence>
+    </RetryUntilSuccessful>
+    <Action ID="Wait" timeout_ms="400"/>
+    <Condition ID="IsAt" target="grape"/>
   </Sequence>
 </BehaviorTree>

@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 5,
+  "local_intent": "Execute the pick using precomputed grasp_grape, verify secure grasp, then retreat.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_grape"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "Grasp pose keyed by grasp_grape exists on the blackboard",
+    "Target grape is currently visible"
+  ],
+  "coherence_with_global": "Aligns with global plan by using grasp_grape for Pick (timeout 1500), verifying ObjectInGripper and IsGraspStable, and retreating 0.1m afterward.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

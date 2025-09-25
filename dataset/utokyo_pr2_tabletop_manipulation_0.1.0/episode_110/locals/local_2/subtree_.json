@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 5,
+  "local_intent": "Ensure visibility and correct yaw, then push along the cloth edge to form the fold and verify visibility afterward.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "Cloth is on the table within reach",
+    "Gripper is open and gentle contact/approach has been established prior to push",
+    "Valid target reference for cloth and cloth_edge"
+  ],
+  "coherence_with_global": "Matches the global plan: confirms visibility, enforces yaw 90°, performs Push(target=cloth_edge, distance=0.1, direction_deg=90, timeout_ms=1500), and verifies visibility. Aligns with the transfer step preceding wipe/wait/retreat.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

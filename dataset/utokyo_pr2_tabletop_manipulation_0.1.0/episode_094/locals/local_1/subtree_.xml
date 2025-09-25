@@ -1,5 +1,12 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <IsObjectVisible target="cloth_edge_A"/>
+    <PoseAvailable key="grasp_cloth_edge_A"/>
+    <ApproachAndAlign target="cloth_edge_A" tolerance="0.005" timeout_ms="800"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Pick grasp_key="grasp_cloth_edge_A" timeout_ms="800"/>
+    </RetryUntilSuccessful>
+    <IsGraspStable/>
+    <ObjectInGripper target="cloth"/>
   </Sequence>
 </BehaviorTree>

@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 2,
+  "local_intent": "Verify and refine approach/alignment to the precomputed grasp_edge before descent.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_edge"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "grasp_edge pose was computed earlier and is available on the blackboard",
+    "Robot is already near the target region from prior steps"
+  ],
+  "coherence_with_global": "Uses PoseAvailable to confirm grasp_edge from ComputeGraspPose, retries ApproachAndAlign per recovery policy, then briefly settles and verifies position with IsAt before proceeding to contact.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

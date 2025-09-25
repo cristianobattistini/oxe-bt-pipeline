@@ -1,5 +1,11 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <IsObjectVisible target="cloth"/>
+    <AtOrientation yaw_deg="90"/>
+    <ContactDetected force_threshold="10"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Push target="cloth_edge" distance="0.1" direction_deg="180" timeout_ms="1500"/>
+    </RetryUntilSuccessful>
+    <Retreat distance="0.05" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>

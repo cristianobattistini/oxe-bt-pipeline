@@ -1,9 +1,15 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 2,
+  "local_intent": "Detect bread, set yaw to 90, approach and align to bread within tolerance, then verify position at bread.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": ["Bread pose is detectable", "Yaw=90 is appropriate for pinch approach"],
+  "coherence_with_global": "Implements the approach phase: DetectObject -> SetTCPYaw(90) -> ApproachAndAlign(bread, 0.005, 1200) -> verify with IsAt, matching the GLOBAL_BT ordering and intent before grasp computation.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

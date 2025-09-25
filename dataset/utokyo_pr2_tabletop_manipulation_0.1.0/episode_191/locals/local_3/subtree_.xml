@@ -1,5 +1,12 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <IsObjectVisible target="bread"/>
+      <DetectObject target="bread" timeout_ms="1200"/>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="2">
+      <ApproachAndAlign target="bread" tolerance="0.01" timeout_ms="1500"/>
+    </RetryUntilSuccessful>
+    <IsAt target="bread"/>
   </Sequence>
 </BehaviorTree>

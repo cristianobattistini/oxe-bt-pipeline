@@ -1,5 +1,9 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Condition ID="PoseAvailable" key="grasp_pose"/>
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="ApproachAndAlign" target="grasp_pose" tolerance="0.01" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Condition ID="IsAt" target="grasp_pose"/>
   </Sequence>
 </BehaviorTree>

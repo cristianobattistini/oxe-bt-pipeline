@@ -1,5 +1,18 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <Condition ID="IsAt" target="plate_above"/>
+      <Action ID="MoveTo" target="plate_above" timeout_ms="1200"/>
+    </Fallback>
+    <Fallback>
+      <Condition ID="AtOrientation" yaw_deg="0"/>
+      <Action ID="SetTCPYaw" yaw_deg="0"/>
+    </Fallback>
+    <Action ID="PlaceAt" pose_key="plate_center" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="800"/>
+    <Inverter>
+      <Condition ID="ObjectInGripper" target="bread"/>
+    </Inverter>
+    <Action ID="Retreat" distance="0.1" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

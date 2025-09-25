@@ -1,5 +1,15 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="grape"/>
+      <Sequence>
+        <Action ID="ScanForTarget" target="grape" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+        <Condition ID="IsObjectVisible" target="grape"/>
+      </Sequence>
+    </Fallback>
+    <Condition ID="PoseAvailable" key="grasp_grape"/>
+    <Action ID="ApproachAndAlign" target="grasp_grape" tolerance="0.01" timeout_ms="1200"/>
+    <Action ID="CloseGripper" force="20" timeout_ms="800"/>
+    <Condition ID="IsGraspStable"/>
   </Sequence>
 </BehaviorTree>

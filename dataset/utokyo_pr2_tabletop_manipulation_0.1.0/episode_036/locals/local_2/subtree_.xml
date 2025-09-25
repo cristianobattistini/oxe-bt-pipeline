@@ -1,5 +1,18 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <IsObjectVisible target="cloth"/>
+      <Sequence>
+        <ScanForTarget target="cloth" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+        <DetectObject target="cloth" timeout_ms="1200"/>
+      </Sequence>
+    </Fallback>
+    <SetTCPYaw yaw_deg="90"/>
+    <ApproachAndAlign target="cloth_edge_right" tolerance="0.005" timeout_ms="1500"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Push target="cloth_edge_right" distance="0.1" direction_deg="180" timeout_ms="1500"/>
+    </RetryUntilSuccessful>
+    <Wait timeout_ms="400"/>
+    <IsObjectVisible target="cloth"/>
   </Sequence>
 </BehaviorTree>

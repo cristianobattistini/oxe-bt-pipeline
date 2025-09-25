@@ -1,5 +1,20 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Condition ID="ObjectInGripper" target="bread"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="saucer"/>
+      <Sequence>
+        <ScanForTarget target="saucer" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+        <DetectObject target="saucer" timeout_ms="800"/>
+      </Sequence>
+    </Fallback>
+    <SetBlackboard key="place_pose" value="saucer_center"/>
+    <MoveAbove target="saucer" offset_z="0.06" timeout_ms="1200"/>
+    <PlaceAt pose_key="place_pose" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <OpenGripper width="0.08" timeout_ms="500"/>
+    <Inverter>
+      <Condition ID="ObjectInGripper" target="bread"/>
+    </Inverter>
+    <Retreat distance="0.1" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>

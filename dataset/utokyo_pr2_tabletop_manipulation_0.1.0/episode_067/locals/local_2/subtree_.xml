@@ -1,5 +1,21 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Condition ID="IsGraspStable">
+      <IsGraspStable/>
+    </Condition>
+    <Fallback>
+      <Condition ID="AtOrientation">
+        <AtOrientation yaw_deg="90"/>
+      </Condition>
+      <Action ID="SetTCPYaw">
+        <SetTCPYaw yaw_deg="90"/>
+      </Action>
+    </Fallback>
+    <Action ID="Push">
+      <Push target="cloth_edge" distance="0.1" direction_deg="180" timeout_ms="1200"/>
+    </Action>
+    <Condition ID="ObjectInGripper">
+      <ObjectInGripper target="cloth"/>
+    </Condition>
   </Sequence>
 </BehaviorTree>

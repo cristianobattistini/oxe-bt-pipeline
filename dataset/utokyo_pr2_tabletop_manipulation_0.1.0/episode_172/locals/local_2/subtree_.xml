@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <DetectObject target="plate" timeout_ms="800"/>
+      <Sequence>
+        <ScanForTarget target="plate" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+        <DetectObject target="plate" timeout_ms="800"/>
+      </Sequence>
+    </Fallback>
+    <MoveAbove target="plate" offset_z="0.06" timeout_ms="1200"/>
+    <IsAt target="plate"/>
   </Sequence>
 </BehaviorTree>

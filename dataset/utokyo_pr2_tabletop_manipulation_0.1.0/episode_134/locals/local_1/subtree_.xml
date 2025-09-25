@@ -1,5 +1,14 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Condition ID="IsObjectVisible" target="cloth"/>
+    <Action ID="DetectObject" target="cloth" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="cloth" offset_z="0.05" timeout_ms="1200"/>
+    <Action ID="ApproachAndAlign" target="cloth_edge" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="cloth_edge" strategy="pinch" result_key="edge_grasp"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="Pick" grasp_key="edge_grasp" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Condition ID="ObjectInGripper" target="cloth"/>
   </Sequence>
 </BehaviorTree>
