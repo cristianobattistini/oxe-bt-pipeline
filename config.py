@@ -38,16 +38,10 @@ dataset_keys = {
 
 
 # Quanti frame max per episodio (GIF inclusa se ≥2)
-max_frames = 300
+max_frames = 1000
 
 # Limite episodi per dataset (fase di prova)
 limit_episodes_per_dataset = None
-
-# Soglie (per step successivi)
-eps_pos = 0.02
-eps_rot = 0.087
-delta_move = 1e-3
-# TODO: sarebbe da tunare e capire se effettivamente può funzionare...
 
 tfds_data_dir = "/home/kcbat/tensorflow_datasets"
 
