@@ -1,5 +1,16 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="bread"/>
+      <ScanForTarget target="bread" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <DetectObject target="bread" timeout_ms="1200"/>
+    <ComputeGraspPose target="bread" strategy="pinch" result_key="grasp_bread"/>
+    <ApproachAndAlign target="bread" tolerance="0.005" timeout_ms="1500"/>
+    <LowerUntilContact speed="slow" max_depth="0.02" force_threshold="10" timeout_ms="1200"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Pick grasp_key="grasp_bread" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Condition ID="IsGraspStable"/>
   </Sequence>
 </BehaviorTree>

@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 2,
+  "local_intent": "Verify refined alignment to the cloth: ensure visibility, confirm yaw=90, perform ApproachAndAlign with retries, then verify position at cloth.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "Tool yaw to 90 deg was set upstream",
+    "Target label 'cloth' is valid and refers to the same object in perception"
+  ],
+  "coherence_with_global": "Matches global flow: perceive (visibility/scan), maintain orientation set earlier, execute ApproachAndAlign (tolerance 0.005, timeout 1200), then verify with IsAt before proceeding to contact and push in the full plan.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

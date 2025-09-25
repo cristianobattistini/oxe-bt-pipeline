@@ -1,5 +1,16 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="grape"/>
+      <Action ID="DetectObject" target="grape" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="ApproachAndAlign" target="grape" tolerance="0.005" timeout_ms="1200"/>
+    <Fallback>
+      <Condition ID="ObjectInGripper" target="grape"/>
+      <Sequence>
+        <Action ID="CloseGripper" force="10" timeout_ms="800"/>
+        <Condition ID="ObjectInGripper" target="grape"/>
+      </Sequence>
+    </Fallback>
   </Sequence>
 </BehaviorTree>

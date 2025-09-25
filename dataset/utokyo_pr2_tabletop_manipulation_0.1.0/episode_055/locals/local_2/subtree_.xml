@@ -1,5 +1,10 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <ObjectInGripper target="grape"/>
+    <MoveAbove target="plate" offset_z="0.05" timeout_ms="1200"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <LowerUntilContact speed="slow" max_depth="0.02" force_threshold="10.0" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <ContactDetected force_threshold="10.0"/>
   </Sequence>
 </BehaviorTree>

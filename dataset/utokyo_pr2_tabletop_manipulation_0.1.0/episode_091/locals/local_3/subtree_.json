@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 2,
+  "local_intent": "Ensure the grape is detected (with scan fallback), move above it with small offset, align precisely with retry on alignment failure, then verify position at target.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "Gripper is already open",
+    "Grape is within reachable workspace",
+    "Scan can discover grape if initial detection fails"
+  ],
+  "coherence_with_global": "Replicates the global detect-or-scan perception, then MoveAbove with offset 0.02 and strict ApproachAndAlign tolerance 0.0. Adds a retry on alignment timeout and verifies arrival with IsAt, consistent with the approach phase before grasp in the GLOBAL_BT.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

@@ -1,9 +1,15 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
-  "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "frame_index": 2,
+  "local_intent": "Compute a pinch grasp for the grape and verify the pose is available, retrying if needed, with a fallback perception step if the grape is not initially visible.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_grape"],
+  "bb_write": ["grasp_grape"],
+  "assumptions": ["Robot is already near pregrasp region; grape becomes detectable after scan if initially not visible"],
+  "coherence_with_global": "Matches the global sequence around ComputeGraspPose and PoseAvailable using the same target, strategy, and result_key; uses the same scan/detect parameters as the global perception fallback; adds bounded retry to recompute grasp if pose missing.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

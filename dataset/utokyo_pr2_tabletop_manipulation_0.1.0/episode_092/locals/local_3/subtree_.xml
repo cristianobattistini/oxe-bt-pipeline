@@ -1,5 +1,14 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="grape_bunch"/>
+      <Action ID="DetectObject" target="grape_bunch" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="grape_bunch" offset_z="0.05" timeout_ms="1200"/>
+    <Action ID="ComputeGraspPose" target="grape" strategy="pinch" result_key="grasp_grape"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="800"/>
+    <Action ID="ApproachAndAlign" target="grape_bunch" tolerance="0.005" timeout_ms="1200"/>
+    <Action ID="Pick" grasp_key="grasp_grape" timeout_ms="1200"/>
+    <Condition ID="IsGraspStable"/>
   </Sequence>
 </BehaviorTree>
