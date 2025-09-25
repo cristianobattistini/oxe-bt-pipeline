@@ -1,5 +1,15 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="t_block"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Fallback>
+          <Action ID="DetectObject" target="t_block" timeout_ms="1200"/>
+          <Action ID="ScanForTarget" target="t_block" pattern="spiral" max_attempts="3" timeout_ms="1500"/>
+        </Fallback>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="MoveAbove" target="t_block" offset_z="0.02" timeout_ms="1200"/>
+    <Condition ID="IsAt" target="t_block"/>
   </Sequence>
 </BehaviorTree>

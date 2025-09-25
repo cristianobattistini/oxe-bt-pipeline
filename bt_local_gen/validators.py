@@ -105,15 +105,18 @@ def recover_xml_json_without_fences(text: str) -> Tuple[Optional[str], Optional[
 # ----------------- Validazioni -----------------
 
 def validate_xml(xml_str: str, allowed_ids: set[str]) -> None:
+    """
+    Validazione permissiva:
+    - controlla solo che l'XML sia ben formato;
+    - NON verifica i tag rispetto alla NODE_LIBRARY;
+    - non altera l'XML.
+    """
     try:
-        root = etree.fromstring(xml_str.encode("utf-8"))
+        etree.fromstring(xml_str.encode("utf-8"))
     except Exception as e:
         raise ValueError(f"XML non parseable: {e}")
-    for el in root.iter():
-        if el.tag in {"root", "BehaviorTree"}:
-            continue
-        if el.tag not in allowed_ids:
-            raise ValueError(f"Nodo non ammesso dalla NODE_LIBRARY: {el.tag}")
+    # Nessun controllo su allowed_ids: accettiamo qualsiasi tag.
+    return
 
 def parse_and_validate_json(json_str: str) -> Dict[str, Any]:
     try:

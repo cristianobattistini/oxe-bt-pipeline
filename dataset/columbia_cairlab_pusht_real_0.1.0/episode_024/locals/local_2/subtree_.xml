@@ -1,5 +1,12 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Condition ID="IsObjectVisible" target="T_block"/>
+    <RetryUntilSuccessful num_attempts="3">
+      <Sequence>
+        <Action ID="ApproachAndAlign" target="T_block" tolerance="0.005" timeout_ms="800"/>
+        <Action ID="Push" target="T_block" distance="0.1" direction_deg="180" timeout_ms="800"/>
+        <Condition ID="IsAt" target="T_goal"/>
+      </Sequence>
+    </RetryUntilSuccessful>
   </Sequence>
 </BehaviorTree>

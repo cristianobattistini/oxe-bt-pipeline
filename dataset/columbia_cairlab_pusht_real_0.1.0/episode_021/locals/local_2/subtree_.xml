@@ -1,5 +1,18 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <IsObjectVisible target="t_block"/>
+      <ScanForTarget target="t_block" pattern="spiral" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="2">
+      <Sequence>
+        <ApproachAndAlign target="t_block" tolerance="0.01" timeout_ms="1500"/>
+        <SetTCPYaw yaw_deg="90"/>
+        <AtOrientation yaw_deg="90"/>
+        <Push target="t_block" distance="0.2" direction_deg="0" timeout_ms="1500"/>
+      </Sequence>
+    </RetryUntilSuccessful>
+    <Retreat distance="0.1" timeout_ms="1200"/>
+    <Wait timeout_ms="500"/>
   </Sequence>
 </BehaviorTree>
