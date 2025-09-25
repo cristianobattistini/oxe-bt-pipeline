@@ -1,5 +1,11 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <IsObjectVisible target="t_block"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <ApproachAndAlign target="t_block" tolerance="0.005" timeout_ms="1500"/>
+    </RetryUntilSuccessful>
+    <SetTCPYaw yaw_deg="90"/>
+    <AtOrientation yaw_deg="90"/>
+    <Push target="t_block" distance="0.2" direction_deg="180" timeout_ms="1500"/>
   </Sequence>
 </BehaviorTree>
