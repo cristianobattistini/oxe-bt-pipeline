@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <IsObjectVisible target="t_block"/>
+      <ScanForTarget target="t_block" pattern="arc" max_attempts="3" timeout_ms="800"/>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="2">
+      <ApproachAndAlign target="t_block" tolerance="0.005" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <SetTCPYaw yaw_deg="90"/>
+    <AtOrientation yaw_deg="90"/>
   </Sequence>
 </BehaviorTree>
