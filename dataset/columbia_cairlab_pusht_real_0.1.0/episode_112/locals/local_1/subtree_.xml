@@ -1,5 +1,11 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="block_T" timeout_ms="800"/>
+    </RetryUntilSuccessful>
+    <MoveAbove target="block_T" offset_z="0.02" timeout_ms="800"/>
+    <ApproachAndAlign target="block_T" tolerance="0.005" timeout_ms="800"/>
+    <LowerUntilContact speed="slow" max_depth="0.02" force_threshold="10" timeout_ms="800"/>
+    <ContactDetected force_threshold="10"/>
   </Sequence>
 </BehaviorTree>
