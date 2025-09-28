@@ -30,11 +30,10 @@ from typing import List, Optional
 
 # ====== DEFAULTS MODIFICABILI ======
 DATASET_ROOT = Path("dataset")
-DEFAULT_DATASET = "columbia_cairlab_pusht_real_0.1.0"
+DEFAULT_DATASET = "utokyo_pr2_opening_fridge_0.1.0"
 EPISODE_PREFIX = "episode_"
 EP_NUM_WIDTH = 3
 DEFAULT_LOCALS = [1, 2, 3]
-
 P_DIR = Path("p")   # prompts
 F_DIR = Path("f")   # frames
 # ===================================
