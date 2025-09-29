@@ -1,5 +1,10 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="fridge_door"/>
+      <Action ID="ScanForTarget" target="fridge_door" pattern="arc" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <Action ID="OpenContainer" target="fridge_door" container_type="hinged_door" timeout_ms="1500"/>
+    <Condition ID="ContainerOpen" target="fridge_door"/>
   </Sequence>
 </BehaviorTree>
