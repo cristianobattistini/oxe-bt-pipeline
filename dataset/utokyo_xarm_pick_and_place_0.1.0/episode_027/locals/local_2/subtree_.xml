@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Action ID="DetectObject" target="red_plate" timeout_ms="1200"/>
+    <Action ID="SetBlackboard" key="red_plate_center" value="detected_pose"/>
+    <Condition ID="PoseAvailable" key="red_plate_center"/>
+    <Action ID="MoveAbove" target="red_plate" offset_z="0.03" timeout_ms="1500"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.04" force_threshold="10" timeout_ms="1500"/>
+    <Condition ID="ContactDetected" force_threshold="10"/>
+    <Action ID="PlaceAt" pose_key="red_plate_center" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

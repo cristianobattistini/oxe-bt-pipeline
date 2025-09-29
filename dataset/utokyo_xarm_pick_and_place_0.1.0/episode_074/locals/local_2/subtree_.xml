@@ -1,5 +1,16 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <DetectObject target="red_plate" timeout_ms="1200"/>
+      <ScanForTarget target="red_plate" pattern="spiral" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <SetBlackboard key="on_red_plate_pose" value="red_plate_top"/>
+    <PoseAvailable key="on_red_plate_pose"/>
+    <MoveAbove target="red_plate" offset_z="0.05" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="0"/>
+    <LowerUntilContact speed="slow" max_depth="0.05" force_threshold="10" timeout_ms="1500"/>
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <Retreat distance="0.1" timeout_ms="1200"/>
+    <Wait timeout_ms="500"/>
   </Sequence>
 </BehaviorTree>

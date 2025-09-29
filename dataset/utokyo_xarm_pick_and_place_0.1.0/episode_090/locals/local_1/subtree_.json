@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
-  "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "frame_index": 2,
+  "local_intent": "Detect white_plate, compute grasp, approach, open gripper (0.09), pick using computed grasp, verify grasp stability",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
+  "bb_write": ["white_plate_grasp"],
+  "assumptions": [
+    "white_plate is visible and reachable",
+    "gripper calibrated and able to open to 0.09",
+    "workspace clear for approach"
+  ],
+  "coherence_with_global": "Implements the GLOBAL_BT steps for detecting and grasping the white plate (DetectObject → ComputeGraspPose → ApproachAndAlign → OpenGripper → Pick → verify), matching the GLOBAL_DESCRIPTION grasp phase.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

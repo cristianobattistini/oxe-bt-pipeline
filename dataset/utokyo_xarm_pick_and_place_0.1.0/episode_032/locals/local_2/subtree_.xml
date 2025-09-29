@@ -1,5 +1,15 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="red_plate"/>
+      <Action ID="ScanForTarget" target="red_plate" pattern="spiral" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="red_plate" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.05" force_threshold="10" timeout_ms="1200"/>
+    <Condition ID="ContactDetected" force_threshold="10"/>
+    <Condition ID="PoseAvailable" key="red_plate_pose"/>
+    <Action ID="PlaceAt" pose_key="red_plate_pose" yaw_deg="0" press_force="10" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>

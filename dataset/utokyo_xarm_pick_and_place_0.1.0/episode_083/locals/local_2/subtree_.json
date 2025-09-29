@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 2,
+  "local_intent": "Perceive white_plate if needed, perform precision approach and alignment, descend until contact, close gripper, verify object secured.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "Gripper is open and responsive (preceding OpenGripper executed)",
+    "Camera can observe the white_plate or ScanForTarget can locate it",
+    "Safe descend depths available (max_depth chosen from allowed distance values)"
+  ],
+  "coherence_with_global": "Refines the global 'approach' phase: ensures visibility (with retry/scan), runs DetectObject, executes ApproachAndAlign with conservative tolerance, descends until contact and secures the white_plate, then verifies ObjectInGripper consistent with the MainTree sequence.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

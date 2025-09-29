@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 2,
+  "local_intent": "Ensure white_plate perceived and grasp pose available, then move above and align for pick",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "ComputeGraspPose has produced key 'white_plate_grasp' on the blackboard",
+    "Gripper is already opened (per GLOBAL_BT prior steps)",
+    "Perception scan will locate white_plate if not immediately visible"
+  ],
+  "coherence_with_global": "Implements the 'approach' phase from GLOBAL_BT: perception fallback for white_plate, checks computed grasp pose, performs MoveAbove and ApproachAndAlign with timeouts/tolerance matching GLOBAL_BT and GLOBAL_DESCRIPTION.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

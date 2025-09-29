@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 5,
+  "local_intent": "Lower until contact with force check (retry up to 3), then place at pose 'place_on_red', open gripper, retreat and wait.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["place_on_red"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "Pose 'place_on_red' has been written to the blackboard by upstream nodes",
+    "Gripper currently holds the white plate",
+    "Environment unchanged between lowering attempts"
+  ],
+  "coherence_with_global": "Implements the 'place' phase replacing the LowerUntilContact leaf: performs lowering + contact verification with retries, then placement, release, retreat and settle consistent with the global plan and failure recovery.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

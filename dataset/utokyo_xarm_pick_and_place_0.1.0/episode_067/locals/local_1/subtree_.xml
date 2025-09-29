@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
-  <Sequence>
-    <!-- perceive / align / act / verify -->
-  </Sequence>
+    <Sequence>
+        <DetectObject target="red_plate" timeout_ms="800"/>
+        <ApproachAndAlign target="red_plate_center" tolerance="0.005" timeout_ms="1500"/>
+        <MoveTo target="red_plate_center" timeout_ms="1500"/>
+        <LowerUntilContact speed="slow" max_depth="0.05" force_threshold="10" timeout_ms="800"/>
+        <OpenGripper width="0.09" timeout_ms="800"/>
+        <Inverter>
+            <ObjectInGripper target="white_plate"/>
+        </Inverter>
+        <Retreat distance="0.1" timeout_ms="800"/>
+    </Sequence>
 </BehaviorTree>

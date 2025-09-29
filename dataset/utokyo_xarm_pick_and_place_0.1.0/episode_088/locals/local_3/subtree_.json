@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 2,
+  "local_intent": "Detect the white_plate, perform approach and alignment, execute pick using existing grasp_key, and verify a stable grasp and object presence in gripper.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "ComputeGraspPose has previously populated blackboard key 'white_plate_grasp'.",
+    "Gripper is open and robot is positioned to allow approach to the white_plate."
+  ],
+  "coherence_with_global": "This subtree implements the detection-then-manipulation fragment of the global pick-and-place sequence: it performs perception (DetectObject), fine approach/align (ApproachAndAlign), actuation (Pick), and verification (IsGraspStable, ObjectInGripper), matching the GLOBAL_BT ordering and GLOBAL_DESCRIPTION intent.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

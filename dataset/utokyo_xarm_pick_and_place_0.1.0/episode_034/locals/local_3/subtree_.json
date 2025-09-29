@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
-  "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "frame_index": 2,
+  "local_intent": "Compute grasp pose for white_plate (result_key=white_plate_grasp), approach and pick it, verify grasp stability, then detect red_plate and place by lowering until contact, release, and retreat.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
+  "bb_write": ["white_plate_grasp"],
+  "assumptions": [
+    "white_plate and red_plate remain visible/reachable during execution",
+    "gripper is operational and can open/close to specified widths",
+    "computed grasp pose is usable by ApproachAndAlign and Pick"
+  ],
+  "coherence_with_global": "Preserves the global plan: open gripper, perceive white plate, compute top grasp, pick, perceive red plate, lower to contact, release, and retreat. Adds limited retries for perception and a grasp-stability check.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

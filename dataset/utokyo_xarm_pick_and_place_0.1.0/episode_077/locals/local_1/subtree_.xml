@@ -1,5 +1,12 @@
 <BehaviorTree ID="MainTree">
-  <Sequence>
-    <!-- perceive / align / act / verify -->
-  </Sequence>
+    <Sequence>
+        <DetectObject target="white_plate" timeout_ms="1200"/>
+        <ComputeGraspPose target="white_plate" strategy="top" result_key="white_plate_grasp"/>
+        <ApproachAndAlign target="white_plate" tolerance="0.005" timeout_ms="1500"/>
+        <RetryUntilSuccessful num_attempts="2">
+            <Pick grasp_key="white_plate_grasp" timeout_ms="1200"/>
+        </RetryUntilSuccessful>
+        <IsGraspStable/>
+        <ObjectInGripper target="white_plate"/>
+    </Sequence>
 </BehaviorTree>

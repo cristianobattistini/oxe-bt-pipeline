@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 2,
+  "local_intent": "perceive_then_approach_align_pick_and_verify_grasp_on_white_plate",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "white_plate_grasp was produced earlier and is available on the blackboard",
+    "camera and perception are functional so DetectObject can succeed",
+    "gripper is open and ready (as set by earlier tree nodes)"
+  ],
+  "coherence_with_global": "Matches GLOBAL_BT flow: perceives white_plate, performs ApproachAndAlign (active leaf), executes Pick using previously computed grasp key, then verifies IsGraspStable before retreat in the global plan.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

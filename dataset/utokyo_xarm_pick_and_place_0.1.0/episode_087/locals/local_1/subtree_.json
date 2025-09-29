@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 3,
+  "local_intent": "ensure white_plate is visible, perform approach-and-align (active leaf), set TCP yaw for top grasp orientation, and verify grasp pose availability (wp_grasp)",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["wp_grasp"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "ComputeGraspPose previously produced key 'wp_grasp' in the global tree",
+    "white_plate is within sensor view and reachable"
+  ],
+  "coherence_with_global": "Perception -> ApproachAndAlign (matches LOCAL_ANNOTATION) -> prepare yaw -> verify PoseAvailable; aligns with GLOBAL_BT and GLOBAL_DESCRIPTION step sequence",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

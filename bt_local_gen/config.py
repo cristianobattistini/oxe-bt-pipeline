@@ -3,15 +3,15 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class ModelCfg:
-    name: str = "gpt-5"
+    name: str = "gpt-5-mini"
     temperature: float = 0.2
     top_p: float = 1.0
     use_provider_cache: bool = True
 
 @dataclass(frozen=True)
 class PriceCfgUSD:
-    per_m_input: float = 1.25
-    per_m_output: float = 10.0
+    per_m_input: float = 0.25
+    per_m_output: float = 2.00
     per_image_equiv_tokens: int = 1000  # stima per 1024×1024
 
 @dataclass

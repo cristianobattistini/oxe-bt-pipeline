@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
-  "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "frame_index": 2,
+  "local_intent": "Perceive the white_plate, approach and align precisely, compute a top grasp pose, and verify the grasp pose is available on the blackboard.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_wp"],
+  "bb_write": ["grasp_wp"],
+  "assumptions": [
+    "White plate is within sensor view and reachable",
+    "Camera-to-robot calibration is valid for precise alignment",
+    "Grasp computation service is available and returns pose to key 'grasp_wp'"
+  ],
+  "coherence_with_global": "Implements the LOCAL_ANNOTATION micro-goal (ApproachAndAlign) consistent with the GLOBAL_BT: detect white_plate, align precisely, compute grasp pose (grasp_wp) and verify availability before the subsequent Pick step described in GLOBAL_DESCRIPTION.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

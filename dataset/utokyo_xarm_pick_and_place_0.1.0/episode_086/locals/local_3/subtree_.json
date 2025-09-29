@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 2,
+  "local_intent": "Ensure white_plate is perceived (or scanned), compute a top grasp, approach and align with tolerance 0.005, set TCP yaw to 0 and verify orientation before pick.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
-  "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "bb_write": ["white_plate_grasp"],
+  "assumptions": [
+    "white_plate is within reachable workspace and scannable from current camera pose",
+    "ComputeGraspPose will store a usable pose at key 'white_plate_grasp' for downstream Pick"
+  ],
+  "coherence_with_global": "Matches the GLOBAL_BT verify-phase: performs perception fallback, detection, computes the top grasp (same result_key as GLOBAL_BT), executes ApproachAndAlign with specified tolerance and timeout, then sets and verifies TCP orientation prior to the Pick step.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

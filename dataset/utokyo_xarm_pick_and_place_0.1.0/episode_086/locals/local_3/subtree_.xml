@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
-  <Sequence>
-    <!-- perceive / align / act / verify -->
-  </Sequence>
+    <Sequence>
+        <Fallback>
+            <IsObjectVisible target="white_plate"/>
+            <ScanForTarget target="white_plate" pattern="spiral" max_attempts="3" timeout_ms="1500"/>
+        </Fallback>
+        <DetectObject target="white_plate" timeout_ms="800"/>
+        <ComputeGraspPose target="white_plate" strategy="top" result_key="white_plate_grasp"/>
+        <ApproachAndAlign target="white_plate" tolerance="0.005" timeout_ms="1200"/>
+        <SetTCPYaw yaw_deg="0"/>
+        <AtOrientation yaw_deg="0"/>
+    </Sequence>
 </BehaviorTree>

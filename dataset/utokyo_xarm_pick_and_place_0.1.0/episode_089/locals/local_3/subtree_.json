@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
-  "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "frame_index": 2,
+  "local_intent": "execute grasp of white_plate: detect, compute grasp pose, approach, pick with retries, verify stability",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
+  "bb_write": ["white_plate_grasp"],
+  "assumptions": [
+    "white_plate is visible or will be detected by DetectObject",
+    "ComputeGraspPose will produce a valid pose stored as white_plate_grasp",
+    "ApproachAndAlign can reach the computed grasp within timeout"
+  ],
+  "coherence_with_global": "Implements the 'grasp' phase from the global plan: perception (DetectObject), grasp computation (ComputeGraspPose), precise approach (ApproachAndAlign), execution with retry (Pick), and verification (IsGraspStable). Values conform to global BT ports and port_value_spaces.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

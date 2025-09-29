@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 2,
+  "local_intent": "Perceive the white plate, execute precise approach/align, perform pick using precomputed grasp, verify grasp stability.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_white_plate"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "ComputeGraspPose (earlier in global tree) has populated 'grasp_white_plate' on the blackboard",
+    "White plate is within sensing range and detectable",
+    "Gripper is ready to actuate"
+  ],
+  "coherence_with_global": "Matches GLOBAL_BT step: sensing and precise ApproachAndAlign for white_plate, then Pick with the previously computed grasp key, followed by IsGraspStable to verify — consistent with the described pick-and-verify phase.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

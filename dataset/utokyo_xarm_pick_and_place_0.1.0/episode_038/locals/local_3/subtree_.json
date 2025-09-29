@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 2,
+  "local_intent": "verify grasp pose 'grasp_white_plate' then approach white_plate, pick it, transit to red_plate, descend until contact, release, and retreat",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_white_plate"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "ComputeGraspPose already produced 'grasp_white_plate'",
+    "Gripper is open and empty at subtree start",
+    "Perception can confirm white_plate and red_plate"
+  ],
+  "coherence_with_global": "Performs the verification (PoseAvailable) and continues the remaining pick-and-place steps consistent with GLOBAL_BT and GLOBAL_DESCRIPTION: approach, align, pick, verify grasp, move to red_plate, lower until contact, open to release, retreat, and wait. Port values are chosen from provided port_value_spaces.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

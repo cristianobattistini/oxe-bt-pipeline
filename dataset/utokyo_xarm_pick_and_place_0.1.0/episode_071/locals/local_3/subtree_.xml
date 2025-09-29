@@ -1,5 +1,16 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <DetectObject target="white_plate" timeout_ms="1200"/>
+      <Sequence>
+        <ScanForTarget target="white_plate" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+        <DetectObject target="white_plate" timeout_ms="1200"/>
+      </Sequence>
+    </Fallback>
+    <MoveAbove target="white_plate" offset_z="0.05" timeout_ms="1200"/>
+    <RetryUntilSuccessful num_attempts="3">
+      <ApproachAndAlign target="white_plate" tolerance="0.01" timeout_ms="1500"/>
+    </RetryUntilSuccessful>
+    <IsAt target="white_plate"/>
   </Sequence>
 </BehaviorTree>

@@ -1,5 +1,11 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Condition ID="PoseAvailable" key="place_pose"/>
+    <Action ID="MoveAbove" target="red_plate" offset_z="0.05" timeout_ms="1200"/>
+    <Action ID="ApproachAndAlign" target="red_plate" tolerance="0.01" timeout_ms="1200"/>
+    <Condition ID="ObjectInGripper" target="white_plate"/>
+    <Action ID="PlaceAt" pose_key="place_pose" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="400"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>

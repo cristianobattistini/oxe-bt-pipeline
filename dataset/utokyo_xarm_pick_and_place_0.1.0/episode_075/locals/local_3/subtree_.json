@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
-  "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "frame_index": 2,
+  "local_intent": "re-detect white_plate, compute top grasp, approach & align, execute pick and verify in-gripper",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
+  "bb_write": ["white_plate_grasp"],
+  "assumptions": [
+    "Camera view sufficient to re-detect white_plate",
+    "ComputeGraspPose will write 'white_plate_grasp' for Pick to consume",
+    "Gripper and motion stacks respond within specified timeouts"
+  ],
+  "coherence_with_global": "Implements the verify-phase active leaf (ApproachAndAlign) from the global BT and follows the global stepwise plan: perception → grasp synthesis → precise approach → grasp → verify. Uses same keys and timeouts as the GLOBAL_BT and adheres to gentle alignment and verification semantics in GLOBAL_DESCRIPTION.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

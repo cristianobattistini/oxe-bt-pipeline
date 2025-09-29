@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 2,
+  "local_intent": "perceive and precisely align to white_plate, then verify visibility before pick",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_white"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "ComputeGraspPose has previously written 'grasp_white' to the blackboard",
+    "white_plate remains within sensor view and reachable",
+    "gripper is open as in global precondition"
+  ],
+  "coherence_with_global": "Implements the ApproachAndAlign micro-goal from the global plan: ensures perception (DetectObject), coarse positioning (MoveAbove), confirms computed grasp pose (PoseAvailable), runs ApproachAndAlign with the annotated tolerance/timeout, and verifies visibility before progressing to pick/place steps.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

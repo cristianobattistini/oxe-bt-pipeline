@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 2,
+  "local_intent": "Perceive white_plate, move to it, perform approach-and-align, pick using existing grasp, then verify grasp success",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "ComputeGraspPose has previously populated blackboard key 'white_plate_grasp'",
+    "Gripper is open and ready to pick",
+    "Perception may require a short scan if object not initially visible"
+  ],
+  "coherence_with_global": "Implements the LOCAL_ANNOTATION active leaf (ApproachAndAlign) within the global plan: perceptual fallback -> detect -> move -> approach/align -> pick -> verify, using timeouts and parameters consistent with the GLOBAL_BT semantics.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

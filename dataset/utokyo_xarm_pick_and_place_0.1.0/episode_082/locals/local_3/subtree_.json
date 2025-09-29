@@ -1,9 +1,19 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 2,
+  "local_intent": "Verify alignment to white_plate by detecting, approaching with 0.005 tolerance, lowering until contact, and confirming contact.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "white_plate is visible in the current camera frame",
+    "arm is in a pre-approach configuration and can execute ApproachAndAlign",
+    "gripper is open as in GLOBAL_BT prior step"
+  ],
+  "coherence_with_global": "Realizes the GLOBAL_BT ApproachAndAlign leaf for the white_plate: it re-invokes perception (with retries), executes ApproachAndAlign with the annotated tolerance and timeout, performs a controlled lower until contact, and verifies contact—matching the GLOBAL_BT stepwise plan and the GLOBAL_DESCRIPTION verification intent.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

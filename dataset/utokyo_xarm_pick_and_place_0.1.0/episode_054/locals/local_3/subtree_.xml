@@ -1,5 +1,16 @@
 <BehaviorTree ID="MainTree">
-  <Sequence>
-    <!-- perceive / align / act / verify -->
-  </Sequence>
+    <Sequence>
+        <Fallback>
+            <IsObjectVisible target="white_plate"/>
+            <ScanForTarget target="white_plate" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
+        </Fallback>
+        <DetectObject target="white_plate" timeout_ms="1200"/>
+        <MoveTo target="white_plate" timeout_ms="1500"/>
+        <ApproachAndAlign target="white_plate" tolerance="0.01" timeout_ms="1200"/>
+        <Pick grasp_key="white_plate_grasp" timeout_ms="1200"/>
+        <Sequence>
+            <IsGraspStable/>
+            <ObjectInGripper target="white_plate"/>
+        </Sequence>
+    </Sequence>
 </BehaviorTree>
