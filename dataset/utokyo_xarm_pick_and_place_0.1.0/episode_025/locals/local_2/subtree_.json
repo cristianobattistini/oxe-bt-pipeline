@@ -1,11 +1,17 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 5,
+  "local_intent": "Execute place: confirm cached pose, lower until contact, place with gentle press, verify orientation, release, and retreat.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["place_pose_red"],
   "bb_write": [],
-  "coherence_with_global": "",
+  "assumptions": [
+    "place_pose_red was set earlier by SetBlackboard",
+    "Robot is positioned over red_plate so lowering will reach target"
+  ],
+  "coherence_with_global": "Implements the 'place' phase from the global plan: uses cached place_pose_red, lowers until contact, executes PlaceAt, opens gripper, and retreats consistent with the global BT.",
   "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
     "only_known_nodes": true,
     "only_binned_values": true
   }

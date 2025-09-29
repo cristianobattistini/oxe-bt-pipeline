@@ -1,11 +1,17 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 2,
+  "local_intent": "Ensure alignment to white_plate: confirm visibility, perform approach/align (retry up to 3 attempts), and verify computed grasp pose is available before pick.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
   "bb_write": [],
-  "coherence_with_global": "",
+  "assumptions": [
+    "ComputeGraspPose was executed earlier and produced 'white_plate_grasp' on the blackboard",
+    "white_plate is detectable from the current camera view"
+  ],
+  "coherence_with_global": "Implements the ApproachAndAlign micro-goal from the global tree: senses object visibility, attempts alignment, and verifies pose availability; fits between ComputeGraspPose and Pick in the global sequence.",
   "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
     "only_known_nodes": true,
     "only_binned_values": true
   }

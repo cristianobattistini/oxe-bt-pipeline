@@ -1,11 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 2,
+  "local_intent": "approach white_plate: verify visibility, move above, align precisely, compute grasp pose, confirm pose available",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
-  "bb_write": [],
-  "coherence_with_global": "",
+  "bb_write": ["white_plate_grasp"],
+  "assumptions": [
+    "white_plate is within sensor view or was previously detected",
+    "robot is free to move to the above position without collision",
+    "gripper open state is as expected from upstream global BT"
+  ],
+  "coherence_with_global": "Implements the GLOBAL_BT 'approach' phase: moves above the white plate, performs precise approach/alignment, computes the side grasp (same result_key), and verifies the computed pose before subsequent pick.",
   "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
     "only_known_nodes": true,
     "only_binned_values": true
   }
