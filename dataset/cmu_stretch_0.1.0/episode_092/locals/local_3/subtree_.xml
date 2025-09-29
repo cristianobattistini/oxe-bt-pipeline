@@ -1,5 +1,11 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <IsObjectVisible target="pot_lid"/>
+      <DetectObject target="pot_lid" timeout_ms="1200"/>
+      <ScanForTarget target="pot_lid" pattern="spiral" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <ApproachAndAlign target="pot_lid" tolerance="0.01" timeout_ms="1500"/>
+    <IsAt target="pot_lid"/>
   </Sequence>
 </BehaviorTree>

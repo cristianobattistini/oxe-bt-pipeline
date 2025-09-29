@@ -1,5 +1,11 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <Condition ID="PoseAvailable" key="lid_grasp"/>
+      <Sequence>
+        <Action ID="ComputeGraspPose" target="pot_lid" strategy="top" result_key="lid_grasp"/>
+        <Condition ID="PoseAvailable" key="lid_grasp"/>
+      </Sequence>
+    </Fallback>
   </Sequence>
 </BehaviorTree>

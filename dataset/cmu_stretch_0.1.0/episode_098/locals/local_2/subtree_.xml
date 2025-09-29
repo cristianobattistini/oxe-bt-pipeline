@@ -1,5 +1,9 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Condition ID="IsGraspStable"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="OpenContainer" target="drawer" container_type="drawer" timeout_ms="1500"/>
+    </RetryUntilSuccessful>
+    <Condition ID="ContainerOpen" target="drawer"/>
   </Sequence>
 </BehaviorTree>

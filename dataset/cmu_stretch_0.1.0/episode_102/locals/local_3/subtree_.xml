@@ -1,5 +1,10 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Action ID="DetectObject" target="pot_lid" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="ApproachAndAlign" target="pot_lid_handle" tolerance="0.005" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Condition ID="IsAt" target="pot_lid_handle"/>
   </Sequence>
 </BehaviorTree>
