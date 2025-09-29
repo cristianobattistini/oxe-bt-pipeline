@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Generatore struttura dataset + prompt locali in due passaggi.
+Generatore struttura dataset + prompt locali + video da 9 frame.
 
 USO TIPICO
 1) Inizializza struttura episodio:
@@ -11,10 +11,8 @@ USO TIPICO
 2) Popola i prompt locali con GLOBAL_BT, NODE_LIBRARY, descrizione e COPIA i frame top-K:
    python generate_folders.py --mode locals --dest-root dataset --node-lib library/node_library_v_01.json
 
-NOTE
-- In --mode locals, per ciascun local_{1..3} tenta di copiare il relativo frame da:
-  out/<DATASET_ID>/<EPISODE_ID>/final_selected/sampled_frames/frame_XX.{jpg,jpeg,png}
-- Non sovrascrive file esistenti senza --overwrite.
+3) Crea i video dei 9 frame (stesso livello di contact_sheet):
+   python generate_folders.py --mode videos --out-root out --dest-root dataset --video-duration 4.0
 """
 
 import argparse
@@ -23,7 +21,20 @@ import re
 import shutil
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Tuple
+
+# Backend video: preferisci OpenCV; fallback a imageio-ffmpeg se disponibile.
+_cv2 = None
+_imageio = None
+try:
+    import cv2  # type: ignore
+    _cv2 = cv2
+except Exception:
+    try:
+        import imageio.v2 as imageio  # type: ignore
+        _imageio = imageio
+    except Exception:
+        pass
 
 # -------------------- Pattern per compilare prompt globale --------------------
 
@@ -309,6 +320,108 @@ def ensure_locals_structure(ep_dest: Path, overwrite: bool) -> int:
         if write_safe(json_p, SUBTREE_JSON_SKELETON, overwrite): created += 1
     return created
 
+# -------------------- Video helpers --------------------
+
+def sampled_frames_dir(out_ep: Path) -> Path:
+    return out_ep / "final_selected" / "sampled_frames"
+
+def list_candidate_frames(frames_dir: Path, max_n: int = 9) -> List[Path]:
+    """
+    Seleziona fino a 9 frame nel formato frame_XX.* ordinati per indice.
+    Accetta jpg/jpeg/png. Se meno di 9, usa quelli disponibili.
+    """
+    if not frames_dir.exists():
+        return []
+    candidates: List[Tuple[int, Path]] = []
+    for p in frames_dir.iterdir():
+        if not p.is_file():
+            continue
+        m = re.match(r"^frame_(\d+)\.(jpg|jpeg|png)$", p.name, re.IGNORECASE)
+        if not m:
+            continue
+        idx = int(m.group(1))
+        candidates.append((idx, p))
+    candidates.sort(key=lambda t: t[0])
+    return [p for _, p in candidates[:max_n]]
+
+def ensure_same_size(images: List["any"]) -> Tuple[int, int]:
+    """
+    Restituisce (width, height) da usare nel writer.
+    Ridimensiona eventuali frame fuori misura con OpenCV, altrimenti assume uniforme.
+    """
+    if not images:
+        return (0, 0)
+    h0, w0 = images[0].shape[:2]
+    if _cv2 is None:
+        # imageio: si assume dimensioni omogenee
+        return (w0, h0)
+    # Con OpenCV, allinea tutto a (w0, h0)
+    out = []
+    for i, img in enumerate(images):
+        h, w = img.shape[:2]
+        if (h, w) != (h0, w0):
+            images[i] = _cv2.resize(img, (w0, h0), interpolation=_cv2.INTER_AREA)
+    return (w0, h0)
+
+def make_video_cv2(frames: List[Path], dst: Path, duration_s: float, overwrite: bool) -> bool:
+    if not frames:
+        return False
+    if dst.exists() and not overwrite:
+        return False
+    imgs = [_cv2.imread(str(p)) for p in frames]  # BGR
+    imgs = [im for im in imgs if im is not None]
+    if not imgs:
+        return False
+    w, h = ensure_same_size(imgs)
+    # fps calcolato per coprire esattamente la durata desiderata
+    fps = max(0.1, min(60.0, len(imgs) / max(0.1, duration_s)))
+    fourcc = _cv2.VideoWriter_fourcc(*"mp4v")  # mp4
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    vw = _cv2.VideoWriter(str(dst), fourcc, fps, (w, h))
+    if not vw.isOpened():
+        return False
+    try:
+        for im in imgs:
+            vw.write(im)
+    finally:
+        vw.release()
+    return True
+
+def make_video_imageio(frames: List[Path], dst: Path, duration_s: float, overwrite: bool) -> bool:
+    if not frames:
+        return False
+    if dst.exists() and not overwrite:
+        return False
+    imgs = [_imageio.imread(p) for p in frames]  # RGB
+    if not imgs:
+        return False
+    # imageio usa "fps" nel writer; calcoliamo come sopra
+    fps = max(0.1, min(60.0, len(imgs) / max(0.1, duration_s)))
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    _imageio.mimsave(str(dst), imgs, fps=fps, format="FFMPEG", codec="libx264")
+    return True
+
+def create_contact_video(out_ep: Path, ep_dest: Path, duration_s: float, overwrite: bool, dry_run: bool) -> bool:
+    """
+    Crea contact_video.mp4 accanto a contact_sheet.*, prendendo fino a 9 frame da sampled_frames.
+    """
+    frames_dir = sampled_frames_dir(out_ep)
+    frames = list_candidate_frames(frames_dir, max_n=9)
+    if not frames:
+        print(f"[WARN] sampled_frames non trovati o vuoti: {frames_dir}")
+        return False
+    dst = ep_dest / "contact_video.mp4"
+    if dry_run:
+        print(f"[DRY] would create video {dst} from {len(frames)} frames, duration={duration_s:.2f}s")
+        return True
+    if _cv2 is not None:
+        ok = make_video_cv2(frames, dst, duration_s, overwrite)
+    elif _imageio is not None:
+        ok = make_video_imageio(frames, dst, duration_s, overwrite)
+    else:
+        raise RuntimeError("Nessun backend video disponibile. Installa 'opencv-python' oppure 'imageio[ffmpeg]'.")
+    return ok
+
 # -------------------- Modalità INIT --------------------
 
 def init_mode(out_root: Path, dest_root: Path, prompt_src: Path, prompt_name: str, overwrite: bool, dry_run: bool):
@@ -445,17 +558,44 @@ def locals_mode(project_root: Path, dest_root: Path, node_lib_path: Path, overwr
 
     print(f"\nLocals done. local_prompt.md created: {created} | skipped (exists): {skipped}")
 
+# -------------------- Modalità VIDEOS --------------------
+
+def videos_mode(project_root: Path, out_root: Path, dest_root: Path, duration_s: float, overwrite: bool, dry_run: bool):
+    if _cv2 is None and _imageio is None:
+        raise RuntimeError("Per --mode videos serve 'opencv-python' oppure 'imageio[ffmpeg]'.")
+    created = skipped = 0
+    for ds_dir in sorted([p for p in dest_root.iterdir() if p.is_dir()]):
+        dataset_id = ds_dir.name
+        for ep_dest in sorted([p for p in ds_dir.iterdir() if p.is_dir() and p.name.startswith("episode_")]):
+            episode_id = ep_dest.name
+            out_ep = out_root / dataset_id / episode_id
+            if not out_ep.exists():
+                print(f"[WARN] out mancante per {dataset_id}/{episode_id}: {out_ep}")
+                continue
+            dst = ep_dest / "contact_video.mp4"
+            if dst.exists() and not overwrite:
+                skipped += 1
+                continue
+            ok = create_contact_video(out_ep, ep_dest, duration_s, overwrite, dry_run)
+            if ok:
+                created += 1
+                print(f"[OK]  {dataset_id}/{episode_id} → contact_video.mp4 ({duration_s:.2f}s)")
+            else:
+                print(f"[WARN] {dataset_id}/{episode_id} → video non creato (frame mancanti?)")
+    print(f"\nVideos done. Episodes processed: {created + skipped} | created: {created} | skipped(existing): {skipped}")
+
 # -------------------- Main --------------------
 
 def main():
-    ap = argparse.ArgumentParser(description="Generate per-episode structure and/or local prompts.")
-    ap.add_argument("--mode", choices=["init", "locals"], default="init",
-                    help="init: crea struttura episodio; locals: genera prompt locali precompilati e copia i frame top-K.")
-    ap.add_argument("--out-root", default="out", help="[init] sorgente datasets/episodes (default: out)")
-    ap.add_argument("--dest-root", default="dataset", help="[init/locals] destinazione (default: dataset)")
+    ap = argparse.ArgumentParser(description="Generate per-episode structure, local prompts, and 9-frame videos.")
+    ap.add_argument("--mode", choices=["init", "locals", "videos"], default="init",
+                    help="init: crea struttura episodio; locals: genera prompt locali; videos: genera MP4 da 9 frame accanto a contact_sheet.")
+    ap.add_argument("--out-root", default="out", help="[init/videos] sorgente datasets/episodes (default: out)")
+    ap.add_argument("--dest-root", default="dataset", help="[init/locals/videos] destinazione (default: dataset)")
     ap.add_argument("--prompt-src", default=None, help="[init] template prompt globale (default: prompts/prompt_full.md o prompts/prompt.md)")
     ap.add_argument("--prompt-name", default="prompt.md", help="[init] nome file prompt generato (default: prompt.md)")
     ap.add_argument("--node-lib", type=Path, default=None, help="[locals] path a node_library.json")
+    ap.add_argument("--video-duration", type=float, default=4.0, help="[videos] durata desiderata del video in secondi (default: 4.0)")
     ap.add_argument("--overwrite", action="store_true", help="sovrascrive file esistenti")
     ap.add_argument("--dry-run", action="store_true", help="stampa azioni senza scrivere")
     args = ap.parse_args()
@@ -480,11 +620,17 @@ def main():
             raise FileNotFoundError("--node-lib è obbligatorio in --mode locals.")
         locals_mode(project_root, dest_root, args.node_lib, args.overwrite, args.dry_run)
 
+    elif args.mode == "videos":
+        out_root = project_root / args.out_root
+        videos_mode(project_root, out_root, dest_root, args.video_duration, args.overwrite, args.dry_run)
+
 if __name__ == "__main__":
     main()
 
 
 '''
+Esempi:
+
 python generate_folders.py \
   --mode init \
   --out-root out \
@@ -495,6 +641,11 @@ python generate_folders.py \
   --mode locals \
   --dest-root dataset \
   --node-lib library/node_library_v_01.json
-  
 
+python generate_folders.py \
+  --mode videos \
+  --out-root out \
+  --dest-root dataset \
+  --video-duration 4.0 \
+  --overwrite
 '''
