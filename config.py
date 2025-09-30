@@ -9,12 +9,36 @@ dataset  = ""
 # Dataset reali (usa questi nomi TFDS; se la tua copia locale è registrata, funzionano).
 # In alcuni rilasci i PR2/xarm compaiono come *_converted_externally_to_rlds/0.1.0.
 # Se uno dei nomi non viene risolto, prova a sostituirlo con la variante *_converted_externally_to_rlds/0.1.0.
+# datasets = [
+#     "columbia_cairlab_pusht_real/0.1.0",
+#     "utokyo_pr2_opening_fridge/0.1.0",
+#     "utokyo_pr2_tabletop_manipulation/0.1.0",
+#     "utokyo_xarm_pick_and_place/0.1.0",
+#     "cmu_stretch/0.1.0"
+# ]
 datasets = [
-    "columbia_cairlab_pusht_real/0.1.0",
-    "utokyo_pr2_opening_fridge/0.1.0",
-    "utokyo_pr2_tabletop_manipulation/0.1.0",
-    "utokyo_xarm_pick_and_place/0.1.0",
-    "cmu_stretch/0.1.0"
+    # già presenti (commentati per evitare duplicati)
+    # "columbia_cairlab_pusht_real/0.1.0",
+    # "utokyo_pr2_opening_fridge/0.1.0",
+    # "utokyo_pr2_tabletop_manipulation/0.1.0",
+    # "utokyo_xarm_pick_and_place/0.1.0",
+    # "cmu_stretch/0.1.0",
+
+    "nyu_rot_dataset_converted_externally_to_rlds/0.1.0",
+    "utokyo_saytap_converted_externally_to_rlds/0.1.0",
+    "imperialcollege_sawyer_wrist_cam/0.1.0",
+    "utokyo_xarm_bimanual_converted_externally_to_rlds/0.1.0",
+    "tokyo_u_lsmo_converted_externally_to_rlds/0.1.0",
+    "cmu_franka_exploration_dataset_converted_externally_to_rlds/0.1.0",
+    "asu_table_top_converted_externally_to_rlds/0.1.0",
+    "ucsd_kitchen_dataset_converted_externally_to_rlds/0.1.0",
+    "berkeley_gnm_cory_hall/0.1.0",
+    "austin_buds_dataset_converted_externally_to_rlds/0.1.0",
+    "dlr_sara_grid_clamp_converted_externally_to_rlds/0.1.0",
+    "dlr_sara_pour_converted_externally_to_rlds/0.1.0",
+    "dlr_edan_shared_control_converted_externally_to_rlds/0.1.0",
+    "ucsd_pick_and_place_dataset_converted_externally_to_rlds/0.1.0",
+    "berkeley_cable_routing/0.1.0",
 ]
 
 # Subset rapido per prove (puoi aumentare in seguito)
@@ -29,11 +53,26 @@ instruction_key = "natural_language_instruction"
 
 # Override per dataset specifici (se differiscono dalle chiavi di default)
 dataset_keys = {
-    "columbia_cairlab_pusht_real/0.1.0": ("steps/observation/image", "natural_language_instruction"),
-    "utokyo_pr2_opening_fridge/0.1.0": ("observation/image", "language_instruction"),
-    "utokyo_pr2_tabletop_manipulation/0.1.0": ("observation/image", "language_instruction"),
-    "utokyo_xarm_pick_and_place/0.1.0": ("observation/image", "language_instruction"),
-    "cmu_stretch/0.1.0": ("observation/image", "language_instruction"),
+    # "columbia_cairlab_pusht_real/0.1.0": ("steps/observation/image", "natural_language_instruction"),
+    # "utokyo_pr2_opening_fridge/0.1.0": ("observation/image", "language_instruction"),
+    # "utokyo_pr2_tabletop_manipulation/0.1.0": ("observation/image", "language_instruction"),
+    # "utokyo_xarm_pick_and_place/0.1.0": ("observation/image", "language_instruction"),
+    # "cmu_stretch/0.1.0": ("observation/image", "language_instruction"),
+    "asu_table_top_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "language_instruction"), # action_inst & goal_object
+    "austin_buds_dataset_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "steps/language_instruction"),
+    "berkeley_cable_routing/0.1.0": ("steps/observation/image", "steps/observation/natural_language_instruction"),
+    "berkeley_gnm_cory_hall/0.1.0": ("steps/observation/image", "steps/language_instruction"),
+    "cmu_franka_exploration_dataset_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "steps/language_instruction"),
+    "dlr_edan_shared_control_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "steps/language_instruction"),
+    "dlr_sara_grid_clamp_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "steps/language_instruction"),
+    "dlr_sara_pour_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "steps/language_instruction"),
+    "imperialcollege_sawyer_wrist_cam/0.1.0": ("steps/observation/image", "steps/language_instruction"),
+    "nyu_rot_dataset_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "steps/language_instruction"),
+    "tokyo_u_lsmo_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "steps/language_instruction"),
+    "ucsd_kitchen_dataset_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "steps/language_instruction"),
+    "ucsd_pick_and_place_dataset_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "steps/language_instruction"),
+    "utokyo_saytap_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "steps/language_instruction"),
+    "utokyo_xarm_bimanual_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "steps/language_instruction"),
 }
 
 
