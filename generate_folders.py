@@ -634,12 +634,12 @@ Esempi:
 python generate_folders.py \
   --mode init \
   --out-root out \
-  --dest-root dataset \
-  --prompt-src prompts/prompt_full.md
+  --dest-root dataset1 \
+  --prompt-src prompts/prompt_full_v2.md
 
 python generate_folders.py \
   --mode locals \
-  --dest-root dataset \
+  --dest-root dataset1 \
   --node-lib library/node_library_v_01.json
 
 python generate_folders.py \
