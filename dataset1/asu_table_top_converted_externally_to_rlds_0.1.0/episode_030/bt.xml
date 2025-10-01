@@ -1,5 +1,18 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="ObjectInGripper" target="white_box"/>
+      <Sequence>
+        <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+        <Action ID="DetectObject" target="white_box" timeout_ms="1500"/>
+        <Action ID="ComputeGraspPose" target="white_box" strategy="top" result_key="goal_pose"/>
+        <Action ID="GraspAtPose" pose_key="goal_pose" strategy="top" timeout_ms="1500"/>
+        <Condition ID="IsGraspStable"/>
+      </Sequence>
+    </Fallback>
+    <Action ID="MoveAbove" target="place_on_table" offset_z="0.05" timeout_ms="1000"/>
+    <Action ID="PlaceOnSurface" target="white_box" area_id="table" yaw_deg="0" press_force="5" timeout_ms="2000"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1000"/>
   </Sequence>
 </BehaviorTree>

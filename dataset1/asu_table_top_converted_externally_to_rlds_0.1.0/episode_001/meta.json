@@ -1,11 +1,112 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
-  "episode_id": "episode_001",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "pick green bottle",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_001",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "episode_id": "episode_002",
+  "task_summary": "Place the white carton from the gripper down onto the table surface and safely retreat.",
+  "task_long_description": {
+    "overview": "A UR-style manipulator operates over a small round table holding multiple small objects (cans, bottles, a red block). The task is to put down a small white carton that is presumed to already be grasped. The robot should align above a clear table area, descend until contact to avoid dropping, release the gripper, and back off to a safe height. Precision matters due to nearby objects and limited free space.",
+    "preconditions": ["White carton is already in the gripper", "Clear table area is available", "Arm is operational and within workspace"],
+    "stepwise_plan": ["Verify the white carton is currently held", "Approach and align above the table area", "Move to a short hover above the table", "Lower slowly until contact is detected", "Open gripper to release the carton", "Retreat to a safe distance"],
+    "success_criteria": ["Carton lies stably on the table", "No collision with neighboring items", "Gripper fully releases the carton", "Arm retreats to safe clearance"],
+    "failure_and_recovery": ["If object not detected in gripper, abort and request human or upstream pick", "If contact not detected within depth limit, retry approach or choose a different spot", "If release fails, open gripper again and nudge by tiny retreat/advance"],
+    "termination": "Terminate after release and retreat complete with no collisions observed."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "put down white carton",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["white_carton","table","bottles","cans","red_block"],
+  "objects_from_instruction": ["white_carton"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"white_carton"},"description":"Confirms the white_carton is currently grasped before placing."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"table","tolerance":0.01,"timeout_ms":2000},"description":"Align above a safe area of the table with tight tolerance."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"table","offset_z":0.10,"timeout_ms":1500},"description":"Hover 10 cm above the table to begin the placement descent."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1500},"description":"Lower slowly until contact is detected to avoid dropping."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Release the carton on contact."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":800},"description":"Back off to clear the object and table area."}
+  ],
+  "tree_stats": {"nodes_total": 7, "actions": 5, "conditions": 1, "depth": 2},
+  "failure_modes": ["Object not actually in gripper","Misalignment causes tipping","No contact detected within allowed depth","Carton sticks to fingers and is not released"],
+  "recovery_strategy": ["Abort if not in gripper","Re-approach with relaxed tolerance","Try a second descent with slightly different pose","Re-open gripper and micro-retreat/advance"],
+  "assumptions": ["Frames suggest a central table placement scene but do not explicitly show the carton in hand; we assume it is already grasped to satisfy 'put down' wording.", "Placement target interpreted as table area rather than a precise pose."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Carton placed flat on the table", "No collisions", "Arm safely clears area"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"white_carton"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"table","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"table","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }

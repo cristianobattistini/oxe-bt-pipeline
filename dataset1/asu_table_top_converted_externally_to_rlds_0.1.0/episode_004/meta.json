@@ -1,11 +1,124 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_004",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "place down brown object",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_004",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Pick the brown object and place it down onto the table surface, then retreat.",
+  "task_long_description": {
+    "overview": "A stationary manipulator works over a white tabletop with multiple objects (brown/orange item, blue can, green bottle, red bottle). The goal is to ensure the brown object is placed down on the table. If the object is not already held, the robot detects it, computes a top grasp, grasps securely, and verifies stability. It then moves above the table, lowers until contact, performs a gentle placement on the table, opens the gripper to release, and finally retreats to clear the workspace.",
+    "preconditions": ["Robot has reach to the tabletop area", "Perception available for the brown object", "Table surface free at target zone", "Gripper operational"],
+    "stepwise_plan": ["If object not in gripper, detect and pick using a top grasp", "Move above the table place zone", "Lower until contact feedback", "Place onto table and release", "Retreat to a safe height"],
+    "success_criteria": ["Brown object released on table surface", "No collisions with other items", "Grasp verified before transfer", "End-effector clear of objects after release"],
+    "failure_and_recovery": ["Perception miss → re-detect object", "Grasp slip → regrasp with same strategy", "Early contact while lowering → abort descent and retry placement", "Occlusion by other items → adjust approach and retry"],
+    "termination": "Terminate when the object is released and the arm has retreated from the placement area."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "First confident grasp closure on the brown object; alignment looks stable.",
+        "predicts_next": "Hand-off into transfer phase toward the place area.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "place down brown object",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["brown_object","table","blue_can","green_bottle","red_bottle"],
+  "objects_from_instruction": ["brown_object"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":"float","timeout_ms":"int"},"description":"Ensure gripper is open before any pick/place transition."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"string"},"description":"Skip pick if the target is already held."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Locate brown object on the table."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"string","strategy":"string","result_key":"string"},"description":"Plan a top grasp and store pose."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"string","strategy":"string","timeout_ms":"int"},"description":"Execute grasp using planned pose."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":"float","timeout_ms":"int"},"description":"Close fingers to secure object."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check that the grasp is stable before moving."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"string","offset_z":"float","timeout_ms":"int"},"description":"Move above the placement surface."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"string","max_depth":"float","force_threshold":"float","timeout_ms":"int"},"description":"Descend to make gentle contact with surface."},
+    {"id":"PlaceOnSurface","type":"Action","ports":{"target":"string","area_id":"string","yaw_deg":"int","press_force":"float","timeout_ms":"int"},"description":"Place object onto table with mild press."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back off to clear the object after release."}
+  ],
+  "tree_stats": {"nodes_total": 16, "actions": 10, "conditions": 2, "depth": 5},
+  "failure_modes": ["Object not detected", "Grasp fails or slips", "Premature contact during descent", "Interference with nearby objects"],
+  "recovery_strategy": ["Retry detection then grasp", "Recompute grasp pose and reattempt", "Abort descent and re-approach placement", "Adjust approach height and try again"],
+  "assumptions": ["The brown object is the orange/brown item visible left-of-center in several frames.", "Frames show both grasp and placement; instruction aligns with placement goal.", "Placement surface is the table."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Object is released on table and remains stationary", "No collisions during transfer", "End-effector retreats safely"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"brown_object","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"brown_object","strategy":"top","result_key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"pinch","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"table","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"brown_object","area_id":"table","yaw_deg":0,"press_force":10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

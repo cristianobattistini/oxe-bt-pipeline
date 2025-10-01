@@ -1,11 +1,148 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_017",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "move maroon square",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_017",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Perceive the maroon square block, approach and align above it, then push it left by ~10 cm and retreat.",
+  "task_long_description": {
+    "overview": "A UR-style manipulator operates over a small white table with several objects: two green bottles, a blue can, an orange figure, a small cup on the right, and a maroon square/rectangular block near the center. The goal is to move the maroon square without grasping. The robot first detects the target, moves to a safe height above it, precisely aligns, performs a lateral push to translate the block, and finally retreats to clear the workspace.",
+    "preconditions": [
+      "Robot initialized with collision-free workspace.",
+      "Maroon square visible on the table surface.",
+      "No obstacles in the intended push path to the left ~10 cm.",
+      "Gripper/tool free (no object held)."
+    ],
+    "stepwise_plan": [
+      "Detect the maroon square on the table.",
+      "Move to a safe position directly above the target.",
+      "Refine approach and align with tight tolerance.",
+      "Push the maroon square left by approximately 10 cm.",
+      "Retreat to a safe standoff position."
+    ],
+    "success_criteria": [
+      "Maroon square translated laterally by at least 8–10 cm.",
+      "No collisions with other objects.",
+      "Robot ends in a safe, non-contact state."
+    ],
+    "failure_and_recovery": [
+      "If detection fails, rescan the area or adjust viewpoint.",
+      "If alignment times out, repeat approach with relaxed tolerance.",
+      "If push stalls due to obstruction, reduce distance or change direction slightly.",
+      "If unintended contact occurs, retreat and re-approach."
+    ],
+    "termination": "Terminate after successful push and retreat, or after unrecoverable detection/alignment failure."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_5","frame_6","frame_3","frame_4","frame_2","frame_1","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.18, "frame_1": 0.40, "frame_2": 0.55, "frame_3": 0.78,
+      "frame_4": 0.66, "frame_5": 0.90, "frame_6": 0.82, "frame_7": 0.30, "frame_8": 0.10
+    },
+    "rationale_per_frame": {
+      "frame_5": {
+        "now_evidence": "Tool is aligned and commencing lateral motion against the maroon block.",
+        "predicts_next": "Continuation of the push translating the block.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "move maroon square",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["maroon_square", "green_bottle_left", "green_bottle_right", "blue_can", "orange_figure", "small_cup_right"],
+  "objects_from_instruction": ["maroon square"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"maroon_square","timeout_ms":2000},"description":"Locate the maroon square on the table."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"maroon_square","offset_z":0.05,"timeout_ms":1500},"description":"Move to a safe pre-push height above the block."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"maroon_square","tolerance":0.01,"timeout_ms":1500},"description":"Refine approach and align before pushing."},
+    {"id":"Push","type":"Action","ports":{"target":"maroon_square","distance":0.10,"direction_deg":270,"timeout_ms":1500},"description":"Translate the block left by 10 cm via lateral push."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1500},"description":"Back off to a safe standoff after motion."}
+  ],
+  "tree_stats": {"nodes_total": 6, "actions": 5, "conditions": 0, "depth": 2},
+  "failure_modes": [
+    "Target not detected due to occlusion or lighting.",
+    "Misalignment causing slip or no motion.",
+    "Obstacle interferes with push path.",
+    "Timeouts during approach or push."
+  ],
+  "recovery_strategy": [
+    "Repeat detection with a short scan.",
+    "Retry alignment with slightly higher tolerance.",
+    "Reduce push distance or adjust direction.",
+    "Retreat and re-approach if unexpected contact is detected."
+  ],
+  "assumptions": [
+    "The 'maroon square' in the instruction corresponds to the red/maroon rectangular block visible near the table center.",
+    "Movement is achieved by pushing left (~270°) rather than grasping, consistent with frames showing a non-grasp interaction."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Block final pose is ~10 cm left of its start pose.",
+      "No topple or collision with nearby objects.",
+      "Robot ends with clear separation from all items."
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"maroon_square","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"maroon_square","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"maroon_square","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"maroon_square","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"maroon_square","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"maroon_square","distance":0.10,"direction_deg":270,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"maroon_square","distance":0.10,"direction_deg":270,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    }
+  ]
 }

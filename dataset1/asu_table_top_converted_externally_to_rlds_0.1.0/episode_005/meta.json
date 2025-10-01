@@ -1,11 +1,124 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_005",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "put down red bottle",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_005",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Place the red bottle onto the table surface and release it safely.",
+  "task_long_description": {
+    "overview": "A UR-style robotic arm with a parallel gripper operates over a tabletop with multiple small objects (green bottle, red bottle, blue can, grey cup, orange toy). The instruction is to put down the red bottle. The behavior first ensures the target is known and, if the robot is not already holding it, performs a quick top grasp. Then the arm moves above the table, lowers until gentle contact, places the bottle on the table, opens the gripper, and retreats.",
+    "preconditions": ["Workspace clear around target area", "Robot reachable above the table", "Perception can detect 'red_bottle'"],
+    "stepwise_plan": ["Detect the red bottle", "If not already held, compute grasp and grasp it (top strategy)", "Lift and move above the table placement area", "Lower until contact is detected with low force", "Place the bottle on the table with minimal press force and release", "Retreat and wait briefly"],
+    "success_criteria": ["Red bottle stands stably on table", "Gripper released and clear", "No collisions with other objects"],
+    "failure_and_recovery": ["If detection fails, retry scanning (not modeled here)", "If grasp is unstable, re-grasp using the same computed pose", "If contact not detected within depth limit, abort placement and retry"],
+    "termination": "Tree terminates after retreat and brief wait once the red bottle is placed and released."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "End-effector centrally aligned above objects, good cue for post-grasp transfer.",
+        "predicts_next": "Lowering/placing action likely follows.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "put down red bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 1500,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["red_bottle", "green_bottle", "blue_can", "grey_cup", "orange_toy", "table", "robot_gripper"],
+  "objects_from_instruction": ["red_bottle"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Detects the specified object with a perception module."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"string"},"description":"Checks whether the named object is currently grasped."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"string","strategy":"string","result_key":"string"},"description":"Computes a grasp pose for the object and stores it to the blackboard."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"string","strategy":"string","timeout_ms":"int"},"description":"Executes a grasp at the provided blackboard pose."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verifies that the grasp is secure."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"string","offset_z":"float","timeout_ms":"int"},"description":"Moves the TCP above a symbolic target by an offset."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"string","max_depth":"float","force_threshold":"float","timeout_ms":"int"},"description":"Descends until contact force threshold or depth limit reached."},
+    {"id":"PlaceOnSurface","type":"Action","ports":{"target":"string","area_id":"string","yaw_deg":"int","press_force":"float","timeout_ms":"int"},"description":"Places the held object onto a named surface area."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":"float","timeout_ms":"int"},"description":"Opens the gripper to release the object."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Backs off by a small distance after placement."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":"int"},"description":"Small pause to let the object settle."}
+  ],
+  "tree_stats": {"nodes_total": 14, "actions": 9, "conditions": 2, "depth": 4},
+  "failure_modes": ["Object not detected", "Grasp unstable/slips", "Premature contact with other objects", "No contact detected within max depth"],
+  "recovery_strategy": ["Re-run detection or adjust viewpoint", "Re-compute grasp pose and re-grasp", "Abort and re-approach from higher offset", "Reset height and try a different spot"],
+  "assumptions": ["Frames show the gripper hovering near central-left objects, not explicitly over the red bottle. We assume the goal is still to place the red bottle on the table. If not already held, the tree includes a minimal pick step to resolve the mismatch; frames take precedence for general scene layout."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Bottle upright on table", "Release confirmed", "No collisions"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_bottle","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"red_bottle","strategy":"top","result_key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"top","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"table","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"red_bottle","area_id":"table","yaw_deg":0,"press_force":5,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

@@ -1,11 +1,157 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_012",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "pick red cube",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_012",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Pick up the red cube from the table using a top pinch grasp, verify the grasp, lift the object, and slightly retreat.",
+  "task_long_description": {
+    "overview": "A tabletop scene shows several small objects (colored bottles/cans and a red block) within reach of a 6-DoF manipulator. The goal is to pick the red cube-like block. The robot must perceive the target, approach from above, compute a viable grasp pose, execute a pinch grasp, confirm the object is secured, lift it a short distance to clear the surface, and retreat slightly to a safe pose. No placement is requested; emphasis is on reliable perception, collision-free approach, and a stable grasp.",
+    "preconditions": [
+      "Red cube present on table within reachable workspace",
+      "Gripper empty and operational",
+      "Camera view unobstructed; lighting sufficient",
+      "No objects blocking vertical approach path"
+    ],
+    "stepwise_plan": [
+      "Open gripper to a nominal width.",
+      "Detect the red cube and localize it.",
+      "Move above the detected target and align.",
+      "Compute a top grasp pose for the cube.",
+      "Execute grasp at the computed pose with a pinch strategy.",
+      "Close gripper to secure the cube.",
+      "Verify object is in gripper, then lift slightly.",
+      "Retreat a short distance to a safe pose."
+    ],
+    "success_criteria": [
+      "ObjectInGripper(red_cube) evaluates to success",
+      "Object lifted at least 0.10 m above table",
+      "No collisions with other objects or table during approach and lift"
+    ],
+    "failure_and_recovery": [
+      "Perception failure/occlusion: re-detect target or adjust viewpoint by re-approach.",
+      "Pose computation failure: retry grasp planning with same strategy.",
+      "Slip/missed grasp: reopen gripper, re-align, and re-attempt pinch grasp.",
+      "Collision risk detected: abort motion, retreat, and re-plan above-table approach."
+    ],
+    "termination": "Terminate after a successful grasp verification, lift, and short retreat."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Hand alignment above the red block is most evident; geometry clear.",
+        "predicts_next": "Grasp execution expected immediately after alignment and pose computation.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick red cube",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["red_cube", "green_bottle", "blue_can", "clear_cup", "white_cup", "orange_block"],
+  "objects_from_instruction": ["red_cube"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":1000},"description":"Open gripper to prepare for approach and grasp."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"red_cube","timeout_ms":1500},"description":"Detect and localize the red cube."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"red_cube","offset_z":0.05,"timeout_ms":1500},"description":"Move to a pre-grasp pose above the target."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"red_cube","tolerance":0.02,"timeout_ms":2000},"description":"Align end-effector with the cube within tolerance."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"red_cube","strategy":"top","result_key":"goal_pose"},"description":"Plan a top grasp pose and store it in the blackboard."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"pinch","timeout_ms":1500},"description":"Execute pinch grasp at the planned pose."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":40,"timeout_ms":1000},"description":"Close gripper to secure the object."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"red_cube"},"description":"Verify the object is held after closing."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"red_cube","distance":0.10,"timeout_ms":1000},"description":"Lift the grasped object to clear the surface."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back off slightly to a safer pose."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 9, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Target misdetection due to color similarity or glare",
+    "Collision with nearby items during descent",
+    "Insufficient grip force leading to slip",
+    "Pose error from inaccurate grasp pose computation"
+  ],
+  "recovery_strategy": [
+    "Re-run DetectObject; if needed, re-approach from a slightly different above offset",
+    "Recompute grasp pose and repeat pinch strategy",
+    "Increase approach alignment strictness or re-open and retry",
+    "Abort and Retreat on collision risk, then re-plan"
+  ],
+  "assumptions": [
+    "The ‘red cube’ in frames appears as a tall red rectangular block; treated as a cube-like graspable block.",
+    "Top approach is feasible without occlusion; suction not required.",
+    "World and tool frames are consistent with vertical ‘top’ approach."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Condition ObjectInGripper succeeds",
+      "Post-grasp RaiseHeld completes without collisions",
+      "Final Retreat completes within timeout"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_cube","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"red_cube","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_cube","tolerance":0.02,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"red_cube","strategy":"top","result_key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"pinch","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":40,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"red_cube","distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"red_cube","distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

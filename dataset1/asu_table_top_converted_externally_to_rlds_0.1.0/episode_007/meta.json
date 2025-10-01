@@ -1,11 +1,159 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_007",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "raise white carton",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_007",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Perceive, grasp, and lift the white carton from the table surface.",
+  "task_long_description": {
+    "overview": "A UR-style manipulator operates over a tabletop with multiple small containers and bottles. The goal is to raise the white carton briefly off the surface. The behavior starts by ensuring the target is visible, then computes a top grasp, aligns, grasps, verifies grasp stability, and lifts the carton to a safe height. Timeouts are conservative to avoid long stalls. Precision alignment is used before grasping to reduce slip on the rectangular carton.",
+    "preconditions": [
+      "Robot is homed and within reachable workspace of the table",
+      "White carton present on table, not occluded beyond recoverable scanning",
+      "Gripper operational and free of objects"
+    ],
+    "stepwise_plan": [
+      "Open gripper",
+      "If carton not visible, scan to localize it; then detect",
+      "Compute a top grasp pose for the carton",
+      "Move above the carton and align precisely",
+      "Execute grasp and close gripper",
+      "Verify grasp stability",
+      "Raise the held carton by 0.15 m and hold briefly"
+    ],
+    "success_criteria": [
+      "Carton securely in gripper",
+      "Carton lifted clearly above the table (~0.15 m)",
+      "No collision with other objects"
+    ],
+    "failure_and_recovery": [
+      "If target not visible: scan using spiral pattern",
+      "If grasp not stable: abort lift and re-attempt from alignment step",
+      "If timeouts occur: report failure and wait for operator"
+    ],
+    "termination": "Tree succeeds after lift and hold complete; it fails on unrecoverable perception or grasp errors."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "raise white carton",
+  "instruction_to_ports": {
+    "force": 20,
+    "timeout_ms": 1500,
+    "tolerance": 0.01,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["white_carton", "red_can", "red_bottle", "green_bottle", "blue_bottle", "clear_cup", "gray_cup"],
+  "objects_from_instruction": ["white carton"],
+  "blackboard_keys": ["wc_grasp_pose"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":1000},"description":"Prepare gripper for grasp."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"white_carton"},"description":"Quick check for target visibility."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"white_carton","pattern":"spiral","max_attempts":3,"timeout_ms":2000},"description":"Active search if not immediately visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"white_carton","timeout_ms":1500},"description":"Refine detection/pose."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"white_carton","strategy":"top","result_key":"wc_grasp_pose"},"description":"Plan a top grasp pose."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"white_carton","offset_z":0.05,"timeout_ms":2000},"description":"Pre-grasp approach from above."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"white_carton","tolerance":0.01,"timeout_ms":2000},"description":"Fine alignment before grasp."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"wc_grasp_pose","strategy":"top","timeout_ms":1500},"description":"Execute grasp motion."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":1000},"description":"Close gripper to secure carton."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Confirm stable grasp before lifting."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"white_carton","distance":0.15,"timeout_ms":1500},"description":"Lift the grasped carton."},
+    {"id":"HoldObject","type":"Action","ports":{"target":"white_carton","duration_ms":1000},"description":"Hold momentarily to confirm success."}
+  ],
+  "tree_stats": {"nodes_total": 14, "actions": 10, "conditions": 2, "depth": 3},
+  "failure_modes": [
+    "Target not detected due to occlusion or lighting",
+    "Slip during grasp causing loss of object",
+    "Collision with neighboring bottles during approach"
+  ],
+  "recovery_strategy": [
+    "Fallback scan when visibility check fails",
+    "If stability check fails, re-align and re-grasp",
+    "Abort with safe open/retreat on repeated timeouts"
+  ],
+  "assumptions": [
+    "The white carton is the small white rectangular object visible on the table; frames suggest static placement among bottles.",
+    "No explicit placement target is required; only lifting is requested."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "ObjectInGripper(white_carton) true and lifted by >=0.15 m",
+      "No contact with other items during lift"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"white_carton","pattern":"spiral","max_attempts":3,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"white_carton","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"white_carton","offset_z":0.05,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"white_carton","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"wc_grasp_pose","strategy":"top","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"white_carton","distance":0.15,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"white_carton","duration_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

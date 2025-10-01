@@ -1,5 +1,19 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Action ID="DetectObject" target="red_bottle" timeout_ms="1500"/>
+    <Fallback>
+      <Condition ID="ObjectInGripper" target="red_bottle"/>
+      <Sequence>
+        <Action ID="ComputeGraspPose" target="red_bottle" strategy="top" result_key="goal_pose"/>
+        <Action ID="GraspAtPose" pose_key="goal_pose" strategy="top" timeout_ms="2000"/>
+        <Condition ID="IsGraspStable"/>
+      </Sequence>
+    </Fallback>
+    <Action ID="MoveAbove" target="table" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.05" force_threshold="5" timeout_ms="1500"/>
+    <Action ID="PlaceOnSurface" target="red_bottle" area_id="table" yaw_deg="0" press_force="5" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1000"/>
+    <Action ID="Wait" timeout_ms="500"/>
   </Sequence>
 </BehaviorTree>
