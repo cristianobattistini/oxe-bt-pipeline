@@ -1,0 +1,16 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Action ID="DetectObject" target="red_cylinder" timeout_ms="2000"/>
+      <Action ID="ScanForTarget" target="red_cylinder" pattern="spiral" max_attempts="3" timeout_ms="3000"/>
+    </Fallback>
+    <Condition ID="IsObjectVisible" target="red_cylinder"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="1000"/>
+    <Action ID="ApproachAndAlign" target="red_cylinder" tolerance="0.01" timeout_ms="3000"/>
+    <Action ID="Pick" grasp_key="std_side" timeout_ms="2000"/>
+    <Condition ID="IsGraspStable"/>
+    <Condition ID="ObjectInGripper" target="red_cylinder"/>
+    <Action ID="RaiseHeld" target="red_cylinder" distance="0.10" timeout_ms="1500"/>
+    <Action ID="HoldObject" target="red_cylinder" duration_ms="2000"/>
+  </Sequence>
+</BehaviorTree>

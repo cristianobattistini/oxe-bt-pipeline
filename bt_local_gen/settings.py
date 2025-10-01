@@ -17,7 +17,7 @@ class PriceCfgUSD:
 @dataclass
 class Paths:
     project_root: Path = Path(".").resolve()
-    dataset_root: Path = project_root / "dataset"
+    dataset_root: Path = project_root / "dataset1"
     logs_root: Path = project_root / "out" / "logs"
     node_library: Path = project_root / "library" / "node_library_v_01.json"
 
@@ -34,6 +34,7 @@ SUPPORTED_DATASETS = [
     "utokyo_pr2_tabletop_manipulation_0.1.0",
     "utokyo_xarm_pick_and_place_0.1.0",
     "cmu_stretch_0.1.0",
+    "asu_table_top_converted_externally_to_rlds_0.1.0"
 ]
 
 STRICT_FILESET = {

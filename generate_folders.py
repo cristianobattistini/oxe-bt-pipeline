@@ -640,7 +640,7 @@ python generate_folders.py \
 python generate_folders.py \
   --mode locals \
   --dest-root dataset1 \
-  --node-lib library/node_library_v_01.json
+  --node-lib library/node_library_v_02.json
 
 python generate_folders.py \
   --mode videos \

@@ -1,0 +1,16 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <ScanForTarget target="white_carton" pattern="raster" max_attempts="3" timeout_ms="5000"/>
+    <DetectObject target="white_carton" timeout_ms="3000"/>
+    <ApproachAndAlign target="white_carton" tolerance="0.02" timeout_ms="3000"/>
+    <OpenGripper width="0.08" timeout_ms="1000"/>
+    <ComputeGraspPose target="white_carton" strategy="side" result_key="goal_pose"/>
+    <GraspAtPose pose_key="goal_pose" strategy="side" timeout_ms="3000"/>
+    <CloseGripper force="20" timeout_ms="1000"/>
+    <IsGraspStable/>
+    <RaiseHeld target="white_carton" distance="0.10" timeout_ms="1500"/>
+    <PlaceAtTol pose_key="place_on_table" yaw_deg="0" press_force="5" tolerance="0.02" timeout_ms="3000"/>
+    <OpenGripper width="0.08" timeout_ms="1000"/>
+    <Retreat distance="0.10" timeout_ms="1000"/>
+  </Sequence>
+</BehaviorTree>

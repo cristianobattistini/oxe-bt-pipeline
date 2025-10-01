@@ -1,0 +1,22 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <OpenGripper width="0.08" timeout_ms="1000"/>
+    <Fallback>
+      <IsObjectVisible target="blue_bottle"/>
+      <Sequence>
+        <ScanForTarget target="blue_bottle" pattern="spiral" max_attempts="3" timeout_ms="3000"/>
+        <DetectObject target="blue_bottle" timeout_ms="2000"/>
+      </Sequence>
+    </Fallback>
+    <MoveAbove target="blue_bottle" offset_z="0.08" timeout_ms="1500"/>
+    <ApproachAndAlign target="blue_bottle" tolerance="0.01" timeout_ms="2000"/>
+    <ComputeGraspPose target="blue_bottle" strategy="top" result_key="bb_grasp"/>
+    <GraspAtPose pose_key="bb_grasp" strategy="pinch" timeout_ms="1500"/>
+    <CloseGripper force="20" timeout_ms="1000"/>
+    <ObjectInGripper target="blue_bottle"/>
+    <RaiseHeld target="blue_bottle" distance="0.10" timeout_ms="1000"/>
+    <Retreat distance="0.10" timeout_ms="1000"/>
+    <HoldObject target="blue_bottle" duration_ms="1000"/>
+    <Wait timeout_ms="500"/>
+  </Sequence>
+</BehaviorTree>

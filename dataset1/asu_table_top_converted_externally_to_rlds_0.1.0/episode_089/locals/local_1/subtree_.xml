@@ -1,5 +1,14 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <IsObjectVisible target="green_bottle"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <ScanForTarget target="green_bottle" pattern="spiral" max_attempts="3" timeout_ms="2000"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <ApproachAndAlign target="green_bottle" tolerance="0.02" timeout_ms="2000"/>
+    <Push target="green_bottle" distance="0.20" direction_deg="90" timeout_ms="2000"/>
+    <Retreat distance="0.10" timeout_ms="1000"/>
+    <Wait timeout_ms="500"/>
   </Sequence>
 </BehaviorTree>
