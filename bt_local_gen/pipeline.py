@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Any, Optional
 import json
-from .config import PATHS
+from .settings import PATHS
 from .prompts import build_cached_block, build_local_prompt
 from .validators import (
     split_two_code_blocks,

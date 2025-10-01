@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, Any
 from base64 import b64encode
-from .config import MODEL, PRICES
+from .settings import MODEL, PRICES
 from .caching import cache_tag_for_block
 import os
 

@@ -9,6 +9,7 @@ from utils import make_gif, to_json_safe  # Assicurati che esista
 from loader import sample_every_k, parse_action_fields
 from frame_selection import embedding_select_from_raw
 import config as CFG
+from math import ceil
 
 try:
     from contact_sheet import create_from_dir as _cs_create
@@ -167,7 +168,10 @@ def build_all_episode_phases(ep_dir: str, episode_steps: Optional[list] = None):
     instruction = _read_instruction_if_any(ep_dir)
 
     # 1) campionamento temporale con k_slicing da config
-    k = int(CFG.embeds.get("k_slicing", 10))
+    raw = CFG.embeds["k_slicing"]
+    print(f"[PHASES] T={T}, k_slicing raw={raw}")
+    # se float in (0,1] -> percentuale; se int -> stride classico
+    k = max(1, int(round(1.0 / raw))) if isinstance(raw, float) and 0.0 < raw <= 1.0 else max(1, int(raw))
     sampled_arr, indices = sample_every_k(arr, k)
 
     # 2) Attributi base (se abbiamo episode_steps, li estraiamo; altrimenti fallback minimale)
@@ -183,6 +187,7 @@ def build_all_episode_phases(ep_dir: str, episode_steps: Optional[list] = None):
         base_attrs = [{"selected_index": int(i)} for i in indices]
 
     # 3) Scrivi fase di campionamento puro
+    print(f"sampled_k{k}")
     sampled_phase_name = f"sampled_k{k}"
     write_episode_phase(
         ep_dir=ep_dir,

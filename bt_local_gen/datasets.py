@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Iterable, List, Optional
 import re
 from pathlib import Path
-from .config import PATHS
+from .settings import PATHS
 
 @dataclass
 class EpisodeRef:

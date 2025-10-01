@@ -7,7 +7,8 @@ from PIL import Image
 import os
 from glob import glob
 import json
-
+from math import ceil
+import config as CFG
 
 # === Phase 5: Embedding-based selection (TensorFlow-only, no extra deps) ===
 import tensorflow as tf
@@ -457,7 +458,6 @@ def _kcenter_greedy(E: np.ndarray, K: int, include: Optional[List[int]] = None) 
 
     return sorted(sel)
 
-
 def embedding_select_from_raw(ep_dir: str, cfg: Dict) -> Optional[Dict]:
     """
     Seleziona K frame da raw_frames/ usando k-slicing -> embedding -> k-center greedy.
@@ -469,10 +469,27 @@ def embedding_select_from_raw(ep_dir: str, cfg: Dict) -> Optional[Dict]:
     if T == 0:
         return None
 
-    k_slicing = max(1, int(cfg.get("k_slicing", 10)))
-    idx_subset = list(range(0, T, k_slicing))     # candidati
-    subset = frames[idx_subset]
+    # 1) k_slicing: se float in (0,1] è percentuale p -> stride ≈ round(1/p); se int è già stride
+    raw = cfg["k_slicing"]  # cfg è già CFG.embeds passato dal chiamante
+    if isinstance(raw, float) and 0.0 < raw <= 1.0:
+        k_slicing = max(1, int(round(1.0 / raw)))
+    else:
+        k_slicing = max(1, int(raw))
 
+    # pool candidati con stride
+    idx_subset = list(range(0, T, k_slicing))
+
+    # 2) salvaguardia: se i candidati sono meno di K, promuovi a K indici uniformi
+    K = int(cfg.get("K", 16))
+    if K > 0 and T > 0 and len(idx_subset) < K:
+        if K == 1:
+            idx_subset = [0]
+        else:
+            idx_subset = [min(T - 1, round(i * (T - 1) / (K - 1))) for i in range(K)]
+        # opzionale: log per capire quando scatta la salvaguardia
+        print(f"[EMBEDS] candidates_raw<{K}: upgraded to {len(idx_subset)} uniform over T={T}")
+
+    subset = frames[idx_subset]
     mode = cfg.get("mode", "embed_kcenter")
 
     embeds_dir = os.path.join(ep_dir, "embeds")
@@ -492,7 +509,7 @@ def embedding_select_from_raw(ep_dir: str, cfg: Dict) -> Optional[Dict]:
                 np.savez_compressed(cache_path, E=E)
 
         include = [0, len(idx_subset) - 1] if cfg.get("include_boundaries", True) and len(idx_subset) > 1 else None
-        K = int(cfg.get("K", 16))
+        # k-center greedy lavora sul sottoinsieme -> selezioniamo indici nel subset e poi rimappiamo al globale
         sel_subset = _kcenter_greedy(E, K, include)
         sel_global = [idx_subset[i] for i in sel_subset]
 
@@ -503,7 +520,6 @@ def embedding_select_from_raw(ep_dir: str, cfg: Dict) -> Optional[Dict]:
         sel_global = sorted(set(sel_global))
         K = int(cfg.get("K", len(sel_global)))
         if len(sel_global) > K:
-            # mantieni sempre i due estremi; tronca gli altri
             core = [i for i in sel_global if i not in (0, T - 1)]
             keep_core = core[:max(0, K - 2)]
             sel_global = sorted(set([0, T - 1] + keep_core))

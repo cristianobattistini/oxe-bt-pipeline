@@ -13,6 +13,8 @@ import tensorflow_datasets as tfds
 from PIL import Image
 from utils import _to_1d
 from contact_sheet import create_from_dir  
+import config as CFG
+from math import ceil
 
 # =============================================================================
 #  Utility: accesso a chiavi annidate ("a/b/c" o "a.b.c")
@@ -402,7 +404,10 @@ def dump_episode_rlds(
         gif_flag = True
 
     # GIF campionata: frame ogni k
-    k_gif = 10  #  cambia qui per decidere ogni quanti frame
+
+    raw = CFG.embeds["k_slicing"]
+    # se float in (0,1] -> percentuale; se int -> stride classico
+    k_gif = max(1, int(round(1.0 / raw))) if isinstance(raw, float) and 0.0 < raw <= 1.0 else max(1, int(raw))
     if T >= 2 and T > k_gif:
 
         arr_sampled, _ = sample_every_k(arr, k=k_gif)

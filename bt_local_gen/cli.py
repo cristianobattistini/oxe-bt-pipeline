@@ -1,7 +1,7 @@
 import argparse, json
 from pathlib import Path
 from typing import Optional, List
-from .config import PATHS, SUPPORTED_DATASETS, MODEL
+from .settings import PATHS, SUPPORTED_DATASETS, MODEL
 from .datasets import list_episodes, slice_episodes
 from .pipeline import load_node_library, discover_local_slots, run_local_generation
 from .prompts import build_cached_block
