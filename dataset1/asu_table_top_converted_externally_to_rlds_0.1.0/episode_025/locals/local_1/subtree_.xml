@@ -1,5 +1,10 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Condition ID="ObjectInGripper" target="red_can"/>
+    <Action ID="ApproachAndAlign" target="place_on_table" tolerance="0.01" timeout_ms="2000"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="LowerUntilContact" speed="slow" max_depth="0.05" force_threshold="5" timeout_ms="1500"/>
+    </RetryUntilSuccessful>
+    <Condition ID="ContactDetected" force_threshold="5"/>
   </Sequence>
 </BehaviorTree>

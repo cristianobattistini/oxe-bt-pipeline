@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 2,
+  "local_intent": "Verify visibility of 'green_bottle'; if not visible, run detection once and verify again.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "A single re-detection attempt is sufficient to re-establish visibility",
+    "No blackboard keys are required by DetectObject or IsObjectVisible"
+  ],
+  "coherence_with_global": "Implements the verify step of the global plan. If the bottle is not visible, it re-triggers detection before re-checking visibility, consistent with failure-and-recovery guidance.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

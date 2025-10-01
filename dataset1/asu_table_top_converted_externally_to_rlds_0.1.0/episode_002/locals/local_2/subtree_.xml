@@ -1,5 +1,14 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Condition ID="ObjectInGripper" target="white_carton"/>
+    <Condition ID="ContactDetected" force_threshold="5"/>
+    <RetryUntilSuccessful num_attempts="3">
+      <Sequence>
+        <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+        <Inverter>
+          <Condition ID="ObjectInGripper" target="white_carton"/>
+        </Inverter>
+      </Sequence>
+    </RetryUntilSuccessful>
   </Sequence>
 </BehaviorTree>

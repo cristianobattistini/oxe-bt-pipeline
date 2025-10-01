@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 2,
+  "local_intent": "Approach and precisely align to the brown object with tight tolerance, retrying if alignment fails and ensuring the target remains visible before and after.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "Gripper is already open from prior steps.",
+    "Object detection was performed earlier; visibility gating ensures continuity."
+  ],
+  "coherence_with_global": "Uses IsObjectVisible gating and ApproachAndAlign with tolerance 0.005 and timeout 3000 ms, matching the GLOBAL_BT. Adds RetryUntilSuccessful(3) to reflect recovery policy for failed alignment.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

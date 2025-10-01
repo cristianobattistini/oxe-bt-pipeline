@@ -1,9 +1,15 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
-  "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "frame_index": 5,
+  "local_intent": "Detect, align, and execute a side grasp on the white_carton using goal_pose, then verify grasp stability.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["goal_pose"],
+  "bb_write": ["goal_pose"],
+  "assumptions": ["ComputeGraspPose produces goal_pose before GraspAtPose", "white_carton is within reachable workspace and detectable"],
+  "coherence_with_global": "Matches the GLOBAL_BT grasp segment: DetectObject -> ApproachAndAlign -> OpenGripper -> ComputeGraspPose(side->goal_pose) -> GraspAtPose(side) -> CloseGripper -> IsGraspStable.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

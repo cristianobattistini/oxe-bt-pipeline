@@ -1,5 +1,11 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Condition ID="PoseAvailable" key="goal_pose"/>
+    <Condition ID="IsObjectVisible" target="glass_bottle"/>
+    <Action ID="ApproachAndAlign" target="glass_bottle" tolerance="0.01" timeout_ms="2000"/>
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="GraspAtPose" pose_key="goal_pose" strategy="pinch" timeout_ms="2000"/>
+    </RetryUntilSuccessful>
+    <Condition ID="IsGraspStable"/>
   </Sequence>
 </BehaviorTree>

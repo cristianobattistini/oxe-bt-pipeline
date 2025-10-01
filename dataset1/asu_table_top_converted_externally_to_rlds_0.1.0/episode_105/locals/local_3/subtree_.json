@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 2,
+  "local_intent": "Ensure bread is visible or scan, then detect/localize the bread with one retry if needed.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "Bread is present and can be detected after a spiral scan if initially not visible",
+    "Perception stack available during the timeouts"
+  ],
+  "coherence_with_global": "Implements the perceive phase of the global plan: visibility check with scan fallback followed by DetectObject; includes a single retry per failure-and-recovery guidance.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

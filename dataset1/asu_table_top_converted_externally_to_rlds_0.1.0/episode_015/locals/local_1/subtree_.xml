@@ -1,5 +1,14 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="green_bottle"/>
+      <Action ID="ScanForTarget" target="green_bottle" pattern="spiral" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <Action ID="DetectObject" target="green_bottle" timeout_ms="2000"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="800"/>
+    <Action ID="ComputeGraspPose" target="green_bottle" strategy="side" result_key="goal_pose"/>
+    <Action ID="GraspAtPose" pose_key="goal_pose" strategy="pinch" timeout_ms="2000"/>
+    <Action ID="CloseGripper" force="20" timeout_ms="1000"/>
+    <Condition ID="IsGraspStable"/>
   </Sequence>
 </BehaviorTree>

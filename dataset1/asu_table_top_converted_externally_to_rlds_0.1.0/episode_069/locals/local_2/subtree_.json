@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 5,
+  "local_intent": "Execute side grasp at the computed goal_pose and secure the blue can",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["goal_pose"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "goal_pose available from prior ComputeGraspPose",
+    "blue_can is reachable and not obstructed during grasp"
+  ],
+  "coherence_with_global": "Uses the precomputed goal_pose, re-aligns to the blue_can, executes GraspAtPose with side strategy, closes the gripper, and verifies grasp stability consistent with the global plan.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

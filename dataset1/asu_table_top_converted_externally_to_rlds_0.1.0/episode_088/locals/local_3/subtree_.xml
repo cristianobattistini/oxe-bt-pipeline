@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <ObjectInGripper target="maroon_object"/>
+    <ContactDetected force_threshold="5"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <OpenGripper width="0.06" timeout_ms="800"/>
+    </RetryUntilSuccessful>
+    <Wait timeout_ms="500"/>
+    <Inverter>
+      <ObjectInGripper target="maroon_object"/>
+    </Inverter>
   </Sequence>
 </BehaviorTree>

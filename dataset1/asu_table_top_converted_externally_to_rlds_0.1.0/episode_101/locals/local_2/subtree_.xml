@@ -1,5 +1,10 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="coke_bottle" timeout_ms="3000"/>
+    </RetryUntilSuccessful>
+    <ApproachAndAlign target="coke_bottle" tolerance="0.01" timeout_ms="4000"/>
+    <CloseGripper force="20" timeout_ms="1000"/>
+    <ObjectInGripper target="coke_bottle"/>
   </Sequence>
 </BehaviorTree>

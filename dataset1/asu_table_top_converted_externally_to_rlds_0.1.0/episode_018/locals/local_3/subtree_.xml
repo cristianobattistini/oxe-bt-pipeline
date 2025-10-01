@@ -1,5 +1,12 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <RetryUntilSuccessful num_attempts="3">
+      <Fallback>
+        <Action ID="DetectObject" target="pepsi_bottle" timeout_ms="1000"/>
+        <Action ID="ScanForTarget" target="pepsi_bottle" pattern="spiral" max_attempts="3" timeout_ms="2000"/>
+      </Fallback>
+    </RetryUntilSuccessful>
+    <Action ID="ApproachAndAlign" target="pepsi_bottle" tolerance="0.01" timeout_ms="2000"/>
+    <Condition ID="IsObjectVisible" target="pepsi_bottle"/>
   </Sequence>
 </BehaviorTree>

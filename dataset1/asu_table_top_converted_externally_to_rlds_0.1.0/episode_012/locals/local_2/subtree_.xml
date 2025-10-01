@@ -1,5 +1,10 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- perceive / align / act / verify -->
+    <Action ID="DetectObject" target="red_cube" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="red_cube" strategy="top" result_key="goal_pose"/>
+    <Action ID="ApproachAndAlign" target="red_cube" tolerance="0.02" timeout_ms="2000"/>
+    <Action ID="GraspAtPose" pose_key="goal_pose" strategy="pinch" timeout_ms="1500"/>
+    <Action ID="CloseGripper" force="40" timeout_ms="1000"/>
+    <Condition ID="ObjectInGripper" target="red_cube"/>
   </Sequence>
 </BehaviorTree>

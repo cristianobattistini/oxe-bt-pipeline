@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
-  "bb_read": [],
+  "frame_index": 6,
+  "local_intent": "Execute top grasp at precomputed pose and secure it with stability verification.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["goal_pose"],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "goal_pose was computed earlier and on the blackboard",
+    "Gripper is open and object is already aligned for grasp"
+  ],
+  "coherence_with_global": "Matches the global sequence segment: check pose availability, perform GraspAtPose(top, 2000), then CloseGripper(20,1000), then verify with IsGraspStable.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }

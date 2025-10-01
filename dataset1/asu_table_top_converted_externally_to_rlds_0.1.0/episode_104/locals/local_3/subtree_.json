@@ -1,9 +1,18 @@
 {
-  "frame_index": null,
-  "local_intent": "",
-  "assumptions": "",
+  "frame_index": 2,
+  "local_intent": "Ensure the green_glass_bottle is visible or scan, detect it, move to a pregrasp 0.05 m above it, then verify arrival.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
   "bb_read": [],
   "bb_write": [],
-  "coherence_with_global": "",
-  "format_checks": { "only_known_nodes": true, "only_binned_values": true }
+  "assumptions": [
+    "IsAt(target) indicates arrival at the commanded pregrasp over the target.",
+    "ScanForTarget will make the bottle visible if initially not seen."
+  ],
+  "coherence_with_global": "Matches the early segment of GLOBAL_BT: visibility check/scan -> DetectObject -> MoveAbove (offset_z=0.05, timeout=2000) -> verify with IsAt. Parameters mirror the global tree.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
 }
