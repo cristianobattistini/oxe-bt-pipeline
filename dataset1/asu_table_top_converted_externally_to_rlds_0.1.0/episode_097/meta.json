@@ -1,11 +1,118 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_097",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "pick up bread",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_097",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect the bread on the table, approach it with an open gripper, compute a top grasp, close to secure, lift the item off the surface, and confirm the object is held.",
+  "task_long_description": {
+    "overview": "A table-top manipulator must pick up a piece of bread from a cluttered scene that includes cans, bottles and cups. The robot first perceives and localizes the bread, then moves above and aligns to it. A top-style grasp pose is computed, the gripper closes to secure the item, and the robot lifts slightly to clear the table. The behavior confirms the object is in the gripper and holds briefly to stabilize. No placement is requested; the task ends after a successful lift-and-hold.",
+    "preconditions": ["Robot is homed and reachable workspace includes the table.", "Gripper operational and empty.", "Bread is present on the table and not occluded beyond detection thresholds."],
+    "stepwise_plan": ["Detect bread.", "Open gripper.", "Move above the bread and align.", "Compute a top grasp pose.", "Execute grasp and close gripper.", "Check grasp stability.", "Raise the held object slightly.", "Verify object-in-gripper and hold briefly."],
+    "success_criteria": ["Bread lifted off the table by at least 0.1 m.", "ObjectInGripper condition true.", "Hold completes without slip or drop."],
+    "failure_and_recovery": ["If detection fails, retry up to three times.", "If grasp fails or is unstable, the sequence will not progress; operator may relaunch with adjusted parameters.", "If lift fails due to collisions, retreat and re-approach (not encoded)."],
+    "termination": "Terminate after successful hold following a verified lift, or if detection repeatedly fails."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up bread",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["bread", "blue_can", "green_bottle_large", "green_bottle_small", "red_can", "orange_container", "clear_cup_left", "clear_cup_right"],
+  "objects_from_instruction": ["bread"],
+  "blackboard_keys": ["grasp_bread"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"bread","timeout_ms":1500},"description":"Perceive the bread and localize it."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":800},"description":"Prepare gripper for grasping."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"bread","offset_z":0.05,"timeout_ms":1500},"description":"Position end-effector above the bread."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"bread","tolerance":0.01,"timeout_ms":2000},"description":"Descend/align to pregrasp pose with tight tolerance."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"bread","strategy":"top","result_key":"grasp_bread"},"description":"Plan a top grasp pose."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_bread","strategy":"pinch","timeout_ms":1500},"description":"Execute grasp at the computed pose."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":15,"timeout_ms":800},"description":"Apply moderate force to secure the bread."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check for stable grasp before lifting."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"bread","distance":0.10,"timeout_ms":1000},"description":"Lift the object to clear the table."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"bread"},"description":"Verify the object is actually held."},
+    {"id":"HoldObject","type":"Action","ports":{"target":"bread","duration_ms":1000},"description":"Hold briefly to stabilize the grasp."},
+    {"id":"RetryUntilSuccessful","type":"Decorator","ports":{"num_attempts":3},"description":"Retries detection up to three attempts."}
+  ],
+  "tree_stats": {"nodes_total": 13, "actions": 9, "conditions": 2, "depth": 4},
+  "failure_modes": ["Bread not detected due to occlusion or lighting.", "Misalignment causing failed grasp.", "Insufficient grip force leading to slip.", "Collision when lifting due to nearby objects."],
+  "recovery_strategy": ["Retry detection (decorator).", "Re-run approach/alignment with adjusted tolerance (operator).", "Re-open gripper and recompute a new grasp pose.", "Abort and reset to a safe pose if collisions are detected."],
+  "assumptions": ["The contact sheet is somewhat low-resolution; the 'bread' is inferred as a brownish item among cans/bottles. If the frame does not clearly show bread, we still follow the instruction and note this uncertainty, preferring frames when evident."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["ObjectInGripper returns success after RaiseHeld.", "Bread is visibly off the surface during hold.", "No spillage or collision in nearby clutter."],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"bread","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"bread","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"bread","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"bread","strategy":"top","result_key":"grasp_bread"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_bread","strategy":"pinch","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":15,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"bread","distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"bread"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"bread","duration_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

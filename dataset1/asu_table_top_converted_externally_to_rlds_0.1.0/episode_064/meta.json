@@ -1,11 +1,159 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_064",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "pick red object",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_064",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect, approach, grasp, and slightly lift the red object located near the table center-left.",
+  "task_long_description": {
+    "overview": "A UR-style manipulator must pick a red upright object situated among several cans and bottles on a curved white tabletop. The robot first perceives the target, opens its gripper, moves to a safe height above the object, aligns top-down, computes a grasp, executes the grasp, verifies that the object is held, and lifts it slightly to confirm pickup. The sequence assumes unobstructed access from above and uses conservative timeouts and moderate gripping force to avoid knocking nearby items.",
+    "preconditions": [
+      "Red object present on the tabletop and not occluded",
+      "Workspace free of unexpected obstacles",
+      "Camera and detection pipeline operational",
+      "Gripper functional and initially able to open"
+    ],
+    "stepwise_plan": [
+      "Retry detection of the red_object until it is confidently visible.",
+      "Open the gripper to a wide aperture.",
+      "Move to a pregrasp height above the target.",
+      "Approach and align top-down within tight tolerance.",
+      "Compute a top grasp pose and move to it.",
+      "Close gripper to secure the object.",
+      "Verify object is in gripper and raise it slightly."
+    ],
+    "success_criteria": [
+      "ObjectInGripper(red_object) returns success",
+      "RaiseHeld completes without error",
+      "No collisions with adjacent objects"
+    ],
+    "failure_and_recovery": [
+      "If detection fails: automatic retry via decorator",
+      "If alignment fails: re-detect and re-approach",
+      "If grasp slips: reopen, re-align, and retry grasp with same strategy"
+    ],
+    "termination": "Terminate after successful verification and lift of the red object."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick red object",
+  "instruction_to_ports": {
+    "force": 20,
+    "timeout_ms": 2000,
+    "tolerance": 0.01,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["red_object","blue_can","orange_stack","silver_cup","green_bottle"],
+  "objects_from_instruction": ["red_object"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"red_object","timeout_ms":2000},"description":"Perceive the red object with a retry wrapper for robustness."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.10,"timeout_ms":400},"description":"Prepare gripper for grasp."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"red_object","offset_z":0.05,"timeout_ms":1500},"description":"Go to a safe pregrasp height above the object."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"red_object","tolerance":0.01,"timeout_ms":2000},"description":"Refine approach and align for top grasp."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"red_object","strategy":"top","result_key":"goal_pose"},"description":"Compute top-down grasp pose and store on blackboard."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"top","timeout_ms":2000},"description":"Move to the computed grasp pose."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":1000},"description":"Close gripper to grasp the object."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"red_object"},"description":"Verify the object is secured."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"red_object","distance":0.10,"timeout_ms":1500},"description":"Lift the grasped object slightly to confirm pickup."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 8, "conditions": 1, "depth": 4},
+  "failure_modes": [
+    "Object not detected due to lighting or occlusion",
+    "Collision with adjacent items during approach",
+    "Insufficient grip leading to slip",
+    "Pose error causing misalignment"
+  ],
+  "recovery_strategy": [
+    "Retry detection (already encoded)",
+    "Back off and re-align if contact detected unexpectedly",
+    "Reopen gripper and reattempt grasp with same top strategy",
+    "Increase approach timeouts if repeated near-misses occur"
+  ],
+  "assumptions": [
+    "“red object” refers to the tall red rectangular cylinder near table center-left, consistent across frames.",
+    "Top-down grasp is feasible without contacting neighbors."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "CloseGripper succeeds and ObjectInGripper is true",
+      "RaiseHeld executes distance 0.10 without collision"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_object","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_object","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_object","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_object","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_object","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_object","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"red_object","strategy":"top"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"top","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

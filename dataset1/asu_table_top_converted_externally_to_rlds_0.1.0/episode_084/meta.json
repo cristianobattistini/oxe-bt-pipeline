@@ -1,11 +1,130 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_084",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "place down green glass bottle",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_084",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect, grasp, and place down the green glass bottle onto the tabletop, then safely retreat.",
+  "task_long_description": {
+    "overview": "A UR-style manipulator operates over a cluttered white tabletop with multiple small containers and bottles. The goal is to locate the green glass bottle seen across frames, grasp it securely from the side, lift it, move above a clear spot on the table, and place it down in a controlled, low-impact manner. The behavior includes perception, grasp synthesis, guarded vertical approach, and release, followed by a short retreat to avoid collisions with nearby items.",
+    "preconditions": ["Workspace is reachable and collision-free around the bottle", "Camera provides visibility of the green glass bottle", "Gripper calibrated and able to open to 0.06 m", "Table surface can be contacted safely at low force"],
+    "stepwise_plan": ["Open gripper and detect the green bottle", "Move above and compute a side grasp pose", "Execute grasp and verify stability", "Lift and translate above the placement area", "Lower until contact and place down the bottle", "Release and retreat a short distance"],
+    "success_criteria": ["Bottle ends upright or stably resting on the tabletop", "No collision with other objects during motion", "Grasp remains stable until release", "End-effector retreats clear after placing"],
+    "failure_and_recovery": ["Perception failure or occlusion: retry object detection", "Grasp slip: recompute grasp and retry", "Early table contact: stop descent at force threshold and adjust pose", "Crowding near goal: choose a slightly offset placement region"],
+    "termination": "Terminate after successful placement, release, and retreat, or after retries are exhausted."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_5","frame_7","frame_6","frame_4","frame_3","frame_2","frame_1","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.22,
+      "frame_1": 0.38,
+      "frame_2": 0.55,
+      "frame_3": 0.62,
+      "frame_4": 0.70,
+      "frame_5": 0.93,
+      "frame_6": 0.78,
+      "frame_7": 0.88,
+      "frame_8": 0.10
+    },
+    "rationale_per_frame": {
+      "frame_5": {
+        "now_evidence": "clear grasp engagement on the green bottle with gripper closing",
+        "predicts_next": "lifting and transfer expected toward placement zone",
+        "uncertainty_reduction": "high"
+      },
+      "frame_7": {
+        "now_evidence": "end-effector descending near surface indicating guarded placement",
+        "predicts_next": "release followed by short retreat",
+        "uncertainty_reduction": "medium"
+      }
+    }
+  },
+  "task_instruction": "place down green glass bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["green_glass_bottle","red_can","pink_can","blue_cup","orange_vials","table"],
+  "objects_from_instruction": ["green_glass_bottle"],
+  "blackboard_keys": ["grasp_pose"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":"0.06","timeout_ms":"1000"},"description":"Pre-open gripper to prepare for grasp."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"green_glass_bottle","timeout_ms":"2000"},"description":"Detect the target bottle before approach."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"green_glass_bottle","offset_z":"0.08","timeout_ms":"2000"},"description":"Move to a safe pregrasp height above the bottle."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"green_glass_bottle","strategy":"side","result_key":"grasp_pose"},"description":"Synthesize a feasible side grasp pose."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_pose","strategy":"side","timeout_ms":"3000"},"description":"Execute the planned side grasp."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Ensure the grasp is stable before lifting."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"green_glass_bottle","distance":"0.10","timeout_ms":"1000"},"description":"Lift the grasped bottle off the surface."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"place_on_table","offset_z":"0.10","timeout_ms":"2000"},"description":"Translate above the intended placement zone."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":"0.10","force_threshold":"10","timeout_ms":"2000"},"description":"Guarded descent until gentle table contact."},
+    {"id":"PlaceDown","type":"Action","ports":{"target":"green_glass_bottle","timeout_ms":"1500"},"description":"Place the held bottle down onto the table."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":"0.06","timeout_ms":"1000"},"description":"Release the bottle after placement."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"0.10","timeout_ms":"1000"},"description":"Back away to a safe distance."}
+  ],
+  "tree_stats": {"nodes_total": 14, "actions": 11, "conditions": 1, "depth": 3},
+  "failure_modes": ["Target not detected due to occlusion", "Collision with nearby items during approach", "Unstable grasp leading to slip", "Premature contact during descent causing misplacement"],
+  "recovery_strategy": ["Retry detection up to three times", "Reposition above object and recompute grasp", "If slip detected, reopen and regrasp with adjusted pose", "Abort descent on force trigger and offset placement spot"],
+  "assumptions": ["The green glass bottle is the leftmost green object visible in early frames and remains the target", "Placement surface is the visible white table; no dedicated bin or plate exists", "Instruction requests placement only, but frames suggest a full pick-then-place; tree includes grasp to match visuals"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Bottle ends stably on table and gripper is empty", "No object collisions and retreat completes"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"green_glass_bottle","timeout_ms":2000}},
+      "active_path_ids": ["MainTree","Sequence","RetryUntilSuccessful","DetectObject"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"green_glass_bottle","offset_z":0.08,"timeout_ms":2000}},
+      "active_path_ids": ["MainTree","Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"green_glass_bottle","strategy":"side","result_key":"grasp_pose"}},
+      "active_path_ids": ["MainTree","Sequence","ComputeGraspPose"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_pose","strategy":"side","timeout_ms":3000}},
+      "active_path_ids": ["MainTree","Sequence","GraspAtPose"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": ["MainTree","Sequence","IsGraspStable"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"green_glass_bottle","distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": ["MainTree","Sequence","RaiseHeld"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"place_on_table","offset_z":0.10,"timeout_ms":2000}},
+      "active_path_ids": ["MainTree","Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.10,"force_threshold":10,"timeout_ms":2000}},
+      "active_path_ids": ["MainTree","Sequence","LowerUntilContact"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": ["MainTree","Sequence","Retreat"]
+    }
+  ]
 }

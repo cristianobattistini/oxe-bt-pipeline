@@ -1,5 +1,15 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <DetectObject target="bread" timeout_ms="2000"/>
+    <IsObjectVisible target="bread"/>
+    <OpenGripper width="0.08" timeout_ms="1000"/>
+    <MoveAbove target="bread" offset_z="0.08" timeout_ms="2000"/>
+    <ApproachAndAlign target="bread" tolerance="0.01" timeout_ms="2000"/>
+    <ComputeGraspPose target="bread" strategy="top" result_key="bread_grasp"/>
+    <GraspAtPose pose_key="bread_grasp" strategy="pinch" timeout_ms="2000"/>
+    <CloseGripper force="10" timeout_ms="1000"/>
+    <ObjectInGripper target="bread"/>
+    <RaiseHeld target="bread" distance="0.10" timeout_ms="1500"/>
+    <Retreat distance="0.10" timeout_ms="1500"/>
   </Sequence>
 </BehaviorTree>

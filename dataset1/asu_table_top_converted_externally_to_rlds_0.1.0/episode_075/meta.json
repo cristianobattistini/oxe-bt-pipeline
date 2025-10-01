@@ -1,11 +1,132 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_075",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "place down maroon square",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_075",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect, grasp, and place down the maroon square block onto the tabletop, then release and retreat.",
+  "task_long_description": {
+    "overview": "A UR-style manipulator operates over a cluttered tabletop with cans, bottles, and small blocks. The goal is to place down the maroon square block. The robot first localizes the block, computes a top grasp, secures it, lifts slightly, moves to a safe placement over the table surface, and performs a gentle place with low press force. After releasing, it retreats to avoid collisions and stabilize the scene.",
+    "preconditions": ["Workspace is clear of obstacles along the approach path", "Gripper initially open", "Maroon square is visible on the table", "Table surface is a valid placement area"],
+    "stepwise_plan": ["Open gripper", "Detect maroon square", "Compute top-grasp pose and approach", "Execute grasp and verify object is held", "Raise the held object slightly", "Place on the table surface with low force", "Open gripper to release", "Retreat and wait briefly"],
+    "success_criteria": ["Maroon square rests stably on the tabletop", "Gripper is open and empty at end", "No collisions with nearby objects", "Final pose shows object no longer in gripper"],
+    "failure_and_recovery": ["Detection failure → re-detect from a slightly different view", "Unstable grasp or slip → re-compute grasp and retry", "Placement misalignment → lower slowly, adjust, and re-place", "Unexpected contact → retreat, re-approach and try again"],
+    "termination": "Terminate after successful release and brief wait, or on repeated timeouts/failures."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_5", "frame_6", "frame_7", "frame_4", "frame_8", "frame_3", "frame_2", "frame_1", "frame_0"],
+    "scores": {
+      "frame_0": 0.10,
+      "frame_1": 0.32,
+      "frame_2": 0.48,
+      "frame_3": 0.62,
+      "frame_4": 0.80,
+      "frame_5": 0.92,
+      "frame_6": 0.88,
+      "frame_7": 0.86,
+      "frame_8": 0.72
+    },
+    "rationale_per_frame": {
+      "frame_5": {
+        "now_evidence": "Object clearly in gripper mid-transfer.",
+        "predicts_next": "Approach to placement area and lowering sequence.",
+        "uncertainty_reduction": "high"
+      },
+      "frame_7": {
+        "now_evidence": "Lowering toward table consistent with placing action.",
+        "predicts_next": "Release and retreat.",
+        "uncertainty_reduction": "medium"
+      },
+      "frame_8": {
+        "now_evidence": "Object appears on table; gripper offset to side.",
+        "predicts_next": "Retreat finishes sequence.",
+        "uncertainty_reduction": "medium"
+      }
+    }
+  },
+  "task_instruction": "place down maroon square",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["maroon_square", "blue_can", "orange_can", "red_can", "transparent_cup", "green_bottle", "gray_box"],
+  "objects_from_instruction": ["maroon_square"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":"0.06","timeout_ms":"500"},"description":"Open gripper before grasp and for release."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"maroon_square","timeout_ms":"1500"},"description":"Vision step to locate the maroon square."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"maroon_square","strategy":"top","result_key":"goal_pose"},"description":"Compute a top grasp pose and store it on the blackboard."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"top","timeout_ms":"2000"},"description":"Approach and close at the computed pose."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"maroon_square"},"description":"Verify the object is grasped."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"maroon_square","distance":"0.10","timeout_ms":"1000"},"description":"Lift slightly to clear nearby objects."},
+    {"id":"PlaceOnSurface","type":"Action","ports":{"target":"maroon_square","area_id":"table","yaw_deg":"0","press_force":"5","timeout_ms":"1500"},"description":"Gentle placement on tabletop."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"0.10","timeout_ms":"800"},"description":"Back off after release."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":"500"},"description":"Short stabilization wait."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 9, "conditions": 1, "depth": 2},
+  "failure_modes": ["Object not detected", "Failed grasp or slip", "Collision during transfer", "Placement contact too hard causing tip-over"],
+  "recovery_strategy": ["Re-run detection with small view change", "Re-compute and retry grasp", "Lift higher and re-route transfer", "Lower slowly and re-place with low press force"],
+  "assumptions": ["'Maroon square' refers to the small red cuboid block seen in frames; placement target is the tabletop area; instruction aligns with frames showing pick-then-place."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Object rests upright or stably on table", "Gripper empty and retracted", "No disturbance to neighboring objects"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"maroon_square","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"maroon_square","strategy":"top","result_key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"top","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"top","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"top","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"maroon_square","distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"maroon_square","area_id":"table","yaw_deg":0,"press_force":5,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }

@@ -1,5 +1,17 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <DetectObject target="glass_bottle" timeout_ms="1500"/>
+    <Fallback>
+      <ObjectInGripper target="glass_bottle"/>
+      <Sequence>
+        <OpenGripper width="0.09" timeout_ms="1000"/>
+        <ComputeGraspPose target="glass_bottle" strategy="side" result_key="grasp_pose"/>
+        <GraspAtPose pose_key="grasp_pose" strategy="side" timeout_ms="2000"/>
+        <IsGraspStable/>
+      </Sequence>
+    </Fallback>
+    <PlaceDown target="glass_bottle" timeout_ms="1500"/>
+    <OpenGripper width="0.10" timeout_ms="800"/>
+    <Retreat distance="0.10" timeout_ms="1000"/>
   </Sequence>
 </BehaviorTree>

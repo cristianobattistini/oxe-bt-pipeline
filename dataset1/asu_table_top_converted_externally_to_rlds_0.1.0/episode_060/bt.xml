@@ -1,5 +1,14 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <DetectObject target="red_object" timeout_ms="1500"/>
+    <OpenGripper width="0.06" timeout_ms="800"/>
+    <MoveAbove target="red_object" offset_z="0.05" timeout_ms="1500"/>
+    <ApproachAndAlign target="red_object" tolerance="0.01" timeout_ms="1500"/>
+    <ComputeGraspPose target="red_object" strategy="top" result_key="grasp_red"/>
+    <GraspAtPose pose_key="grasp_red" strategy="top" timeout_ms="1500"/>
+    <IsGraspStable/>
+    <RaiseHeld target="red_object" distance="0.10" timeout_ms="1000"/>
+    <ObjectInGripper target="red_object"/>
+    <HoldObject target="red_object" duration_ms="500"/>
   </Sequence>
 </BehaviorTree>

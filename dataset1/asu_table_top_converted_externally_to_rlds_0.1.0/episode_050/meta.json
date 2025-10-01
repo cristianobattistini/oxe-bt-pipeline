@@ -1,11 +1,116 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_050",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "hold red square",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_050",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect, grasp, lift slightly, and hold the red object visible in the frames.",
+  "task_long_description": {
+    "overview": "A UR-style robot with a parallel gripper interacts on a small table containing multiple bottles/cans and small packages. The goal is to end with the robot holding the red cylindrical object at the table’s right side. The behavior first secures perception, then approaches with tight alignment, performs a side pinch pick, verifies a stable grasp, raises the object a short distance, and holds it briefly. Timeouts and tolerances are conservative to avoid collisions among closely spaced items.",
+    "preconditions": ["Workspace is clear of unexpected obstacles", "Gripper calibrated and operational", "Object is on the table within reachable workspace", "Camera exposure provides reliable color segmentation"],
+    "stepwise_plan": ["Perceive: detect the red object; fallback to a spiral scan if needed", "Verify visibility before manipulation", "Open gripper and approach with 1 cm alignment tolerance", "Pick using a standard side grasp", "Check grasp stability and confirm object in gripper", "Raise by 10 cm and hold for 2 seconds"],
+    "success_criteria": ["Object is inside the gripper", "No collisions with nearby items", "Object is lifted off the surface", "Hold maintained for the specified duration"],
+    "failure_and_recovery": ["Perception failure → fallback scan", "Slip during lift → task halts; operator may re-run", "Unexpected contact → abort and retreat (future extension)"],
+    "termination": "Tree finishes after the HoldObject action completes the requested duration."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Arm is aligned toward the red object; approach path is clear.",
+        "predicts_next": "Grasp actuation is likely in the subsequent frame.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "hold red square",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["red_cylinder", "silver_can", "green_bottle", "blue_can", "orange_bottle", "gray_carton"],
+  "objects_from_instruction": ["red_square"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"red_cylinder","timeout_ms":2000},"description":"Detect the red object using perception."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"red_cylinder","pattern":"spiral","max_attempts":3,"timeout_ms":3000},"description":"Fallback scan if initial detection fails."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"red_cylinder"},"description":"Confirm target remains visible before approach."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":1000},"description":"Prepare gripper for grasp."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"red_cylinder","tolerance":0.01,"timeout_ms":3000},"description":"Approach and align to grasp pose with tight tolerance."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"std_side","timeout_ms":2000},"description":"Execute a standard side pinch grasp."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check for stable grasp after closing."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"red_cylinder"},"description":"Verify the intended object is actually held."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"red_cylinder","distance":0.10,"timeout_ms":1500},"description":"Lift the held object slightly to confirm grasp."},
+    {"id":"HoldObject","type":"Action","ports":{"target":"red_cylinder","duration_ms":2000},"description":"Maintain hold state for the requested duration."}
+  ],
+  "tree_stats": {"nodes_total": 12, "actions": 7, "conditions": 3, "depth": 3},
+  "failure_modes": ["Target occluded by other items", "Grasp misses due to poor alignment", "Object slips during lift", "Timeouts due to slow approach"],
+  "recovery_strategy": ["Use spiral scan fallback when detection fails", "Re-approach with same tolerance and retry pick (future decorator)", "Abort on instability and wait for operator"],
+  "assumptions": ["Instruction says 'red square', but frames show a red cylindrical object; the BT targets 'red_cylinder' accordingly and logs the mismatch."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Robot ends holding the red object for ≥2s", "No collisions or drops", "All timeouts respected"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_cylinder","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"red_cylinder","pattern":"spiral","max_attempts":3,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_cylinder","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_cylinder","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"red_cylinder"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"std_side","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"red_cylinder","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"red_cylinder","duration_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"red_cylinder","duration_ms":2000}},
+      "active_path_ids": []
+    }
+  ]
 }

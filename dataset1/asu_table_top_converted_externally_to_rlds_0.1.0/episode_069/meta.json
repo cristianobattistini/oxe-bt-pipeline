@@ -1,11 +1,122 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_069",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "pick blue can",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_069",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect the blue can, approach and align, open the gripper, execute a side grasp at a computed pose, close the gripper, lift the can slightly, and confirm it is held.",
+  "task_long_description": {
+    "overview": "A tabletop manipulation scene shows several small objects arranged on a white table: a blue can near the center-right, a green bottle, a red block, a silver can, and two orange items. The robot arm must pick the blue can. The plan detects the target, approaches from above, aligns precisely, opens the gripper, computes a grasp pose, executes a side grasp, closes with moderate force, lifts to verify grasp stability, and checks that the object is in the gripper.",
+    "preconditions": ["Robot and camera calibrated", "Tabletop is reachable", "Blue can is present and unobstructed", "Gripper operational and empty"],
+    "stepwise_plan": ["Detect blue can", "Move above target with safe clearance", "Approach and align within 0.01 tolerance", "Open gripper to 0.06 m", "Compute grasp pose for side grasp saving to 'goal_pose'", "Grasp at computed pose", "Close gripper with force 20", "Raise the held object by 0.10 m", "Verify object is in gripper"],
+    "success_criteria": ["Blue can lifted from table", "Object detected in gripper", "No collisions with neighboring items", "Lift height reached"],
+    "failure_and_recovery": ["Detection fails → re-run detection and adjust viewpoint if available", "Alignment error → retreat slightly and realign", "Grasp slips → reopen, recompute pose, and retry", "Neighbor contact → increase approach height and re-approach"],
+    "termination": "Terminate when the blue can is confirmed in the gripper after lift or when a failure condition aborts the sequence."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "First clear pre-grasp configuration with gripper opened above the blue can, indicating alignment readiness.",
+        "predicts_next": "Grasp actuation expected; next frames likely show closing and lift.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick blue can",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["blue_can", "green_bottle", "red_block", "silver_can", "orange_items"],
+  "objects_from_instruction": ["blue_can"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"blue_can","timeout_ms":2000},"description":"Detects the blue can in the scene."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"blue_can","offset_z":0.08,"timeout_ms":3000},"description":"Moves the TCP to a safe height above the blue can."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"blue_can","tolerance":0.01,"timeout_ms":3000},"description":"Approaches and aligns the gripper relative to the can."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":1000},"description":"Opens gripper to prepare for grasp."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"blue_can","strategy":"side","result_key":"goal_pose"},"description":"Computes a side grasp pose and stores it to 'goal_pose'."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"side","timeout_ms":2000},"description":"Executes the grasp at the computed pose."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":1500},"description":"Closes the gripper to secure the can."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"blue_can","distance":0.10,"timeout_ms":1500},"description":"Lifts the gripped can to verify grasp."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"blue_can"},"description":"Checks that the can is held after lifting."}
+  ],
+  "tree_stats": {"nodes_total": 10, "actions": 8, "conditions": 1, "depth": 2},
+  "failure_modes": ["Target not detected", "Misalignment causes collision with neighbors", "Insufficient grip force leading to slip", "Occlusion during approach"],
+  "recovery_strategy": ["Re-detect and adjust vantage", "Retreat then re-approach with same tolerance", "Reopen, recompute grasp pose, and reattempt", "Pause and wait for scene stabilization before retry"],
+  "assumptions": ["The blue can is the blue cylindrical object near center-right in the frames.", "Side grasp is feasible without top occlusions.", "No time-limit or retries specified by instruction; defaults chosen from library bins."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Blue can is elevated from the surface and remains in gripper", "Final condition node returns success"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"blue_can","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"blue_can","offset_z":0.08,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"blue_can","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"blue_can","strategy":"side","result_key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"side","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"blue_can","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"blue_can"}},
+      "active_path_ids": []
+    }
+  ]
 }

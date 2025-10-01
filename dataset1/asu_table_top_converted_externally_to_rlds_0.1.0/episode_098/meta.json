@@ -1,11 +1,144 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_098",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "place down white box",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_098",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Place the already-held white box down onto the table surface and retreat safely.",
+  "task_long_description": {
+    "overview": "A UR-style manipulator must place a white box onto the table. The object appears among cans and bottles on a curved tabletop. The robot is assumed to already be holding the white box. The behavior ensures a controlled approach above the placement zone, a gentle press to seat the object, gripper release, and a short retreat to avoid collisions. Timeouts and minimum press force are conservative to prevent knocking nearby items.",
+    "preconditions": [
+      "White box is grasped and stable in the gripper",
+      "Table area has enough free space to place the object",
+      "Robot reachable workspace includes the target area",
+      "Perception provides a nominal place region on the table"
+    ],
+    "stepwise_plan": [
+      "Verify the object is in the gripper.",
+      "Move to a pose above the table placement region.",
+      "Place on surface with low force and nominal yaw.",
+      "Open gripper to release the box.",
+      "Retreat vertically to clear the object."
+    ],
+    "success_criteria": [
+      "White box rests stably on the table without sliding",
+      "No collisions with nearby cans/bottles",
+      "Gripper fully releases the object",
+      "End-effector returns to a clear, safe pose"
+    ],
+    "failure_and_recovery": [
+      "If object not detected in gripper: abort and request a pick routine",
+      "If contact is unstable or obstruction occurs: retreat and reattempt placement",
+      "If release fails: reopen gripper and gently jiggle by re-placing with minimal force"
+    ],
+    "termination": "Terminate after successful placement and retreat to a safe distance."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_5","frame_6","frame_4","frame_3","frame_7","frame_2","frame_1","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.22, "frame_1": 0.30, "frame_2": 0.42, "frame_3": 0.63,
+      "frame_4": 0.75, "frame_5": 0.90, "frame_6": 0.82, "frame_7": 0.55, "frame_8": 0.18
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Arm is aligned above the right-side placement zone; neighboring objects visible for context.",
+        "predicts_next": "Lowering/placing followed by gripper release should occur.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "place down white box",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 1500,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["white_box", "red_can", "blue_can", "maroon_block", "green_bottle", "orange_stack", "clear_cup", "purple_cup"],
+  "objects_from_instruction": ["white_box"],
+  "blackboard_keys": ["place_on_table"],
+  "node_specs": [
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"white_box"},"description":"Ensure the white box is currently held."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"place_on_table","offset_z":0.10,"timeout_ms":1500},"description":"Go to a pre-place pose above the table region."},
+    {"id":"PlaceOnSurface","type":"Action","ports":{"target":"white_box","area_id":"table","yaw_deg":0,"press_force":5,"timeout_ms":1500},"description":"Place the held box on the table with minimal force."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Release the object."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":800},"description":"Back off to a safe clearance pose."}
+  ],
+  "tree_stats": {"nodes_total": 6, "actions": 4, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Object not actually in gripper",
+    "Collision with nearby items during descent",
+    "Object slips during release",
+    "Placement outside stable region"
+  ],
+  "recovery_strategy": [
+    "Abort to pick routine if object missing",
+    "Retry with higher approach height and slower descent",
+    "Re-grasp and re-place if slip detected",
+    "Shift place location slightly and reattempt"
+  ],
+  "assumptions": [
+    "Frames suggest approaching the right-side area; the white box is assumed to be the held object though it is small/low-contrast in some tiles.",
+    "Instruction implies the object is already grasped; no pick step included."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Box rests flat on table; gripper clears; no disturbance to neighbors"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"place_on_table","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"place_on_table","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"place_on_table","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"white_box","area_id":"table","yaw_deg":0,"press_force":5,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"white_box","area_id":"table","yaw_deg":0,"press_force":5,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"white_box","area_id":"table","yaw_deg":0,"press_force":5,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }

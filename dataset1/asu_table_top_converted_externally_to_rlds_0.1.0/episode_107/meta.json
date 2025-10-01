@@ -1,11 +1,157 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_107",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "place down glass bottle",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_107",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect the glass bottle, ensure it is grasped (or grasp it if not), then place it down on the table, release, and retreat.",
+  "task_long_description": {
+    "overview": "A 6-DOF robotic arm manipulates tabletop items including a green glass bottle, a blue can, a red block, a gray cup, and orange cups. The goal is to place down the glass bottle at the table surface. The tree first detects the bottle, checks if it is already held, and if not, performs a side-grasp. After confirming a stable grasp, the robot executes a place-down, opens the gripper to release the bottle, and retreats to clear the workspace.",
+    "preconditions": [
+      "Work surface clear enough to place the bottle",
+      "Bottle visible to the camera",
+      "Gripper operational and calibrated",
+      "No obstacles along approach and retreat paths"
+    ],
+    "stepwise_plan": [
+      "Perceive and localize the glass bottle.",
+      "If already held, skip grasp; otherwise open gripper, compute side grasp, execute grasp, and verify stability.",
+      "Place the bottle down on the table.",
+      "Open gripper to release.",
+      "Retreat to a safe distance."
+    ],
+    "success_criteria": [
+      "Bottle ends stably on the table without toppling",
+      "Gripper fully releases the bottle",
+      "Arm ends in a safe, non-contact pose"
+    ],
+    "failure_and_recovery": [
+      "Detection failure: re-attempt detection from a slightly different pose.",
+      "Grasp failure or slip: re-compute grasp and retry.",
+      "Placement contact not detected: re-attempt place with slower approach."
+    ],
+    "termination": "Terminate when the bottle is on the table, released, and the arm has retreated."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "place down glass bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 1500,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["glass_bottle", "blue_can", "red_block", "gray_cup", "orange_cups"],
+  "objects_from_instruction": ["glass_bottle"],
+  "blackboard_keys": ["grasp_pose"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"glass_bottle","timeout_ms":1500},"description":"Detect and localize the glass bottle."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"glass_bottle"},"description":"Check if the bottle is already held."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":1000},"description":"Open gripper in preparation for grasp."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"glass_bottle","strategy":"side","result_key":"grasp_pose"},"description":"Compute a side grasp pose for the bottle."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_pose","strategy":"side","timeout_ms":2000},"description":"Execute grasp at computed pose."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verify grasp stability."},
+    {"id":"PlaceDown","type":"Action","ports":{"target":"glass_bottle","timeout_ms":1500},"description":"Lower and place the held bottle on the table."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.10,"timeout_ms":800},"description":"Release the bottle after placement."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back off to a safe distance post-placement."}
+  ],
+  "tree_stats": {"nodes_total": 13, "actions": 7, "conditions": 2, "depth": 4},
+  "failure_modes": [
+    "Bottle not detected due to lighting or occlusion",
+    "Grasp slip on smooth glass surface",
+    "Placement area obstructed",
+    "Release failure due to partial opening"
+  ],
+  "recovery_strategy": [
+    "Re-detect with slight view change",
+    "Re-compute grasp with alternative strategy (top) and retry",
+    "Choose alternate placement spot on table",
+    "Cycle gripper open/close and reattempt release"
+  ],
+  "assumptions": [
+    "The green bottle visible in frames is the intended glass bottle.",
+    "The contact sheet suggests the bottle is picked and moved left before being placed; the BT allows either starting held or performing a grasp first."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Bottle stands upright and stationary after release",
+      "No collisions during retreat"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"glass_bottle","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.09,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"glass_bottle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_pose","strategy":"side","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"PlaceDown","attrs":{"target":"glass_bottle","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceDown","attrs":{"target":"glass_bottle","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

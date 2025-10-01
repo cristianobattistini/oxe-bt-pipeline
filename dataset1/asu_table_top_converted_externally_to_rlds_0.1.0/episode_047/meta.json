@@ -1,11 +1,151 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_047",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "put down glass bottle",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_047",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Verify the robot is holding the glass bottle, move above the table placement area, lower until contact, place the bottle on the table, release, and retreat.",
+  "task_long_description": {
+    "overview": "A UR-style arm must put down a green glass bottle visible among other tabletop objects (red can, blue bottle, orange cups). The robot likely already holds the bottle and needs to deposit it onto the table surface near the other items. The behavior emphasizes a controlled descent until contact, gentle placement with modest press force, and a safe retreat to avoid collisions with nearby objects.",
+    "preconditions": ["Bottle is grasped in the gripper", "Table surface is within reachable workspace", "No obstacles along the descent path"],
+    "stepwise_plan": [
+      "Confirm the glass bottle is in the gripper.",
+      "Move above the intended table placement region.",
+      "Lower until contact with controlled speed and shallow depth.",
+      "Place the held bottle on the table with neutral yaw.",
+      "Open the gripper to release the bottle.",
+      "Retreat vertically to clear the object."
+    ],
+    "success_criteria": [
+      "Bottle ends upright and stably resting on the table surface",
+      "No object slippage during release",
+      "End effector safely clears the scene after placement"
+    ],
+    "failure_and_recovery": [
+      "If contact is not detected within the allowed depth, retry approach or adjust offset",
+      "If placement is unstable, re-grasp and reattempt",
+      "If release fails, increase gripper opening width and try again"
+    ],
+    "termination": "Task ends after successful release and retreat from the placed bottle."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_4","frame_5","frame_2","frame_6","frame_7","frame_1","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.22,
+      "frame_1": 0.33,
+      "frame_2": 0.58,
+      "frame_3": 0.93,
+      "frame_4": 0.80,
+      "frame_5": 0.72,
+      "frame_6": 0.49,
+      "frame_7": 0.36,
+      "frame_8": 0.12
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Gripper is aligned over the table and the bottle is visible at the point of placement.",
+        "predicts_next": "Release sequence expected immediately after contact/placement.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "put down glass bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["glass_bottle_green", "red_can", "blue_bottle", "orange_cups", "purple_cylinder", "gray_cube"],
+  "objects_from_instruction": ["glass_bottle_green"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"glass_bottle"},"description":"Check that the bottle is currently held."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"place_on_table","offset_z":"0.10","timeout_ms":2000},"description":"Move above the table placement area."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1500},"description":"Controlled descent until table contact."},
+    {"id":"PlaceOnSurface","type":"Action","ports":{"target":"glass_bottle","area_id":"table","yaw_deg":90,"press_force":10,"timeout_ms":2000},"description":"Place bottle on table with modest press."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.10,"timeout_ms":500},"description":"Release the bottle."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":800},"description":"Back off to clear the object."}
+  ],
+  "tree_stats": {"nodes_total": 7, "actions": 5, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Bottle not detected in gripper at start",
+    "Premature release before contact",
+    "Collision with nearby objects during descent",
+    "Insufficient gripper opening causing bottle to stick"
+  ],
+  "recovery_strategy": [
+    "If not holding, pause task and request re-grasp",
+    "If no contact within 0.05m, raise and re-approach",
+    "Increase gripper opening to next bin and retry release",
+    "Slightly adjust yaw or lateral position and repeat placement"
+  ],
+  "assumptions": [
+    "Robot already holds the glass bottle when the sequence begins.",
+    "Placement surface is the table; precise spot is not constrained by instruction.",
+    "Neutral orientation approximated by yaw_deg=90 for consistent release clearance."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Bottle stands on table without external support",
+      "Final gripper pose is safely above the object"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "verify",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"glass_bottle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"place_on_table","offset_z":0.10,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"glass_bottle","area_id":"table","yaw_deg":90,"press_force":10,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.10,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }

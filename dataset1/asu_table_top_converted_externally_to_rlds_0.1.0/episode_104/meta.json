@@ -1,11 +1,125 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_104",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "hold green glass bottle",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_104",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect, grasp, lift, and hold the green glass bottle using a side grasp, maintaining a stable hold for a short duration.",
+  "task_long_description": {
+    "overview": "A stationary manipulator must pick up the slender green glass bottle from a cluttered tabletop and hold it steadily for a few seconds. The scene shows multiple colorful containers, with the arm approaching from above and the bottle located right-of-center. The behavior emphasizes reliable perception, precise alignment, a side grasp around the bottle’s neck or body, and a brief hold after lifting to verify stability.",
+    "preconditions": ["Robot is homed and table workspace is reachable", "Gripper is functional and initially open", "Bottle is within camera field of view or can be found by scanning", "No safety interlocks are active"],
+    "stepwise_plan": ["Check visibility or scan for the green glass bottle", "Detect and localize the bottle precisely", "Open the gripper and move to a safe pregrasp above the bottle", "Approach and align with tight tolerance", "Compute a side grasp pose and verify the pose is available", "Execute grasp and close gripper", "Lift slightly and hold for the requested duration"],
+    "success_criteria": ["Bottle detected and localized", "Gripper closes with stable purchase", "Bottle lifted off the surface without collision", "Hold maintained for the full duration without slip"],
+    "failure_and_recovery": ["If the bottle is not visible, perform a spiral scan", "If grasp fails, re-detect and recompute grasp pose", "If slip is detected, re-align and re-grasp", "If approach alignment times out, retreat and retry"],
+    "termination": "The task ends when the bottle has been lifted and held steadily for the configured duration without errors."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "hold green glass bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["green_glass_bottle", "red_cylinder", "orange_cup", "clear_cup", "green_plastic_bottle", "blue_can"],
+  "objects_from_instruction": ["green_glass_bottle"],
+  "blackboard_keys": ["bottle_grasp"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"green_glass_bottle"},"description":"Checks if the green glass bottle is currently visible to sensors."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"green_glass_bottle","pattern":"spiral","max_attempts":3,"timeout_ms":3000},"description":"Performs a spiral scan to locate the bottle when not immediately visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"green_glass_bottle","timeout_ms":2000},"description":"Runs object detection to localize the bottle precisely."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":1000},"description":"Opens the gripper to a predefined width ready for grasp."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"green_glass_bottle","offset_z":0.05,"timeout_ms":2000},"description":"Moves to a pregrasp pose above the bottle."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"green_glass_bottle","tolerance":0.01,"timeout_ms":3000},"description":"Approaches and aligns the end-effector to the bottle within tight tolerance."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"green_glass_bottle","strategy":"side","result_key":"bottle_grasp"},"description":"Computes a side grasp pose and stores it under a blackboard key."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"bottle_grasp"},"description":"Verifies that a grasp pose was produced and is accessible."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"bottle_grasp","strategy":"side","timeout_ms":3000},"description":"Executes the grasp at the computed pose using a side strategy."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":40,"timeout_ms":1500},"description":"Closes the gripper to secure the bottle."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"green_glass_bottle","distance":0.10,"timeout_ms":1500},"description":"Lifts the grasped bottle slightly to clear the surface."},
+    {"id":"HoldObject","type":"Action","ports":{"target":"green_glass_bottle","duration_ms":3000},"description":"Maintains a stable hold on the bottle for a short duration."}
+  ],
+  "tree_stats": {"nodes_total": 14, "actions": 10, "conditions": 2, "depth": 3},
+  "failure_modes": ["Bottle not detected due to glare or occlusion", "Misalignment causing failed insertion of fingers", "Object slip after partial closure", "Timeouts during approach in clutter"],
+  "recovery_strategy": ["Fallback scan when not visible", "Re-detect and recompute grasp pose", "If slip occurs, reopen, re-align, and re-grasp", "Use lift-then-hold to validate stability"],
+  "assumptions": ["The slender green bottle visible in right-of-center tiles is the intended 'green glass bottle'; a similarly colored plastic bottle may also be present but is not the target", "No placement is required; the goal is to hold after lift"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Accurate detection leads to successful side grasp", "No collision with neighboring objects during approach", "Hold duration completes without slip"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"green_glass_bottle","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"green_glass_bottle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"green_glass_bottle","offset_z":0.05,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"green_glass_bottle","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"PoseAvailable","attrs":{"key":"bottle_grasp"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"bottle_grasp","strategy":"side","timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":40,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"green_glass_bottle","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"green_glass_bottle","duration_ms":3000}},
+      "active_path_ids": []
+    }
+  ]
 }

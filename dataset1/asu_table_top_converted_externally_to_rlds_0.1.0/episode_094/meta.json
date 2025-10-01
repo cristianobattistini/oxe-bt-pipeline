@@ -1,11 +1,125 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_094",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "pick up white box",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_094",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect the white box on the table, approach it from above, compute and execute a top grasp, verify a stable grasp, lift it up, hold briefly, and retreat.",
+  "task_long_description": {
+    "overview": "A fixed-base manipulator must pick up a small white box placed among cans and bottles on a curved tabletop. The plan opens the gripper, detects the target, moves above it with a safe vertical offset, aligns precisely, computes a top grasp pose, and executes the grasp. After verifying stability and confirming the object is in the gripper, the robot raises the object slightly, holds for a moment, and retreats to clear the scene. Timeouts and distances use conservative, binned values suitable for this cluttered tabletop.",
+    "preconditions": ["Robot is homed and within reach of the table.", "Gripper is functional and empty.", "White box is on the table and visible to cameras.", "Workspace is clear of unexpected obstacles."],
+    "stepwise_plan": ["Open gripper.", "Detect 'white_box'.", "Move above target with vertical clearance.", "Approach and align with tight tolerance.", "Compute grasp pose (top).", "Verify pose availability.", "Execute grasp at computed pose.", "Check grasp stability and confirm object in gripper.", "Raise the held object and hold briefly.", "Retreat to a safe distance."],
+    "success_criteria": ["ObjectInGripper for 'white_box' returns success.", "IsGraspStable returns success after grasp.", "Object is raised above the table without collision.", "Retreat completes without faults."],
+    "failure_and_recovery": ["If detection fails, retry the approach/grasp sequence.", "If pose is unavailable, recompute within retry loop.", "If grasp slip is detected, reattempt sequence after opening gripper (handled by retry wrapper).", "Timeouts abort individual steps to avoid indefinite blocking."],
+    "termination": "Tree succeeds when the white box is grasped, lifted, held briefly, and the robot retreats; it fails if retries are exhausted or a hard fault occurs."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_4","frame_5","frame_6","frame_3","frame_2","frame_1","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.20,
+      "frame_1": 0.42,
+      "frame_2": 0.55,
+      "frame_3": 0.70,
+      "frame_4": 0.92,
+      "frame_5": 0.85,
+      "frame_6": 0.63,
+      "frame_7": 0.30,
+      "frame_8": 0.10
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "End-effector aligned near the target with clear pre-grasp posture.",
+        "predicts_next": "Grasp actuation is imminent; validates that pose computation succeeded.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up white box",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["white_box", "red_can", "blue_can", "green_bottle", "orange_can", "pink_bottle", "clear_cup"],
+  "objects_from_instruction": ["white_box"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":1000},"description":"Prepare gripper with adequate opening for box edges."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"white_box","timeout_ms":2000},"description":"Perceive and localize the white box."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"white_box","offset_z":0.10,"timeout_ms":3000},"description":"Move above target to safe pregrasp height."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"white_box","tolerance":0.01,"timeout_ms":3000},"description":"Refine alignment before grasp."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"white_box","strategy":"top","result_key":"goal_pose"},"description":"Compute top-entry grasp pose and store as goal_pose."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"goal_pose"},"description":"Verify a valid grasp pose exists."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"top","timeout_ms":2000},"description":"Execute grasp at computed pose."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Confirm grasp stability."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"white_box"},"description":"Confirm the intended object is held."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"white_box","distance":0.10,"timeout_ms":2000},"description":"Lift object above table."},
+    {"id":"HoldObject","type":"Action","ports":{"target":"white_box","duration_ms":1000},"description":"Hold to ensure secure pickup."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1500},"description":"Back off to a safe pose after lift."}
+  ],
+  "tree_stats": {"nodes_total": 14, "actions": 9, "conditions": 3, "depth": 4},
+  "failure_modes": ["Target not detected or misclassified", "Pose estimate invalid or unreachable", "Grasp slip due to friction/shape", "Collision during approach or retreat"],
+  "recovery_strategy": ["Retry approach-and-grasp sequence up to 3 times", "Recompute grasp pose if PoseAvailable fails", "Abort step on timeout and escalate", "Use lift-and-hold to validate grasp before retreat"],
+  "assumptions": ["The 'white_box' is the small light/white container near the right side in the frames; if this interpretation is wrong, the symbolic target should be remapped.", "Top grasp is feasible given object geometry."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["ObjectInGripper('white_box') == success", "IsGraspStable == success", "RaiseHeld completes without collision"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"white_box","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"white_box","offset_z":0.10,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"white_box","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"PoseAvailable","attrs":{"key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"top","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"white_box","distance":0.10,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"white_box","duration_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    }
+  ]
 }

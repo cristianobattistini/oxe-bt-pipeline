@@ -1,11 +1,130 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_095",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "place down pepsi can",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_095",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Place down the blue Pepsi can onto the table surface, then retreat.",
+  "task_long_description": {
+    "overview": "A UR-style manipulator operates over a cluttered tabletop with several bottles and cans (blue Pepsi can, red can, green bottle, tall red bottle, orange stack, small gray box). The goal is to gently place the Pepsi can on the table, aligned and stable, and then back off safely. The behavior first verifies the can is held, approaches a safe above-table pose, lowers until contact with low force, releases the gripper, waits briefly for stabilization, and retreats to clear the scene.",
+    "preconditions": ["Robot has the Pepsi can in the gripper", "Table surface is clear at the chosen placement area", "Perception frame is valid and kinematics reachable"],
+    "stepwise_plan": [
+      "Verify the can is currently in the gripper.",
+      "Move to a pose above the placement area on the table with small vertical offset.",
+      "Lower slowly until contact is detected with low force.",
+      "Open the gripper to release the can.",
+      "Wait briefly to let the can settle.",
+      "Retreat a short distance to clear the object."
+    ],
+    "success_criteria": [
+      "Pepsi can ends upright and stationary on the table",
+      "No collisions with nearby objects",
+      "Gripper releases cleanly and robot retreats to a safe distance"
+    ],
+    "failure_and_recovery": [
+      "If object not in gripper: abort and request re-pick in upstream pipeline",
+      "If contact not detected in max depth: retreat and retry approach",
+      "If release slips the can: re-grasp if safe or signal operator"
+    ],
+    "termination": "Terminate after retreat once the can is placed and the manipulator is clear of the object."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "arm aligned above left-side placement area; stable pre-place posture visible",
+        "predicts_next": "descent for contact and release expected next",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "place down pepsi can",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 2000,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["pepsi_can_blue","coke_can_red","green_bottle","tall_red_bottle","orange_stack","gray_box","table"],
+  "objects_from_instruction": ["pepsi_can_blue"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"pepsi_can"},"description":"Verify the robot is currently holding the Pepsi can."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"place_on_table","offset_z":"0.08","timeout_ms":"2000"},"description":"Move to a pose above the intended table placement point."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":"0.05","force_threshold":"5","timeout_ms":"2000"},"description":"Descend slowly until contact is detected with low force."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":"0.08","timeout_ms":"500"},"description":"Release the can by opening the gripper."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":"500"},"description":"Allow the can to settle after release."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"0.10","timeout_ms":"1000"},"description":"Back away from the placed can to a safe distance."}
+  ],
+  "tree_stats": {"nodes_total": 7, "actions": 5, "conditions": 1, "depth": 2},
+  "failure_modes": ["Object not in gripper", "No contact sensed within max depth", "Release causes topple", "Collision with nearby items during approach/retreat"],
+  "recovery_strategy": ["Abort and re-pick upstream", "Retry approach with adjusted offset", "Regrasp and reattempt placement", "Increase wait or adjust contact threshold"],
+  "assumptions": [
+    "Blue Pepsi can is the leftmost blue can visible; the gripper already holds it per the instruction.",
+    "Frames appear to show approach near left area; grasp state not perfectly visible, treated as pre-held object."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Can upright and stable on table", "No collisions", "Robot clear after retreat"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "verify",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"pepsi_can"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"place_on_table","offset_z":"0.08","timeout_ms":"2000"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"place_on_table","offset_z":"0.08","timeout_ms":"2000"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":"0.05","force_threshold":"5","timeout_ms":"2000"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":"0.08","timeout_ms":"500"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":"500"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":"0.10","timeout_ms":"1000"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":"0.10","timeout_ms":"1000"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":"0.10","timeout_ms":"1000"}},
+      "active_path_ids": []
+    }
+  ]
 }

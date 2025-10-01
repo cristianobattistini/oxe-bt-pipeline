@@ -1,11 +1,164 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_072",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "pick up milk carton",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_072",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Pick up the beige bottle visually resembling a milk container from the tabletop using a side grasp and lift it safely off the surface before retreating slightly. [attached_file:1]",
+  "task_long_description": {
+    "overview": "A UR-style manipulator operates over a white table with several small bottles, cans, and cups; the most carton-like milk item is a beige cylindrical bottle near the center-right, so the plan targets this as the milk container surrogate. The robot opens the gripper, localizes the target, approaches from above, computes a side grasp, closes to secure, lifts, verifies hold, and retreats to clear the clutter. Visual evidence indicates cluttered neighbors including a red can and blue cups, requiring precise alignment. [attached_file:1]",
+    "preconditions": [
+      "Workspace is static and reachable; target 'milk_bottle' is visible on the table. [attached_file:1]",
+      "Gripper is functional and empty at start. [attached_file:1]",
+      "Collision model accounts for nearby can, cups, and bottles. [attached_file:1]"
+    ],
+    "stepwise_plan": [
+      "Open gripper, detect the 'milk_bottle' in the scene. [attached_file:1]",
+      "Move above the object with small vertical offset and align precisely. [attached_file:1]",
+      "Compute a side grasp pose to avoid top obstructions and approach the computed pose. [attached_file:1]",
+      "Close the gripper, lift the object, verify stability, and retreat slightly. [attached_file:1]"
+    ],
+    "success_criteria": [
+      "Object firmly in gripper confirmed by ObjectInGripper and stable after lift. [attached_file:1]",
+      "End-effector holds the bottle off the table with a small clearance and no collision. [attached_file:1]"
+    ],
+    "failure_and_recovery": [
+      "If detection fails or is occluded by nearby items, repeat perception and micro-adjust approach. [attached_file:1]",
+      "If grasp slips due to cylindrical geometry, recompute grasp with adjusted approach and retry after retreat. [attached_file:1]"
+    ],
+    "termination": "Terminate after successful verification of grasp and a short retreat creating safe clearance. [attached_file:1]"
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "First clear lowering toward the beige bottle with wrist alignment visible, indicating imminent grasp. [attached_file:1]",
+        "predicts_next": "Suggests gripper closure and lifting will follow in subsequent frames. [attached_file:1]",
+        "uncertainty_reduction": "High because end-effector pose relative to the target is well defined. [attached_file:1]"
+      }
+    }
+  },
+  "task_instruction": "pick up milk carton",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": [
+    "robot arm over white tabletop [attached_file:1]",
+    "red tall bottle left [attached_file:1]",
+    "green bottle left-center [attached_file:1]",
+    "beige bottle (milk surrogate) center-right [attached_file:1]",
+    "two small blue cups right [attached_file:1]",
+    "small purple cup far right [attached_file:1]",
+    "red can front-right [attached_file:1]"
+  ],
+  "objects_from_instruction": ["milk carton [attached_file:1]"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":"0.09","timeout_ms":"1500"},"description":"Prepare the gripper for approach by opening to receive the bottle. [attached_file:1]"},
+    {"id":"DetectObject","type":"Action","ports":{"target":"milk_bottle","timeout_ms":"3000"},"description":"Detect and localize the milk_bottle in the tabletop scene. [attached_file:1]"},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"milk_bottle","offset_z":"0.05","timeout_ms":"2000"},"description":"Move to a pregrasp pose above the bottle with small vertical clearance. [attached_file:1]"},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"milk_bottle","tolerance":"0.005","timeout_ms":"3000"},"description":"Align end-effector laterally for a precise side grasp in clutter. [attached_file:1]"},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"milk_bottle","strategy":"side","result_key":"goal_pose"},"description":"Compute a feasible side-grasp pose and store it as goal_pose. [attached_file:1]"},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"side","timeout_ms":"3000"},"description":"Execute the computed grasp trajectory toward the bottle. [attached_file:1]"},
+    {"id":"CloseGripper","type":"Action","ports":{"force":"20","timeout_ms":"1000"},"description":"Close fingers to secure the cylindrical bottle with moderate force. [attached_file:1]"},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"milk_bottle","distance":"0.10","timeout_ms":"1500"},"description":"Lift the grasped bottle to clear the surface. [attached_file:1]"},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Confirm no slip after lift. [attached_file:1]"},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"milk_bottle"},"description":"Verify the intended object is actually held. [attached_file:1]"},
+    {"id":"Retreat","type":"Action","ports":{"distance":"0.05","timeout_ms":"1500"},"description":"Back off slightly to a safe pose with the object. [attached_file:1]"}
+  ],
+  "tree_stats": {"nodes_total": 12, "actions": 9, "conditions": 2, "depth": 2},
+  "failure_modes": [
+    "Target not detected due to occlusion by adjacent can or cups. [attached_file:1]",
+    "Grasp slip on smooth cylindrical surface during lift. [attached_file:1]",
+    "Collision with nearby objects during lateral alignment. [attached_file:1]"
+  ],
+  "recovery_strategy": [
+    "Re-attempt detection from a slightly different above-table pose and re-align. [attached_file:1]",
+    "Recompute grasp with adjusted side approach and retry after a short retreat. [attached_file:1]",
+    "Open gripper, retreat, and re-approach with tighter tolerance if contact occurs. [attached_file:1]"
+  ],
+  "assumptions": [
+    "No true rectangular milk carton is visible; the beige bottle is treated as the milk container per visual evidence, overriding the literal instruction. [attached_file:1]"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Bottle is lifted clear of the table and verified in gripper after retreat. [attached_file:1]"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"milk_bottle","timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"milk_bottle","offset_z":0.05,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"milk_bottle","tolerance":0.005,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"milk_bottle","strategy":"side","result_key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"side","timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"milk_bottle","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"milk_bottle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    }
+  ]
 }

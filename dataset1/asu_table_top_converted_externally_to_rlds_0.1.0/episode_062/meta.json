@@ -1,11 +1,111 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_062",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "put down bread",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_062",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Put down the bread from the gripper onto the table surface and retreat.",
+  "task_long_description": {
+    "overview": "A fixed camera views a tabletop with several items (red cup, silver can, green bottle, blue can, small tan 'bread' pieces). The robot arm appears to already hold the bread and moves to place it onto the table. The behavior emphasizes a safe, contact-aware placement: approach above the table, descend until contact, release, and retreat to a neutral clearance. No re-grasping is required; alignment precision is modest as long as the bread is placed stably on the table.",
+    "preconditions": ["Bread is already in the gripper", "Clear space on the table for placement", "Arm has collision-free path above table"],
+    "stepwise_plan": ["Verify bread is held", "Move to a pose above the intended table spot", "Lower until gentle contact is detected", "Open the gripper to release bread", "Retreat to clear the object"],
+    "success_criteria": ["Bread rests on the table without slipping", "Gripper is open and not contacting the bread", "Arm ends at a safe clearance pose"],
+    "failure_and_recovery": ["If object not in gripper, abort placement or request pick step", "If contact not detected within max depth, time out and retry approach", "If release fails, reopen gripper and slightly raise/relower"],
+    "termination": "End after successful release and retreat to clearance."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_5","frame_3","frame_6","frame_4","frame_2","frame_1","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.22, "frame_1": 0.46, "frame_2": 0.55, "frame_3": 0.83,
+      "frame_4": 0.70, "frame_5": 0.90, "frame_6": 0.78, "frame_7": 0.35, "frame_8": 0.15
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Lowering phase with end-effector close to surface; impending contact cues are visible.",
+        "predicts_next": "Release expected soon after contact, followed by retreat.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "put down bread",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["bread", "red_cup", "silver_can", "green_bottle", "blue_can", "table"],
+  "objects_from_instruction": ["bread"],
+  "blackboard_keys": ["place_on_table"],
+  "node_specs": [
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"bread"},"description":"Verify the robot is holding the bread."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"place_on_table","offset_z":0.10,"timeout_ms":1500},"description":"Move above table placement spot with clearance."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":2000},"description":"Descend until contact sensed to land bread gently."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Release the bread."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back off to a safe distance."}
+  ],
+  "tree_stats": {"nodes_total": 6, "actions": 4, "conditions": 1, "depth": 2},
+  "failure_modes": ["Bread not in gripper at start", "No contact detected within allowed depth", "Bread sticks to fingers after opening", "Collision with nearby objects during approach/retreat"],
+  "recovery_strategy": ["Abort and request pick if not holding", "Re-approach from higher offset and retry lower-until-contact", "Open/close cycle and slight vertical jiggle then retry release", "Adjust approach path and increase clearance offset"],
+  "assumptions": ["Frames suggest the bread is already grasped; instruction aligns with visible placement motions", "Placement area is the table; symbolic target 'place_on_table' represents the chosen spot"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Bread stable on table", "No residual gripper contact", "Arm at clearance"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"bread"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"place_on_table","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"place_on_table","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

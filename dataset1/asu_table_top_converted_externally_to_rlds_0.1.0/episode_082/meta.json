@@ -1,11 +1,115 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_082",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "pick maroon square",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_082",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect the maroon square block, approach from above, align precisely, perform a top grasp, and lift the block off the table.",
+  "task_long_description": {
+    "overview": "A tabletop manipulator must pick a maroon square block located near the table center. The scene includes several distractor objects (blue can, clear cup, green bottle, orange cylinders, and a red can). The robot should first localize the maroon square, open the gripper, move above it, align with tight tolerance, grasp using a standard top strategy, and raise the object. No placement is requested; the goal is to achieve a secure lift showing object-in-gripper stability.",
+    "preconditions": ["Robot is homed and reachable workspace covers the table center", "Gripper operational and free of objects", "Maroon square is on the tabletop and not occluded", "Perception pipeline available to detect 'maroon_square'"],
+    "stepwise_plan": ["Detect maroon_square (retry up to 3 attempts)", "Open gripper", "Move to a safe height above the target", "Approach and align with small tolerance", "Execute top grasp", "Verify grasp stability", "Raise the held object"],
+    "success_criteria": ["Maroon square lifted clear of the surface", "IsGraspStable returns success", "Object visually present in gripper after lift"],
+    "failure_and_recovery": ["If detection fails: retry perception", "If alignment times out: reattempt approach", "If grasp fails: reopen gripper and repeat pick sequence"],
+    "termination": "Terminate when the object is lifted and grasp stability is confirmed."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick maroon square",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["maroon_square", "blue_can", "clear_cup", "green_bottle", "orange_cylinders", "red_can"],
+  "objects_from_instruction": ["maroon_square"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"maroon_square","timeout_ms":1500},"description":"Perception of the maroon square with retry wrapper."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":1000},"description":"Prepare gripper for approach."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"maroon_square","offset_z":0.05,"timeout_ms":1500},"description":"Move to a pregrasp height above the target."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"maroon_square","tolerance":0.005,"timeout_ms":2000},"description":"Descend and align over the center of the block."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"std_top","timeout_ms":2000},"description":"Execute a standard top grasp."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Confirm grasp stability before lifting."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"maroon_square","distance":0.10,"timeout_ms":1500},"description":"Lift the grasped block from the surface."},
+    {"id":"RetryUntilSuccessful","type":"Decorator","ports":{"num_attempts":3},"description":"Retry detection up to 3 attempts."},
+    {"id":"Sequence","type":"Composite","ports":{},"description":"Main task flow from perception to lift."}
+  ],
+  "tree_stats": {"nodes_total": 9, "actions": 6, "conditions": 1, "depth": 3},
+  "failure_modes": ["Target not detected due to occlusion or lighting", "Misalignment leading to side contact", "Grasp slippage after closing", "Timeouts during approach due to collisions"],
+  "recovery_strategy": ["Retry detection (decorator)", "Re-attempt approach and alignment", "Reopen and repeat Pick if stability fails"],
+  "assumptions": ["The 'maroon square' corresponds to the central red/maroon block visible in frames.", "Top grasp is feasible given object geometry and surrounding clearance.", "No placement is required; task ends after a stable lift."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Object is visibly raised and IsGraspStable succeeds", "No collisions with nearby objects", "All actions complete within timeouts"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"maroon_square","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","RetryUntilSuccessful","DetectObject"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"maroon_square","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","RetryUntilSuccessful","DetectObject"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"maroon_square","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"maroon_square","tolerance":0.005,"timeout_ms":2000}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"maroon_square","tolerance":0.005,"timeout_ms":2000}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"std_top","timeout_ms":2000}},
+      "active_path_ids": ["Sequence","Pick"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"maroon_square","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","RaiseHeld"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"maroon_square","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","RaiseHeld"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"maroon_square","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","RaiseHeld"]
+    }
+  ]
 }

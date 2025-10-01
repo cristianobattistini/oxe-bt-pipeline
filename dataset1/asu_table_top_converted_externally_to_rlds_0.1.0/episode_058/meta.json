@@ -1,11 +1,114 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_058",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "move white box",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_058",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Robot manipulator detects, grasps, and relocates a white box among colored objects on a table",
+  "task_long_description": {
+    "overview": "A robotic arm with gripper operates on a semicircular white table containing various colored bottles and a white box. The robot must identify the white box among the other objects, approach it carefully, grasp it securely from the top, lift it, transport it to a new location on the table, and place it down safely before retreating.",
+    "preconditions": ["white_box visible on table", "gripper operational", "clear path to target", "objects arranged on semicircular table"],
+    "stepwise_plan": ["detect white box location", "approach and align with target", "compute optimal grasp pose", "execute grasp from top", "lift object safely", "move to new xy position", "place object down gently", "retreat to safe distance"],
+    "success_criteria": ["white_box successfully relocated", "no collisions with other objects", "stable final placement", "gripper released properly"],
+    "failure_and_recovery": ["if detection fails, retry scanning", "if grasp unstable, recompute pose and retry", "if placement fails, attempt alternative location"],
+    "termination": "task completes when robot retreats after successful placement"
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_4", "frame_3", "frame_5", "frame_2", "frame_6", "frame_1", "frame_7", "frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.15, "frame_1": 0.25, "frame_2": 0.65, "frame_3": 0.85, 
+      "frame_4": 0.95, "frame_5": 0.75, "frame_6": 0.45, "frame_7": 0.20, "frame_8": 0.10
+    },
+    "rationale_per_frame": {
+      "frame_4": {
+        "now_evidence": "gripper positioned directly above white box in optimal grasp configuration",
+        "predicts_next": "grasp execution imminent with high success probability",
+        "uncertainty_reduction": "very_high"
+      }
+    }
+  },
+  "task_instruction": "move white box",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["white_box", "blue_bottle", "red_bottle", "orange_bottle", "clear_bottle", "green_bottle", "red_bottle_2"],
+  "objects_from_instruction": ["white_box"],
+  "blackboard_keys": ["grasp_pose"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"white_box","timeout_ms":2000},"description":"Locate white box in scene"},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"white_box","tolerance":0.01,"timeout_ms":3000},"description":"Position gripper above target"},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"white_box","strategy":"top","result_key":"grasp_pose"},"description":"Calculate optimal grasp configuration"},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_pose","strategy":"top","timeout_ms":2000},"description":"Execute grasp using computed pose"},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"white_box","distance":0.10,"timeout_ms":1500},"description":"Lift grasped object"},
+    {"id":"MoveToXY","type":"Action","ports":{"x":0.3,"y":0.2,"yaw_deg":0,"timeout_ms":3000},"description":"Transport to new location"},
+    {"id":"PlaceDown","type":"Action","ports":{"target":"white_box","timeout_ms":2000},"description":"Release object at destination"},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.15,"timeout_ms":1000},"description":"Move to safe distance"}
+  ],
+  "tree_stats": {"nodes_total": 8, "actions": 8, "conditions": 0, "depth": 2},
+  "failure_modes": ["object_not_detected", "grasp_failure", "collision_with_bottles", "unstable_placement"],
+  "recovery_strategy": ["retry_detection", "recompute_grasp", "alternative_approach_angle", "backup_placement_location"],
+  "assumptions": ["white box is graspable from top", "sufficient clearance for manipulation", "stable table surface"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["white_box relocated successfully", "no damage to surrounding objects", "stable final configuration"],
+    "test_scenarios": ["happy_path", "object_missing", "grasp_fail", "perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"white_box","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1", 
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"white_box","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach", 
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"white_box","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"white_box","strategy":"top","result_key":"grasp_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_pose","strategy":"top","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"white_box","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveToXY","attrs":{"x":0.3,"y":0.2,"yaw_deg":0,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceDown","attrs":{"target":"white_box","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.15,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

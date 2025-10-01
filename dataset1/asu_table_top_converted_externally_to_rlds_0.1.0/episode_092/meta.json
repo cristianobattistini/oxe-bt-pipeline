@@ -1,11 +1,162 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_092",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "raise pepsi can",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_092",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect the Pepsi can, grasp it with a top pinch, lift it vertically, briefly hold, and retreat.",
+  "task_long_description": {
+    "overview": "A fixed-arm manipulator operates over a white tabletop with multiple objects: a blue Pepsi can near the table center-left, a red can to its left, a green bottle, a clear cup, and an orange bottle to the right. The goal is to raise the Pepsi can. The robot should perceive the can, approach above it, open the gripper, compute a top grasp, execute the grasp, verify the object is in-hand, lift it a short distance, stabilize the hold, and retreat slightly for safety.",
+    "preconditions": [
+      "Tabletop is clear of obstacles around the can’s top area",
+      "Gripper operational and empty",
+      "Perception can localize the Pepsi can"
+    ],
+    "stepwise_plan": [
+      "Detect the Pepsi can and localize its pose",
+      "Move to a pre-grasp pose above the can",
+      "Open gripper and compute a top grasp",
+      "Execute the grasp at the computed pose",
+      "Confirm the can is in the gripper",
+      "Lift (raise) the held can a short distance",
+      "Hold to stabilize, then retreat slightly"
+    ],
+    "success_criteria": [
+      "ObjectInGripper reports true for target 'pepsi_can'",
+      "RaiseHeld completes without timeouts",
+      "No collisions with neighboring objects"
+    ],
+    "failure_and_recovery": [
+      "If detection fails, re-run perception and adjust view",
+      "If grasp fails or is unstable, re-compute grasp and retry",
+      "If nearby objects interfere, retreat and re-approach higher"
+    ],
+    "termination": "End after retreating with the can securely raised and held."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_8","frame_7","frame_6","frame_5","frame_4","frame_3","frame_2","frame_1","frame_0"],
+    "scores": {
+      "frame_0": 0.20, "frame_1": 0.35, "frame_2": 0.42, "frame_3": 0.55,
+      "frame_4": 0.70, "frame_5": 0.78, "frame_6": 0.82, "frame_7": 0.86, "frame_8": 0.90
+    },
+    "rationale_per_frame": {
+      "frame_8": {
+        "now_evidence": "End-of-episode alignment centered above the blue Pepsi can, consistent with post-grasp/raise intent.",
+        "predicts_next": "Likely raised or about to lift; retreat expected after stabilization.",
+        "uncertainty_reduction": "high"
+      },
+      "frame_4": {
+        "now_evidence": "Tool appears low and centered, moment consistent with grasp initiation.",
+        "predicts_next": "Successful grasp followed by vertical motion to raise.",
+        "uncertainty_reduction": "medium"
+      },
+      "frame_3": {
+        "now_evidence": "Pre-grasp alignment shows good axial approach to the can.",
+        "predicts_next": "Grasp execution; confirms correct target selection.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "raise pepsi can",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 1500,
+    "tolerance": 0.02,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["pepsi_can","red_can","green_bottle","clear_cup","orange_bottle"],
+  "objects_from_instruction": ["pepsi_can"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"pepsi_can","timeout_ms":1500},"description":"Perceive and localize the Pepsi can."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"pepsi_can","offset_z":0.05,"timeout_ms":1500},"description":"Go to a pre-grasp pose above the can."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":800},"description":"Prepare for grasp."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"pepsi_can","strategy":"top","result_key":"goal_pose"},"description":"Plan top grasp pose and store to blackboard."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"pinch","timeout_ms":1500},"description":"Execute grasp at computed pose."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"pepsi_can"},"description":"Verify object is secured."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"pepsi_can","distance":0.10,"timeout_ms":1500},"description":"Lift the grasped can vertically."},
+    {"id":"HoldObject","type":"Action","ports":{"target":"pepsi_can","duration_ms":1000},"description":"Stabilize the hold briefly."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.05,"timeout_ms":1000},"description":"Create clearance after lifting."}
+  ],
+  "tree_stats": {"nodes_total": 10, "actions": 8, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Pepsi can not detected due to glare or occlusion",
+    "Collision with nearby objects during approach",
+    "Insufficient grip leading to slip during raise",
+    "Timeout while moving above or raising"
+  ],
+  "recovery_strategy": [
+    "Re-run detection and slightly adjust view/height",
+    "Retreat and re-approach with larger offset_z",
+    "Re-compute grasp and retry pinch strategy",
+    "Increase timeout_ms within allowed bins if needed"
+  ],
+  "assumptions": [
+    "Frames show approach and alignment above a blue can; explicit lifting is not clearly visible. We assume the raise occurs immediately after the final frame and design the BT accordingly.",
+    "Top grasp is feasible without collisions; workspace is static."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "ObjectInGripper returns true for 'pepsi_can'",
+      "RaiseHeld completes with at least 0.10 m lift",
+      "No collisions and stable hold for ≥1 s"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"pepsi_can","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"pepsi_can","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"pepsi_can","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"pepsi_can","strategy":"top","result_key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"pinch","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"pepsi_can","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"pepsi_can","duration_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"pepsi_can","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.05,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

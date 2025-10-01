@@ -1,11 +1,126 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_090",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "raise red can",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_090",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect the red can, grasp it from the side, and raise it vertically off the table before briefly holding and retreating.",
+  "task_long_description": {
+    "overview": "A fixed manipulator above a white tabletop must raise a small red can visible among bottles, cups, and caps. The tree first ensures perception of the can, computes a side grasp, approaches from above with a small alignment tolerance, executes the grasp, verifies stability, lifts the can by ten centimeters, holds briefly, and retreats. The scene shows a UR-type arm, the red can near left-center, with potential occlusions by nearby items. Motions are time-binned and forces unspecified; lifting distance is modest to avoid collisions with surrounding objects.",
+    "preconditions": ["Robot is homed and reachable workspace includes the red can", "Gripper operational and empty", "Table surface clear above the can for vertical lift", "Camera view provides reliable detection of the red can"],
+    "stepwise_plan": ["Open gripper and scan for the red can", "Confirm visibility and detect precise pose", "Compute grasp pose and verify blackboard availability", "Move above target, align, and execute side grasp", "Verify grasp stability", "Raise the held can by 0.10 m", "Hold momentarily and retreat"],
+    "success_criteria": ["Red can is securely grasped", "Can is lifted off the table without collisions", "Gripper holds can steadily for at least 1 s", "Robot retreats to a safe clearance"],
+    "failure_and_recovery": ["If detection fails, rescan the area", "If pose key missing, recompute grasp pose", "If grasp unstable, reopen gripper, slightly realign, and retry", "If lift meets resistance, stop and retreat to avoid collisions"],
+    "termination": "Terminate after retreating with the can successfully lifted and held for the specified duration"
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_4","frame_6","frame_3","frame_2","frame_1","frame_7","frame_0","frame_5","frame_8"],
+    "scores": {
+      "frame_0": 0.30,
+      "frame_1": 0.55,
+      "frame_2": 0.62,
+      "frame_3": 0.78,
+      "frame_4": 0.94,
+      "frame_5": 0.48,
+      "frame_6": 0.88,
+      "frame_7": 0.60,
+      "frame_8": 0.25
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "arm close to target with alignment indicating imminent grasp",
+        "predicts_next": "grasp execution expected next with minimal lateral adjustment",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "raise red can",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["robot_arm", "red_can", "green_bottle", "blue_bottle", "clear_cup_left", "clear_cup_right", "orange_caps_pair"],
+  "objects_from_instruction": ["red_can"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":1000},"description":"Prepare gripper for grasping by opening to 8 cm."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"red_can","pattern":"spiral","max_attempts":3,"timeout_ms":3000},"description":"Search the workspace to localize the red can."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"red_can"},"description":"Verify the red can is currently visible to sensors."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"red_can","timeout_ms":1500},"description":"Refine detection to obtain an accurate object pose."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"red_can","strategy":"side","result_key":"goal_pose"},"description":"Compute a side grasp pose for the cylindrical can and store it."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"goal_pose"},"description":"Ensure the computed grasp pose is on the blackboard."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"red_can","offset_z":0.10,"timeout_ms":2000},"description":"Move to a pregrasp position above the can."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"red_can","tolerance":0.01,"timeout_ms":2000},"description":"Descend and align with tight positional tolerance before grasp."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"side","timeout_ms":2000},"description":"Execute the side grasp at the planned pose."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Confirm the can is firmly held."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"red_can","distance":0.10,"timeout_ms":1500},"description":"Lift the grasped can by 10 cm."},
+    {"id":"HoldObject","type":"Action","ports":{"target":"red_can","duration_ms":1000},"description":"Hold the can briefly to verify lift success."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back off to a safe distance after lifting."}
+  ],
+  "tree_stats": {"nodes_total": 14, "actions": 10, "conditions": 3, "depth": 2},
+  "failure_modes": ["Can not detected or occluded", "Pose key missing or stale", "Grasp slips during lift", "Collision with nearby objects while approaching or retreating"],
+  "recovery_strategy": ["Rescan target region and re-detect", "Recompute grasp pose and re-check availability", "Open gripper, realign with tighter tolerance, retry grasp", "Abort lift on contact, retreat slightly, and try a different approach angle"],
+  "assumptions": ["Frames show a red can upright and reachable; instruction aligns with visuals", "Side grasp is feasible with the seen parallel gripper", "Exact yaw for approach is unspecified and handled by planner"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["ObjectInGripper for red_can after grasp", "RaiseHeld completes with commanded distance", "No collision events during approach and lift"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"red_can","pattern":"spiral","max_attempts":3,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"red_can","offset_z":0.10,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_can","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"red_can"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"side","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"red_can","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"red_can","duration_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

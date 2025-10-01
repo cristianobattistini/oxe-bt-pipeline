@@ -1,11 +1,143 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_056",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "push milk box",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_056",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Detect the milk box (white carton) and push it to the right along the tabletop, then retreat to a safe position.",
+  "task_long_description": {
+    "overview": "A fixed-base robotic arm must push a milk box (white rectangular carton) on a tabletop. The scene includes multiple distractor objects: cans, a green bottle, a red prism, and a small pastry on the left. The robot first perceives the milk box, approaches and aligns its end effector, sets a neutral yaw, executes a straight push along the table, then retreats and pauses briefly. No grasp is required; motion should avoid toppling nearby objects or pushing the carton off the table.",
+    "preconditions": ["Robot powered and homed", "Workspace clear of unexpected obstacles", "End effector suitable for planar pushing", "Milk box present and visible on the right side of the table"],
+    "stepwise_plan": [
+      "Detect the target milk box.",
+      "Approach and align to establish a straight push path.",
+      "Set tool yaw to neutral for planar contact.",
+      "Push the milk box along the table to the right.",
+      "Retreat from contact and wait briefly."
+    ],
+    "success_criteria": [
+      "Milk box translates on the tabletop by the commanded distance without tipping.",
+      "No collision with non-target objects.",
+      "Robot ends in a safe, non-contact pose."
+    ],
+    "failure_and_recovery": [
+      "If the milk box is not detected, re-scan or adjust viewpoint.",
+      "If alignment drifts, re-run ApproachAndAlign before pushing.",
+      "If push stalls due to friction or obstruction, reduce contact point or repeat with a slightly longer distance."
+    ],
+    "termination": "Terminate after the push completes, the robot retreats, and a short wait elapses."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "push milk box",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["milk_box", "green_bottle", "blue_can", "red_can", "red_prism", "pastry"],
+  "objects_from_instruction": ["milk box"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"milk_box","timeout_ms":2000},"description":"Perceive and localize the milk box target."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"milk_box","tolerance":0.01,"timeout_ms":2000},"description":"Approach the carton and align EE for planar push within tight tolerance."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":0},"description":"Set end-effector yaw to neutral for straight push."},
+    {"id":"Push","type":"Action","ports":{"target":"milk_box","distance":0.20,"direction_deg":0,"timeout_ms":2000},"description":"Execute straight-line push to the right by 0.20 m."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back off from the object after pushing."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":500},"description":"Short pause to ensure stability after motion."}
+  ],
+  "tree_stats": {"nodes_total": 7, "actions": 6, "conditions": 0, "depth": 2},
+  "failure_modes": [
+    "Target not detected due to occlusion or glare",
+    "End effector misaligned causing diagonal motion or tipping",
+    "Push collides with adjacent bottle/cans",
+    "Carton pushed off the table edge"
+  ],
+  "recovery_strategy": [
+    "Re-run perception or scan from a slightly different viewpoint",
+    "Repeat alignment with tighter tolerance",
+    "Shorter push distance in multiple cycles",
+    "Adjust yaw and reattempt push"
+  ],
+  "assumptions": [
+    "“milk box” refers to the white rectangular carton visible on the right; mapped to symbolic target \"milk_box\".",
+    "Push direction is camera-right (direction_deg=0) inferred from frames where the arm moves the carton rightward."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Carton translates laterally without tipping",
+      "No secondary objects displaced significantly",
+      "Robot ends clear of contact"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"milk_box","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"milk_box","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"milk_box","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"milk_box","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"SetTCPYaw","attrs":{"yaw_deg":0}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"milk_box","distance":0.20,"direction_deg":0,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"milk_box","distance":0.20,"direction_deg":0,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"milk_box","distance":0.20,"direction_deg":0,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

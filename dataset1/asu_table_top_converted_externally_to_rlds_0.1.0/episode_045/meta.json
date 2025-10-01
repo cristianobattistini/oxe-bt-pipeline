@@ -1,11 +1,187 @@
 {
   "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_045",
-  "created_at": "2025-10-01T11:01:19",
-  "instruction": "push red object",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/asu_table_top_converted_externally_to_rlds_0.1.0/episode_045",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Locate the red object, align the end-effector, push it forward along the table, and retreat.",
+  "task_long_description": {
+    "overview": "A tabletop scene shows several small containers and bottles with a UR-style arm above a white curved table. The goal is to push the red rectangular object away from its initial cluster toward the table’s near edge, consistent with the visible motion across frames. The behavior prioritizes visual confirmation, precise approach, a single straight push, and a brief retreat to clear the object. No grasping is required; the gripper remains passive and the tool face is used to impart motion. Timeouts and distances are modest to match the short slide on a smooth table.",
+    "preconditions": [
+      "Robot is homed and safe to move",
+      "Workspace is clear except for target objects",
+      "Camera provides view of red object",
+      "Table surface is planar and low-friction"
+    ],
+    "stepwise_plan": [
+      "Scan to localize the red object on the table",
+      "Verify visual availability of the red object",
+      "Approach and align to the object with tight tolerance",
+      "Execute a straight push toward the near table edge",
+      "Retreat to avoid lingering contact and wait briefly"
+    ],
+    "success_criteria": [
+      "Red object translates noticeably along the intended direction",
+      "No grasp occurs and object stays on the table surface",
+      "Arm retreats clear of the object after motion"
+    ],
+    "failure_and_recovery": [
+      "If the object is not detected, rescan the scene",
+      "If alignment drifts, re-approach before pushing",
+      "If push stalls due to friction, reattempt with a second push of equal distance"
+    ],
+    "termination": "Terminate after the push and retreat complete or if repeated perception fails."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "push red object",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 3000,
+    "tolerance": 0.01,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["red_object", "green_bottle", "blue_can", "silver_can", "clear_cup", "orange_caps", "table_surface"],
+  "objects_from_instruction": ["red_object"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "red_object", "pattern": "raster", "max_attempts": 3, "timeout_ms": 3000},
+      "description": "Actively scan the workspace to localize the red object."
+    },
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "red_object"},
+      "description": "Check that the red object is in view before proceeding."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "red_object", "tolerance": 0.01, "timeout_ms": 3000},
+      "description": "Move and align the tool to the red object with tight tolerance."
+    },
+    {
+      "id": "Push",
+      "type": "Action",
+      "ports": {"target": "red_object", "distance": 0.15, "direction_deg": 270, "timeout_ms": 3000},
+      "description": "Push the red object straight toward the near edge."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance": 0.10, "timeout_ms": 1500},
+      "description": "Back off from the object after pushing."
+    },
+    {
+      "id": "Wait",
+      "type": "Action",
+      "ports": {"timeout_ms": 500},
+      "description": "Short pause to ensure motion settles."
+    }
+  ],
+  "tree_stats": {"nodes_total": 7, "actions": 5, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Object not detected due to occlusion or illumination",
+    "Approach misalignment causing glancing contact",
+    "Insufficient push distance due to friction",
+    "Object tumbles or rotates unexpectedly"
+  ],
+  "recovery_strategy": [
+    "Repeat scan and reverify visibility",
+    "Re-run approach-and-align before another push",
+    "Execute a second push of equal distance if displacement is small",
+    "Abort if object falls off table or leaves workspace"
+  ],
+  "assumptions": [
+    "The red object is the tall red rectangular item visible on the right cluster.",
+    "Push direction is toward the camera/near table edge; encoded as direction_deg=270 due to unspecified global frame.",
+    "No grasping is intended; sliding contact suffices.",
+    "Contact sheet suggests single straight push rather than multi-segment motion."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Red object translates roughly 0.10–0.20 m in the intended direction",
+      "No grasp or lift occurs; motion is planar",
+      "Robot retreats clear after the push"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "ScanForTarget", "attrs": {"target": "red_object", "pattern": "raster", "max_attempts": 3, "timeout_ms": 3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id": "IsObjectVisible", "attrs": {"target": "red_object"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "red_object", "tolerance": 0.01, "timeout_ms": 3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id": "IsObjectVisible", "attrs": {"target": "red_object"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id": "Push", "attrs": {"target": "red_object", "distance": 0.15, "direction_deg": 270, "timeout_ms": 3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id": "Push", "attrs": {"target": "red_object", "distance": 0.15, "direction_deg": 270, "timeout_ms": 3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id": "Push", "attrs": {"target": "red_object", "distance": 0.15, "direction_deg": 270, "timeout_ms": 3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id": "Push", "attrs": {"target": "red_object", "distance": 0.15, "direction_deg": 270, "timeout_ms": 3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id": "Retreat", "attrs": {"distance": 0.10, "timeout_ms": 1500}},
+      "active_path_ids": []
+    }
+  ]
 }
