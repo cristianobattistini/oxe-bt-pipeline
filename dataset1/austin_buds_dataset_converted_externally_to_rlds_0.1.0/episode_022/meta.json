@@ -1,11 +1,158 @@
 {
   "dataset_id": "austin_buds_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_022",
-  "created_at": "2025-10-02T13:41:20",
-  "instruction": "Take the lid off the pot, put the pot on the plate, and use the tool to push to pot to the front of the table.",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out/austin_buds_dataset_converted_externally_to_rlds_0.1.0/episode_022",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v2.md"
+  "task_summary": "Remove the lid from the pot, place the pot onto the plate, then use the spatula tool to push the pot toward the front edge of the table.",
+  "task_long_description": {
+    "overview": "A tabletop manipulation scene shows a robot arm, a small pot with a lid on a cooktop, a flat plate on the black mat, and a spatula-like tool. The goal is multi-stage: first open the pot by removing its lid, then ensure the pot is placed onto the plate, and finally employ the spatula tool to push the pot toward the front edge of the table. The behavior tree sequences perception, container opening, placement, tool-use pushing, and a safe retreat. Timeouts use conservative bins, and pushing is directed toward the viewer/front.",
+    "preconditions": [
+      "Pot, lid, plate, and spatula are within the workspace",
+      "Table surface is clear enough to move objects",
+      "Robot has kinematic reach to pot, plate, and pushing corridor"
+    ],
+    "stepwise_plan": [
+      "Detect the pot.",
+      "Open the container (remove lid) on the pot.",
+      "Verify the pot is open.",
+      "Detect the plate.",
+      "Place the pot on the plate.",
+      "Detect the spatula tool.",
+      "Push the pot with the spatula toward the table front.",
+      "Wait briefly to settle and then retreat."
+    ],
+    "success_criteria": [
+      "Lid no longer on the pot",
+      "Pot resting on top of the plate",
+      "Pot translated toward the front edge by the planned distance",
+      "Robot ends in a safe, non-contact pose"
+    ],
+    "failure_and_recovery": [
+      "If the lid does not open: re-detect pot and retry opening or adjust approach.",
+      "If placement misses the plate: re-detect plate and repeat placement.",
+      "If push deviates: re-align and issue a second push with reduced distance.",
+      "If perception fails: re-run DetectObject with a grid scan pattern (outside current node set)."
+    ],
+    "termination": "Tree terminates when the push is completed and the robot performs the retreat action without errors."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Take the lid off the pot, put the pot on the plate, and use the tool to push to pot to the front of the table.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 3000,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["pot", "lid", "plate", "spatula", "bowl", "stove_top"],
+  "objects_from_instruction": ["lid", "pot", "plate", "tool"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"pot","timeout_ms":2000},"description":"Perceive the pot to localize it for manipulation."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"pot","container_type":"pot","timeout_ms":2000},"description":"Open pot by removing its lid."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"pot"},"description":"Verify that the pot is open (lid removed)."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"plate","timeout_ms":2000},"description":"Perceive the plate pose."},
+    {"id":"PlaceOnSurface","type":"Action","ports":{"target":"pot","area_id":"plate","yaw_deg":0,"press_force":5,"timeout_ms":3000},"description":"Place the pot onto the plate."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"spatula","timeout_ms":2000},"description":"Perceive the spatula tool."},
+    {"id":"PushWithTool","type":"Action","ports":{"target":"pot","distance":0.30,"direction_deg":180,"tool_id":"spatula","timeout_ms":4000},"description":"Use spatula to push the pot toward the front edge."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":500},"description":"Brief settle time after pushing."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back off to a safe pose."}
+  ],
+  "tree_stats": {"nodes_total": 10, "actions": 8, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Perception misses the lid/plate/tool",
+    "Lid stuck and OpenContainer fails",
+    "Pot not centered on plate",
+    "Push direction not aligned with table front"
+  ],
+  "recovery_strategy": [
+    "Re-run DetectObject and adjust approach",
+    "Retry open with small pose changes",
+    "Repeat PlaceOnSurface after re-detecting plate",
+    "Issue a second PushWithTool with shorter distance"
+  ],
+  "assumptions": [
+    "Using OpenContainer(target='pot', container_type='pot') to represent removing the lid.",
+    "PlaceOnSurface abstracts any necessary grasp; explicit Pick is omitted per library simplicity.",
+    "direction_deg=180 is assumed to correspond to pushing toward the table front (bottom of frames).",
+    "Tool is a 'spatula' as visually indicated."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "ContainerOpen condition true after opening",
+      "Pot’s bounding box overlaps plate area after placement",
+      "Pot centroid translated ~0.30 m toward front after push",
+      "No collisions during retreat"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"pot","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"pot","container_type":"pot","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"ContainerOpen","attrs":{"target":"pot"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "transfer",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"pot","area_id":"plate","yaw_deg":0,"press_force":5,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"spatula","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"PushWithTool","attrs":{"target":"pot","distance":0.30,"direction_deg":180,"tool_id":"spatula","timeout_ms":4000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"PushWithTool","attrs":{"target":"pot","distance":0.30,"direction_deg":180,"tool_id":"spatula","timeout_ms":4000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }
