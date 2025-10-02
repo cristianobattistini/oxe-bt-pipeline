@@ -1,5 +1,18 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <DetectObject target="pot" timeout_ms="2000"/>
+    <OpenContainer target="pot" container_type="pot" timeout_ms="3000"/>
+    <ContainerOpen target="pot"/>
+    <ComputeGraspPose target="pot" strategy="side" result_key="grasp_pot"/>
+    <GraspAtPose pose_key="grasp_pot" strategy="side" timeout_ms="3000"/>
+    <PlaceOnSurface target="pot" area_id="plate" yaw_deg="0" press_force="10" timeout_ms="3000"/>
+    <OpenGripper width="0.08" timeout_ms="1000"/>
+    <Retreat distance="0.10" timeout_ms="1500"/>
+    <DetectObject target="spatula" timeout_ms="2000"/>
+    <ComputeGraspPose target="spatula" strategy="pinch" result_key="grasp_tool"/>
+    <GraspAtPose pose_key="grasp_tool" strategy="pinch" timeout_ms="3000"/>
+    <PushWithTool target="pot" distance="0.20" direction_deg="180" tool_id="spatula" timeout_ms="3000"/>
+    <Retreat distance="0.10" timeout_ms="1500"/>
+    <Wait timeout_ms="500"/>
   </Sequence>
 </BehaviorTree>

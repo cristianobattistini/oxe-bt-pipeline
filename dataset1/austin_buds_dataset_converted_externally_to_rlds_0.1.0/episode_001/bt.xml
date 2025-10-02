@@ -1,5 +1,37 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="pot" timeout_ms="3000"/>
+    </RetryUntilSuccessful>
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="plate" timeout_ms="3000"/>
+    </RetryUntilSuccessful>
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="spatula" timeout_ms="3000"/>
+    </RetryUntilSuccessful>
+
+    <OpenContainer target="pot" container_type="pot" timeout_ms="3000"/>
+
+    <MoveAbove target="pot" offset_z="0.05" timeout_ms="2000"/>
+    <ComputeGraspPose target="pot" strategy="side" result_key="goal_pose"/>
+    <GraspAtPose pose_key="goal_pose" strategy="side" timeout_ms="3000"/>
+    <IsGraspStable/>
+    <RaiseHeld target="pot" distance="0.10" timeout_ms="2000"/>
+
+    <PlaceOnSurface target="plate" area_id="plate" yaw_deg="0" press_force="10" timeout_ms="3000"/>
+    <OpenGripper width="0.10" timeout_ms="1000"/>
+    <Retreat distance="0.05" timeout_ms="1000"/>
+
+    <MoveAbove target="spatula" offset_z="0.05" timeout_ms="2000"/>
+    <ComputeGraspPose target="spatula" strategy="top" result_key="goal_pose"/>
+    <GraspAtPose pose_key="goal_pose" strategy="top" timeout_ms="3000"/>
+    <IsGraspStable/>
+
+    <ApproachAndAlign target="pot" tolerance="0.01" timeout_ms="3000"/>
+    <PushWithTool target="pot" distance="0.20" direction_deg="270" tool_id="spatula" timeout_ms="3000"/>
+
+    <PlaceOnSurface target="table" area_id="table" yaw_deg="0" press_force="10" timeout_ms="3000"/>
+    <OpenGripper width="0.10" timeout_ms="1000"/>
+    <Retreat distance="0.10" timeout_ms="1000"/>
   </Sequence>
 </BehaviorTree>

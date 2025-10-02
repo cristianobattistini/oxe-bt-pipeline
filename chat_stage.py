@@ -41,7 +41,7 @@ from typing import List, Optional
 
 # ====== DEFAULTS MODIFICABILI ======
 DATASET_ROOT = Path("dataset1")
-DEFAULT_DATASET = "utokyo_pr2_opening_fridge_0.1.0"
+DEFAULT_DATASET = "austin_buds_dataset_converted_externally_to_rlds_0.1.0"
 EPISODE_PREFIX = "episode_"
 EP_NUM_WIDTH = 3
 DEFAULT_LOCALS = [1, 2, 3]

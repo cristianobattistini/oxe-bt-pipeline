@@ -6,7 +6,7 @@ Your task: given (A) a brief TASK INSTRUCTION and (B) ONE contact‑sheet image 
 INPUTS (authoritative)
 - TASK INSTRUCTION: "Take the lid off the pot, put the pot on the plate, and use the tool to push to pot to the front of the table."
 - DATASET_ID: "austin_buds_dataset_converted_externally_to_rlds_0.1.0"
-- EPISODE_ID: "episode_003"
+- EPISODE_ID: "episode_002"
 - One contact‑sheet image 'episode.jpeg' arranged as 3×3 frames, labeled [0]..[8] (left→right, top→bottom).
 
 PRIORITY & GROUNDING
