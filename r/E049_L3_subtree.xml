@@ -1,3 +1,11 @@
-<!-- Incolla qui SOLO l'XML del subtree (BehaviorTree.CPP v3). -->
-<BehaviorTree>
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="pot" timeout_ms="1000"/>
+    </RetryUntilSuccessful>
+    <ComputeGraspPose target="pot" strategy="top" result_key="pot_grasp"/>
+    <ApproachAndAlign target="pot" tolerance="0.01" timeout_ms="1500"/>
+    <GraspAtPose pose_key="pot_grasp" strategy="pinch" timeout_ms="1500"/>
+    <IsGraspStable/>
+  </Sequence>
 </BehaviorTree>
