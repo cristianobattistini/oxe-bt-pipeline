@@ -560,35 +560,65 @@ def locals_mode(project_root: Path, dest_root: Path, node_lib_path: Path, overwr
 
 # -------------------- Modalità VIDEOS --------------------
 
-def videos_mode(project_root: Path, out_root: Path, dest_root: Path, duration_s: float, overwrite: bool, dry_run: bool):
+def videos_mode(project_root: Path, out_root: Path, dest_root: Path,
+                duration_s: float, overwrite: bool, dry_run: bool):
     if _cv2 is None and _imageio is None:
         raise RuntimeError("Per --mode videos serve 'opencv-python' oppure 'imageio[ffmpeg]'.")
+
+    def _has_episodes(p: Path) -> bool:
+        try:
+            return any(c.is_dir() and c.name.startswith("episode_") for c in p.iterdir())
+        except Exception:
+            return False
+
     created = skipped = 0
-    for ds_dir in sorted([p for p in dest_root.iterdir() if p.is_dir()]):
+
+    # Caso A: dest_root è già un dataset che contiene episode_*
+    if _has_episodes(dest_root):
+        datasets = [dest_root]
+    else:
+        # Caso B: dest_root è la radice che contiene più dataset
+        datasets = [p for p in dest_root.iterdir() if p.is_dir()]
+
+    for ds_dir in sorted(datasets):
         dataset_id = ds_dir.name
-        for ep_dest in sorted([p for p in ds_dir.iterdir() if p.is_dir() and p.name.startswith("episode_")]):
+        # Se ds_dir è già un episodio (uso improprio), salta con warning esplicito
+        if ds_dir.name.startswith("episode_"):
+            print(f"[WARN] atteso un dataset, trovato un episodio: {ds_dir}. Specifica il dataset o la radice corretta.")
+            continue
+
+        episodes = [p for p in ds_dir.iterdir() if p.is_dir() and p.name.startswith("episode_")]
+        if not episodes:
+            print(f"[WARN] nessun episodio 'episode_*' in {ds_dir}")
+            continue
+
+        for ep_dest in sorted(episodes):
             episode_id = ep_dest.name
             out_ep = out_root / dataset_id / episode_id
             if not out_ep.exists():
                 print(f"[WARN] out mancante per {dataset_id}/{episode_id}: {out_ep}")
                 continue
+
             dst = ep_dest / "contact_video.mp4"
             if dst.exists() and not overwrite:
                 skipped += 1
                 continue
+
             ok = create_contact_video(out_ep, ep_dest, duration_s, overwrite, dry_run)
             if ok:
                 created += 1
                 print(f"[OK]  {dataset_id}/{episode_id} → contact_video.mp4 ({duration_s:.2f}s)")
             else:
                 print(f"[WARN] {dataset_id}/{episode_id} → video non creato (frame mancanti?)")
+
     print(f"\nVideos done. Episodes processed: {created + skipped} | created: {created} | skipped(existing): {skipped}")
+
 
 # -------------------- Main --------------------
 
 def main():
     ap = argparse.ArgumentParser(description="Generate per-episode structure, local prompts, and 9-frame videos.")
-    ap.add_argument("--mode", choices=["init", "locals", "videos"], default="init",
+    ap.add_argument("--mode", choices=["init", "locals", "videos", "refresh_images"], default="init",
                     help="init: crea struttura episodio; locals: genera prompt locali; videos: genera MP4 da 9 frame accanto a contact_sheet.")
     ap.add_argument("--out-root", default="out", help="[init/videos] sorgente datasets/episodes (default: out)")
     ap.add_argument("--dest-root", default="dataset", help="[init/locals/videos] destinazione (default: dataset)")
@@ -623,6 +653,128 @@ def main():
     elif args.mode == "videos":
         out_root = project_root / args.out_root
         videos_mode(project_root, out_root, dest_root, args.video_duration, args.overwrite, args.dry_run)
+    elif args.mode == "refresh_images":
+        out_root = project_root / args.out_root
+        refresh_images_mode(project_root, out_root, dest_root, args.overwrite, args.dry_run, k=3)
+
+
+# --- [NUOVO] helper di utilità per pulire vecchie immagini nel local_i ---
+def remove_local_images(local_dir: Path):
+    """
+    Rimuove immagini di frame precedenti in local_i/ per evitare duplicati.
+    Non tocca altri file (prompt, xml/json, ecc.).
+    """
+    for p in local_dir.iterdir():
+        if p.is_file() and re.match(r"^frame_\d+\.(jpg|jpeg|png)$", p.name, re.IGNORECASE):
+            try:
+                p.unlink()
+            except Exception:
+                pass
+
+
+# --- modalità refresh delle sole immagini ---
+def refresh_images_mode(project_root: Path, out_root: Path, dest_root: Path,
+                        overwrite: bool, dry_run: bool, k: int = 3):
+    """
+    Aggiorna SOLO le immagini di episodio:
+      - contact_sheet.* in <dest>/<ds>/<ep> copiato da out/<ds>/<ep>/final_selected/
+      - i frame in locals/local_i/ copiati da out/<ds>/<ep>/final_selected/sampled_frames/
+    Non modifica bt.xml, meta.json, subtree_.xml/json, local_prompt.md.
+    """
+    print("[ENTRY] refresh_images_mode")
+    updated = skipped = 0
+
+    if not dest_root.exists():
+        print(f"[ERROR] dest_root non esiste: {dest_root}")
+        print(f"         cwd={Path.cwd()}")
+        return
+
+    # Riconosci se dest_root è:
+    # - A) radice multi-dataset (contiene sottocartelle dataset_id)
+    # - B) singolo dataset (contiene episodî episode_*)
+    def _has_episodes(p: Path) -> bool:
+        return any(c.is_dir() and c.name.startswith("episode_") for c in p.iterdir())
+
+    candidate_datasets: List[Path]
+    if _has_episodes(dest_root):
+        # Caso B: dest_root è già la cartella del dataset
+        candidate_datasets = [dest_root]
+    else:
+        # Caso A: dest_root contiene più dataset
+        candidate_datasets = [p for p in dest_root.iterdir() if p.is_dir()]
+
+    if not candidate_datasets:
+        print(f"[WARN] Nessun dataset trovato in: {dest_root}")
+        return
+
+    for ds_dir in sorted(candidate_datasets):
+        dataset_id = ds_dir.name
+        print(f"\nProcessing dataset: {dataset_id}")
+
+        # Episodi: solo cartelle che iniziano con episode_
+        episodes = [p for p in ds_dir.iterdir() if p.is_dir() and p.name.startswith("episode_")]
+        if not episodes:
+            print(f"[WARN] Nessun episodio 'episode_*' in {ds_dir}")
+            continue
+
+        for ep_dest in sorted(episodes):
+            episode_id = ep_dest.name
+
+            # cartella out/ corrispondente
+            out_ep = out_root / dataset_id / episode_id
+            if not out_ep.exists():
+                print(f"[WARN] out mancante per {dataset_id}/{episode_id}: {out_ep}")
+                continue
+
+            # 1) Contact sheet
+            if dry_run:
+                print(f"[DRY] would refresh contact_sheet for {dataset_id}/{episode_id}")
+            else:
+                cs_ok = copy_contact_sheet(out_ep, ep_dest, overwrite=True)
+                if cs_ok:
+                    print(f"[OK]  {dataset_id}/{episode_id} → contact_sheet aggiornato")
+                else:
+                    print(f"[WARN] {dataset_id}/{episode_id} → contact_sheet non trovato in out/")
+
+            # 2) Frame nei locals (top-K dal meta, come in locals_mode)
+            meta_path = ep_dest / "meta.json"
+            meta = parse_meta(meta_path) if meta_path.exists() else {}
+            top_frames = pick_top_k_frames(meta, k=k)
+
+            locals_root = ep_dest / "locals"
+            if not locals_root.exists():
+                print(f"[WARN] locals/ mancante in {ep_dest}. Salto refresh dei frame locali.")
+                continue
+
+            for i in range(1, k + 1):
+                ld = locals_root / f"local_{i}"
+                if not ld.exists():
+                    ld.mkdir(parents=True, exist_ok=True)
+
+                frame_id = top_frames[i - 1] if i - 1 < len(top_frames) else None
+                frame_path = find_frame_file(out_ep, frame_id) if frame_id else None
+
+                if frame_path is None:
+                    print(f"[WARN] {dataset_id}/{episode_id} local_{i}: frame mancante (frame_id={frame_id})")
+                    continue
+
+                dst_img = ld / frame_path.name
+
+                if dry_run:
+                    print(f"[DRY] would replace image in {ld} with {frame_path.name}")
+                else:
+                    remove_local_images(ld)
+                    copied = copy_safe(frame_path, dst_img, overwrite=True)
+                    if copied:
+                        updated += 1
+                        print(f"[OK]  {dataset_id}/{episode_id} local_{i}: {frame_path.name} aggiornato")
+                    else:
+                        skipped += 1
+                        print(f"[SKIP] {dataset_id}/{episode_id} local_{i}: immagine già aggiornata")
+
+    print(f"\nRefresh images done. Locals images updated: {updated} | skipped: {skipped}")
+
+
 
 if __name__ == "__main__":
     main()
@@ -645,7 +797,37 @@ python generate_folders.py \
 python generate_folders.py \
   --mode videos \
   --out-root out \
-  --dest-root dataset \
+  --dest-root dataset1 \
+  --video-duration 4.0 \
+  --overwrite
+
+# Dry-run (verifica cosa verrebbe aggiornato, senza scrivere)
+python generate_folders.py \
+  --mode refresh_images \
+  --out-root out \
+  --dest-root dataset/asu_table_top_converted_externally_to_rlds_0.1.0 \
+  --dry-run
+
+  
+# Esecuzione reale (sostituisce contact_sheet e i frame nei locals)
+python generate_folders.py \
+  --mode refresh_images \
+  --out-root out \
+  --dest-root dataset/asu_table_top_converted_externally_to_rlds_0.1.0
+
+python generate_folders.py \
+  --mode videos \
+  --out-root out \
+  --dest-root dataset/asu_table_top_converted_externally_to_rlds_0.1.0 \
+  --video-duration 4.0 \
+  --overwrite
+
+python generate_folders.py \
+  --mode videos \
+  --out-root out \
+  --dest-root dataset1/austin_buds_dataset_converted_externally_to_rlds_0.1.0 \
   --video-duration 4.0 \
   --overwrite
 '''
+
+

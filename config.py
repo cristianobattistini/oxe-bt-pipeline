@@ -29,7 +29,7 @@ datasets = [
     # "utokyo_xarm_bimanual_converted_externally_to_rlds/0.1.0",
     # "tokyo_u_lsmo_converted_externally_to_rlds/0.1.0",
     # "cmu_franka_exploration_dataset_converted_externally_to_rlds/0.1.0",
-    # "asu_table_top_converted_externally_to_rlds/0.1.0",
+    "asu_table_top_converted_externally_to_rlds/0.1.0",
     # "ucsd_kitchen_dataset_converted_externally_to_rlds/0.1.0",
     # "berkeley_gnm_cory_hall/0.1.0",
     "austin_buds_dataset_converted_externally_to_rlds/0.1.0",
