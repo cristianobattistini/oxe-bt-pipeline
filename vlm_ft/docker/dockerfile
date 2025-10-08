@@ -1,0 +1,47 @@
+######################################################################
+# Dockerfile per fine-tuning VLM (SmolVLM, MiniGPT-4, ecc.)
+# sullo stile del MNIST Toy Example – aggiornato a CUDA 12.1
+######################################################################
+
+FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-devel
+
+ARG USERNAME=battistini
+ARG USER_UID=1170
+ARG USER_GID=1170
+
+# ---------------------------------------------------------------
+# 1. Sistema base e pacchetti essenziali (come nel Toy Example)
+# ---------------------------------------------------------------
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        sudo git wget curl vim htop unzip ffmpeg libsm6 libxext6 && \
+    rm -rf /var/lib/apt/lists/*
+
+# ---------------------------------------------------------------
+# 2. Crea l'utente con UID/GID corrispondente a Westworld
+# ---------------------------------------------------------------
+RUN groupadd --gid $USER_GID $USERNAME && \
+    useradd --uid $USER_UID --gid $USER_GID -m $USERNAME && \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER $USERNAME
+WORKDIR /home/$USERNAME/exp
+
+# ---------------------------------------------------------------
+# 3. Copia i requisiti e installa le librerie Python
+# ---------------------------------------------------------------
+COPY ../requirements.txt ./requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip cache purge
+
+# ---------------------------------------------------------------
+# 4. Imposta variabili di ambiente per HuggingFace, TensorBoard, ecc.
+# ---------------------------------------------------------------
+ENV HF_HOME=/home/$USERNAME/.cache/huggingface \
+    TRANSFORMERS_CACHE=/home/$USERNAME/.cache/huggingface \
+    MPLCONFIGDIR=/home/$USERNAME/.cache/matplotlib \
+    PYTHONUNBUFFERED=1 \
+    TOKENIZERS_PARALLELISM=false
+
+CMD ["/bin/bash"]
