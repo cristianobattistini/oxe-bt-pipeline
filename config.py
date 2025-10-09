@@ -18,11 +18,11 @@ dataset  = ""
 # ]
 datasets = [
     # già presenti (commentati per evitare duplicati)
-    # "columbia_cairlab_pusht_real/0.1.0",
-    # "utokyo_pr2_opening_fridge/0.1.0",
-    # "utokyo_pr2_tabletop_manipulation/0.1.0",
-    # "utokyo_xarm_pick_and_place/0.1.0",
-    # "cmu_stretch/0.1.0",
+    "columbia_cairlab_pusht_real/0.1.0",
+    "utokyo_pr2_opening_fridge/0.1.0",
+    "utokyo_pr2_tabletop_manipulation/0.1.0",
+    "utokyo_xarm_pick_and_place/0.1.0",
+    "cmu_stretch/0.1.0",
 
     # "nyu_rot_dataset_converted_externally_to_rlds/0.1.0",
     # "imperialcollege_sawyer_wrist_cam/0.1.0",
@@ -52,12 +52,12 @@ instruction_key = "natural_language_instruction"
 
 # Override per dataset specifici (se differiscono dalle chiavi di default)
 dataset_keys = {
-    # "columbia_cairlab_pusht_real/0.1.0": ("steps/observation/image", "natural_language_instruction"),
-    # "utokyo_pr2_opening_fridge/0.1.0": ("observation/image", "language_instruction"),
-    # "utokyo_pr2_tabletop_manipulation/0.1.0": ("observation/image", "language_instruction"),
-    # "utokyo_xarm_pick_and_place/0.1.0": ("observation/image", "language_instruction"),
-    # "cmu_stretch/0.1.0": ("observation/image", "language_instruction"),
-    # "asu_table_top_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "language_instruction"), # action_inst & goal_object
+    "columbia_cairlab_pusht_real/0.1.0": ("steps/observation/image", "natural_language_instruction"),
+    "utokyo_pr2_opening_fridge/0.1.0": ("observation/image", "language_instruction"),
+    "utokyo_pr2_tabletop_manipulation/0.1.0": ("observation/image", "language_instruction"),
+    "utokyo_xarm_pick_and_place/0.1.0": ("observation/image", "language_instruction"),
+    "cmu_stretch/0.1.0": ("observation/image", "language_instruction"),
+    "asu_table_top_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "language_instruction"), # action_inst & goal_object
     "austin_buds_dataset_converted_externally_to_rlds/0.1.0": ("steps/observation/image", "steps/language_instruction"),
     "berkeley_cable_routing/0.1.0": ("steps/observation/image", "steps/observation/natural_language_instruction"),
     # "berkeley_gnm_cory_hall/0.1.0": ("steps/observation/image", "steps/language_instruction"),
@@ -96,7 +96,12 @@ embeds = {
     "cache_embeddings": True
 }
 
+export_mode    = "final_only"    # "full" | "final_only"
+filename_mode  = "sequential"    # ordina frame_000.jpg, frame_001.jpg, ...
+normalize_names = True           # (alias legacy; tenerlo True non fa danni)
+prune_only     = True            # in pratica tiene solo final_selected/ anche in "full"
+prune_keep     = ["final_selected"]
+run_embed_selection = True       # assicurati che sia attivo
 
-# config.py (ROOT)
 def get(key, default=None):
     return globals().get(key, default)

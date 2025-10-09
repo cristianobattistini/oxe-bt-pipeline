@@ -52,6 +52,10 @@ def main():
     per_ds_limit = getattr(CFG, "limit_episodes_per_dataset", None)
     data_dir     = getattr(CFG, "tfds_data_dir", None)
     k_sampling   = getattr(CFG, "k_sampling", 10)
+    mode            = getattr(CFG, "export_mode", "full")
+    filename_mode   = getattr(CFG, "filename_mode", "original")
+    normalize_names = getattr(CFG, "normalize_names", False)
+    prune_only      = getattr(CFG, "prune_only", False)
 
     os.makedirs(out_root, exist_ok=True)
     run_started = datetime.utcnow().isoformat()
@@ -87,7 +91,24 @@ def main():
                     max_frames=max_frames,
                 )
                 print(f"[INFO] Dump success, now building all phases...")
-                build_all_episode_phases(ep_dir, episode_steps=None)
+
+                # Prova a estrarre i passi (se l'episodio è un dict OXE/RLDS)
+                steps = None
+                try:
+                    if isinstance(episode, dict):
+                        steps = episode.get("steps", None)
+                except Exception:
+                    steps = None
+
+                build_all_episode_phases(
+                    ep_dir=ep_dir,
+                    episode_steps=steps,          # per arricchire attributes se disponibili
+                    export_mode=mode,             # "full" | "final_only"
+                    filename_mode=filename_mode,  # "original" | "sequential"
+                    normalize_names=normalize_names,
+                    prune_only=prune_only,        # se True, ripulisce fasi intermedie
+                )
+
                 print(f"[INFO] All phases built for ep#{exported:03d}")
 
             except Exception as e:

@@ -1,0 +1,38 @@
+experiment:
+  name: smolvlm_ft
+  output_dir: outputs/smolvlm_ft
+  seed: 42
+
+model:
+  name: smolvlm2
+  pretrained: True
+  ckpt_path: null  # o un checkpoint da riprendere
+
+training:
+  epochs: 3
+  batch_size: 4
+  lr: 2e-5
+  optimizer: adamw
+  weight_decay: 0.01
+  grad_accum_steps: 4
+  warmup_steps: 500
+  fp16: True
+
+data:
+  train_dir: /home/battistini/exp/private_datasets/train
+  val_dir: /home/battistini/exp/private_datasets/val
+  num_workers: 8
+  image_size: 224
+  max_length: 128  # per i token testuali
+
+logging:
+  use_wandb: False
+  log_interval: 100
+  save_every: 1
+
+vlm:
+  freeze_vision_encoder: True
+  freeze_text_encoder: False
+  adapter_type: lora
+  lora_r: 16
+  lora_alpha: 32
