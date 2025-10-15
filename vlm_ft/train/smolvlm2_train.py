@@ -57,16 +57,26 @@ class VLMJsonlDataset(Dataset):
         ex = self.samples[idx]
         messages = ex["messages"]
 
+        # Tokenizza
         enc_user = self.processor.apply_chat_template(
-            [messages[0]], add_generation_prompt=False, tokenize=True, return_tensors="pt",
+            [messages[0]], add_generation_prompt=False, tokenize=True, return_tensors="pt"
         )
         enc_full = self.processor.apply_chat_template(
-            messages, add_generation_prompt=False, tokenize=True, return_tensors="pt",
+            messages, add_generation_prompt=False, tokenize=True, return_tensors="pt"
         )
+
+        # Aggiungi dimensione batch se manca
+        for k in ["input_ids", "attention_mask"]:
+            if k in enc_full and enc_full[k].dim() == 1:
+                enc_full[k] = enc_full[k].unsqueeze(0)
+            if k in enc_user and enc_user[k].dim() == 1:
+                enc_user[k] = enc_user[k].unsqueeze(0)
 
         input_ids = enc_full["input_ids"][0]
         attention_mask = enc_full["attention_mask"][0]
         labels = input_ids.clone()
+
+        # Maschera i token utente
         user_len = enc_user["input_ids"].shape[-1]
         labels[:user_len] = -100
 
@@ -79,6 +89,7 @@ class VLMJsonlDataset(Dataset):
             if k not in ("input_ids", "attention_mask"):
                 sample[k] = v
         return sample
+
 
 
 # -------------------------
