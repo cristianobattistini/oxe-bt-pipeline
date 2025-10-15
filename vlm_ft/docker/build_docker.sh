@@ -1,14 +1,14 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-IMAGE="battistini/oxe-vlm:cuda12.1-py23"
+IMAGE="battistini/oxe-vlm:dev"
 
-# usa la cartella del Dockerfile come contesto
-cd "$(dirname "$0")"   # ora sei in vlm_ft/docker
+# posizionati nella cartella del Dockerfile
+cd "$(dirname "$0")"   # -> vlm_ft/docker
 
 docker build \
-  --build-arg USER_UID=$(id -u) \
-  --build-arg USER_GID=$(id -g) \
+  --build-arg USER_UID="$(id -u)" \
+  --build-arg USER_GID="$(id -g)" \
   -t "$IMAGE" \
   -f Dockerfile \
   .
