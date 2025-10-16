@@ -19,18 +19,41 @@ from transformers import (
 from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model
 from tqdm import tqdm
 
+from torch.utils.tensorboard import SummaryWriter
+
+
+# Disabilita FlashAttention; abilita backend SDPA compatibili
+try:
+    from torch.backends.cuda import sdp_kernel
+    sdp_kernel(enable_flash=False, enable_mem_efficient=True, enable_math=True)
+except Exception:
+    # fallback per versioni PyTorch precedenti
+    torch.backends.cuda.enable_flash_sdp(False)
+    torch.backends.cuda.enable_mem_efficient_sdp(True)
+    torch.backends.cuda.enable_math_sdp(True)
+
+
+
+def move_to_device(batch, device):
+    if torch.is_tensor(batch):
+        return batch.to(device, non_blocking=True)
+    if isinstance(batch, dict):
+        return {k: move_to_device(v, device) for k, v in batch.items()}
+    if isinstance(batch, (list, tuple)):
+        return type(batch)(move_to_device(x, device) for x in batch)
+    return batch
+
 
 # -------------------------
-# Dataset JSONL
+# Dataset: NON tokenizza, risolve solo i path.
 # -------------------------
 class VLMJsonlDataset(Dataset):
     """
-    Tokenizza i messages con AutoProcessor.apply_chat_template.
-    Maschera la loss sui token del 'user' e la calcola solo sull'XML dell'assistant.
+    Restituisce solo {"messages": [...]} con path video assoluti.
+    Non chiama il processor: questo avviene nella collate_fn.
     """
-    def __init__(self, jsonl_path: str, processor: AutoProcessor):
+    def __init__(self, jsonl_path: str):
         super().__init__()
-        self.processor = processor
         self.samples: List[Dict[str, Any]] = []
 
         base_dir = os.path.dirname(os.path.abspath(jsonl_path))
@@ -45,12 +68,28 @@ class VLMJsonlDataset(Dataset):
                         and msgs[0].get("role") == "user"
                         and msgs[1].get("role") == "assistant"):
                     continue
+
+                # Risoluzione path per eventuali video nel messaggio user
                 for c in msgs[0].get("content", []):
                     if isinstance(c, dict) and c.get("type") == "video":
                         p = c.get("path", "")
-                        if p and not os.path.isabs(p):
-                            c["path"] = os.path.abspath(os.path.join(base_dir, p))
-                self.samples.append(ex)
+                        if not p:
+                            continue
+                        abs_p = os.path.abspath(os.path.join(base_dir, p))
+                        if not os.path.exists(abs_p):
+                            # fallback: .../train/<p>
+                            alt_p = os.path.abspath(os.path.join(os.path.dirname(base_dir), "train", p))
+                            if os.path.exists(alt_p):
+                                abs_p = alt_p
+                            else:
+                                print(f"[WARN] Video non trovato: {abs_p}")
+                                # evita crash del processor se il file manca
+                                c.clear()
+                                c["type"] = "text"
+                                c["text"] = "[VIDEO_MISSING]"
+                        c["path"] = abs_p
+
+                self.samples.append({"messages": msgs})
 
         if not self.samples:
             raise ValueError(f"Nessun sample valido in {jsonl_path}")
@@ -59,93 +98,103 @@ class VLMJsonlDataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-        ex = self.samples[idx]
-        messages = ex["messages"]
-
-        enc_user = self.processor.apply_chat_template(
-            [messages[0]], add_generation_prompt=False, tokenize=True, return_tensors="pt"
-        )
-        enc_full = self.processor.apply_chat_template(
-            messages, add_generation_prompt=False, tokenize=True, return_tensors="pt"
-        )
-
-        if isinstance(enc_full, dict):
-            for k in ["input_ids", "attention_mask"]:
-                if k in enc_full and hasattr(enc_full[k], "dim") and enc_full[k].dim() == 1:
-                    enc_full[k] = enc_full[k].unsqueeze(0)
-        if isinstance(enc_user, dict):
-            for k in ["input_ids", "attention_mask"]:
-                if k in enc_user and hasattr(enc_user[k], "dim") and enc_user[k].dim() == 1:
-                    enc_user[k] = enc_user[k].unsqueeze(0)
-
-        input_ids = enc_full["input_ids"][0]
-        attention_mask = enc_full["attention_mask"][0]
-        labels = input_ids.clone()
-        user_len = enc_user["input_ids"].shape[-1]
-        labels[:user_len] = -100
-
-        sample = {
-            "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "labels": labels,
-        }
-        for k, v in enc_full.items():
-            if k not in ("input_ids", "attention_mask"):
-                sample[k] = v
-        return sample
+        return self.samples[idx]
 
 
 # -------------------------
-# Collate function
+# Collate: come nel tutorial (processor + maschere + padding)
 # -------------------------
-def collate_fn(examples):
-    input_ids = pad_sequence(
-        [ex["input_ids"] for ex in examples],
-        batch_first=True,
-        padding_value=processor.tokenizer.pad_token_id
-    )
-    attention_mask = pad_sequence(
-        [ex["attention_mask"] for ex in examples],
-        batch_first=True,
-        padding_value=0
-    )
-    labels = pad_sequence(
-        [ex["labels"] for ex in examples],
-        batch_first=True,
-        padding_value=-100
-    )
+def make_collate_fn(processor: AutoProcessor):
+    # garantisci il pad token
+    if processor.tokenizer.pad_token_id is None:
+        if processor.tokenizer.eos_token_id is None:
+            raise ValueError("Tokenizer senza pad_token e senza eos_token.")
+        processor.tokenizer.pad_token = processor.tokenizer.eos_token
+    pad_id = processor.tokenizer.pad_token_id
 
-    image_token_id = processor.tokenizer.additional_special_tokens_ids[
-        processor.tokenizer.additional_special_tokens.index("<image>")
-    ]
-    labels[labels == image_token_id] = -100
+    # id del token <image> da mascherare
+    image_tok_id = None
+    if "<image>" in processor.tokenizer.additional_special_tokens:
+        idx = processor.tokenizer.additional_special_tokens.index("<image>")
+        image_tok_id = processor.tokenizer.additional_special_tokens_ids[idx]
 
-    out = {
-        "input_ids": input_ids,
-        "attention_mask": attention_mask,
-        "labels": labels
-    }
+    def collate(examples: List[Dict[str, Any]]):
+        items = []
+        for ex in examples:
+            messages = ex["messages"]
 
-    if "pixel_values" in examples[0]:
-        pvs = [ex["pixel_values"] for ex in examples]
-        max_frames = max(pv.shape[0] for pv in pvs)
-        max_h = max(pv.shape[-2] for pv in pvs)
-        max_w = max(pv.shape[-1] for pv in pvs)
-
-        padded_pixel_values_list = []
-        for pv in pvs:
-            f, c, h, w = pv.shape
-            padded = torch.zeros(
-                (max_frames, c, max_h, max_w),
-                dtype=pv.dtype,
-                device=pv.device
+            # chat completa (user+assistant) — include anche i video
+            inst = processor.apply_chat_template(
+                messages,
+                add_generation_prompt=False,
+                tokenize=True,
+                return_tensors="pt",
+                return_dict=True,
             )
-            padded[:f, :, :h, :w] = pv
-            padded_pixel_values_list.append(padded)
+            # solo utente: serve per mascherare le label
+            enc_user = processor.apply_chat_template(
+                [messages[0]],
+                add_generation_prompt=False,
+                tokenize=True,
+                return_tensors="pt",
+                return_dict=True,
+            )
 
-        out["pixel_values"] = torch.stack(padded_pixel_values_list, dim=0)
+            for k in ("input_ids", "attention_mask"):
+                if isinstance(inst[k], torch.Tensor) and inst[k].dim() == 1:
+                    inst[k] = inst[k].unsqueeze(0)
 
-    return out
+            input_ids = inst["input_ids"].squeeze(0)        # CPU
+            attention_mask = inst["attention_mask"].squeeze(0)  # CPU
+
+            labels = input_ids.clone()
+            user_len = enc_user["input_ids"].shape[-1]
+            labels[:user_len] = -100
+            if image_tok_id is not None:
+                labels[labels == image_tok_id] = -100
+
+            item = {"input_ids": input_ids, "attention_mask": attention_mask, "labels": labels}
+
+            # pixel_values opzionali (se c'è "video" nei messages)
+            if "pixel_values" in inst:
+                pv = inst["pixel_values"]  # (1,F,C,H,W) o (F,C,H,W)
+                if pv.dim() == 5 and pv.shape[0] == 1:
+                    pv = pv.squeeze(0)
+                item["pixel_values"] = pv  # CPU
+
+            items.append(item)
+
+        # padding testo (CPU)
+        batch_input_ids = pad_sequence([it["input_ids"] for it in items],
+                                       batch_first=True, padding_value=pad_id)
+        batch_attention = pad_sequence([it["attention_mask"] for it in items],
+                                       batch_first=True, padding_value=0)
+        batch_labels = pad_sequence([it["labels"] for it in items],
+                                    batch_first=True, padding_value=-100)
+
+        batch = {
+            "input_ids": batch_input_ids,
+            "attention_mask": batch_attention,
+            "labels": batch_labels,
+        }
+
+        # padding video sui frame (CPU)
+        if "pixel_values" in items[0]:
+            pvs = [it["pixel_values"] for it in items]  # ciascuno (F,C,H,W)
+            max_f = max(pv.shape[0] for pv in pvs)
+            C, H, W = pvs[0].shape[1:]
+            padded = []
+            for pv in pvs:
+                F = pv.shape[0]
+                if F < max_f:
+                    pad = torch.zeros((max_f - F, C, H, W), dtype=pv.dtype)
+                    pv = torch.cat([pv, pad], dim=0)
+                padded.append(pv)
+            batch["pixel_values"] = torch.stack(padded, dim=0)  # (B,F,C,H,W) — CPU
+
+        return batch
+
+    return collate
 
 
 # -------------------------
@@ -163,6 +212,9 @@ def main():
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=16)
+    parser.add_argument("--num_workers", type=int, default=0)  # alza dopo il primo run
+    parser.add_argument("--log_dir", type=str, default=None)
+
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -170,6 +222,7 @@ def main():
 
     processor = AutoProcessor.from_pretrained(args.model_id, trust_remote_code=True)
 
+    # ----------------- Modello -----------------
     if args.use_qlora or args.use_lora:
         lora_config = LoraConfig(
             r=8,
@@ -193,7 +246,7 @@ def main():
         model = AutoModelForImageTextToText.from_pretrained(
             args.model_id,
             quantization_config=bnb_config,
-            _attn_implementation="flash_attention_2",
+            _attn_implementation="eager",
             device_map="auto",
             trust_remote_code=True,
         )
@@ -205,53 +258,111 @@ def main():
     else:
         model = AutoModelForImageTextToText.from_pretrained(
             args.model_id,
-            torch_dtype=torch.bfloat16,
             device_map="auto",
             trust_remote_code=True,
-            _attn_implementation="flash_attention_2",
+            _attn_implementation="eager",
         ).to(device)
 
         # opzionale: blocca la parte vision
         for param in model.model.vision_model.parameters():
             param.requires_grad = False
 
+
+    # subito dopo aver creato `model`
+    model.config.use_cache = False                 # evita attivazioni extra
+    model.gradient_checkpointing_enable()          # abbatte la memoria attivazioni
+
+
     peak_mem = torch.cuda.max_memory_allocated()
     print(f"The model as is is holding: {peak_mem / 1024**3:.2f} GB of GPU RAM")
 
-    train_ds = VLMJsonlDataset(args.train_jsonl, processor)
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn)
+    # ----------------- Dati & DataLoader -----------------
+    train_ds = VLMJsonlDataset(args.train_jsonl)
+    collate = make_collate_fn(processor)
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=args.batch_size,
+        shuffle=True,
+        collate_fn=collate,
+        num_workers=args.num_workers,
+        pin_memory=(device == "cuda"),   # OK: i tensori sono CPU qui
+    )
 
-    optimizer = AdamW(model.parameters(), lr=args.lr)
-    num_training_steps = len(train_loader) * args.epochs
-    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=num_training_steps)
+    # ----- TensorBoard -----
+    from torch.utils.tensorboard import SummaryWriter
+    log_dir = args.log_dir or os.path.join(args.output_dir, "tblogs")
+    os.makedirs(log_dir, exist_ok=True)
+    writer = SummaryWriter(log_dir=log_dir)
+
+    # ----- Training loop -----
+    model.config.use_cache = False
+    model.gradient_checkpointing_enable()
 
     model.train()
     global_step = 0
+    optimizer.zero_grad(set_to_none=True)
+
     for epoch in range(args.epochs):
         print(f"\nEpoch {epoch+1}/{args.epochs}")
-        for batch in tqdm(train_loader):
-            for k in batch:
-                if torch.is_tensor(batch[k]):
-                    batch[k] = batch[k].to(device)
+        epoch_loss_sum, epoch_steps = 0.0, 0
 
+        pbar = tqdm(train_loader, dynamic_ncols=True)
+        for batch in pbar:
+            # CPU -> GPU
+            batch = move_to_device(batch, device)
+
+            # dtype sicuro per la vision
+            if "pixel_values" in batch and torch.is_tensor(batch["pixel_values"]):
+                batch["pixel_values"] = batch["pixel_values"].to(torch.float32, non_blocking=True)
+
+            # forward/backward
             outputs = model(**batch)
             loss = outputs.loss
             loss.backward()
 
+            # logging per step
+            writer.add_scalar("loss/train_step", loss.item(), global_step)
+            epoch_loss_sum += loss.item()
+            epoch_steps += 1
+
+            # gradient accumulation
             if (global_step + 1) % args.gradient_accumulation_steps == 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 scheduler.step()
-                optimizer.zero_grad()
+                optimizer.zero_grad(set_to_none=True)
+                writer.add_scalar("lr", scheduler.get_last_lr()[0], global_step)
 
             if global_step % 10 == 0:
-                print(f"Step {global_step}: loss = {loss.item():.4f}")
+                pbar.set_description(f"step {global_step} | loss {loss.item():.4f}")
+
             global_step += 1
 
+        # media epoch
+        if epoch_steps > 0:
+            writer.add_scalar("loss/train_epoch", epoch_loss_sum / epoch_steps, epoch)
+
+    # ----- Salvataggio e chiusura -----
     os.makedirs(args.output_dir, exist_ok=True)
     model.save_pretrained(args.output_dir)
     processor.save_pretrained(args.output_dir)
+    writer.close()
     print(f"Modello salvato in {args.output_dir}")
+
 
 
 if __name__ == "__main__":
     main()
+
+'''
+
+python smolvlm2_train.py \
+--train_jsonl /home/battistini/exp/private_datasets/train/data.jsonl \
+--val_jsonl /home/battistini/exp/private_datasets/val/data.jsonl \
+--output_dir /home/battistini/exp/private_datasets/output_smolvlm2 \
+--batch_size 1 \
+--epochs 1 \
+--lr 2e-4 \
+--gradient_accumulation_steps 16
+
+'''

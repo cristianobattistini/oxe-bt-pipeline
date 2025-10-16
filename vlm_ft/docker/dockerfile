@@ -37,8 +37,10 @@ RUN pip install --upgrade pip && \
     pip cache purge
     
 # Aggiungi FlashAttention (precompilata o fallback a build)
-RUN pip install flash-attn --no-build-isolation --prefer-binary || \
-    pip install flash-attn --no-build-isolation
+# --- FLASH ATTENTION (precompiled) ---
+# --- FLASH ATTENTION (compatibile con Torch 2.3.1 + CUDA 12.1 + cxx11abiFALSE) ---
+RUN pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.2.post1/flash_attn-2.7.2.post1+cu12torch2.3cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
+
 
 # ---------------------------------------------------------------
 # 4. Imposta variabili di ambiente per HuggingFace, TensorBoard, ecc.
