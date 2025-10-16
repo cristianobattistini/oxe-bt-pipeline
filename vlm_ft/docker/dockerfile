@@ -35,7 +35,10 @@ COPY requirements.txt /tmp/requirements.txt
 RUN pip install --upgrade pip && \
     pip install -r /tmp/requirements.txt && \
     pip cache purge
-
+    
+# Aggiungi FlashAttention (precompilata o fallback a build)
+RUN pip install flash-attn --no-build-isolation --prefer-binary || \
+    pip install flash-attn --no-build-isolation
 
 # ---------------------------------------------------------------
 # 4. Imposta variabili di ambiente per HuggingFace, TensorBoard, ecc.

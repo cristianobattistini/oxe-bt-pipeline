@@ -1,12 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-Fine-tuning di HuggingFaceTB/SmolVLM2-2.2B-Instruct
-su dataset JSONL con video e testo (BT XML come target).
-Usa la pipeline semplice del notebook SmolVLM2_Video_FT.ipynb.
-"""
-
 import os
 import json
 import argparse
@@ -14,12 +8,20 @@ from typing import Dict, Any, List
 
 import torch
 from torch.utils.data import Dataset, DataLoader
-from transformers import AutoProcessor, AutoModelForImageTextToText, AdamW, get_linear_schedule_with_warmup
+from torch.nn.utils.rnn import pad_sequence
+from transformers import (
+    AutoProcessor,
+    BitsAndBytesConfig,
+    AutoModelForImageTextToText,
+    AdamW,
+    get_linear_schedule_with_warmup,
+)
+from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model
 from tqdm import tqdm
 
 
 # -------------------------
-# Dataset JSONL (preservato)
+# Dataset JSONL
 # -------------------------
 class VLMJsonlDataset(Dataset):
     """
@@ -38,7 +40,10 @@ class VLMJsonlDataset(Dataset):
                     continue
                 ex = json.loads(line)
                 msgs = ex.get("messages", [])
-                if not (isinstance(msgs, list) and len(msgs) == 2 and msgs[0].get("role") == "user" and msgs[1].get("role") == "assistant"):
+                if not (isinstance(msgs, list)
+                        and len(msgs) == 2
+                        and msgs[0].get("role") == "user"
+                        and msgs[1].get("role") == "assistant"):
                     continue
                 for c in msgs[0].get("content", []):
                     if isinstance(c, dict) and c.get("type") == "video":
@@ -57,7 +62,6 @@ class VLMJsonlDataset(Dataset):
         ex = self.samples[idx]
         messages = ex["messages"]
 
-        # Tokenizza
         enc_user = self.processor.apply_chat_template(
             [messages[0]], add_generation_prompt=False, tokenize=True, return_tensors="pt"
         )
@@ -65,18 +69,18 @@ class VLMJsonlDataset(Dataset):
             messages, add_generation_prompt=False, tokenize=True, return_tensors="pt"
         )
 
-        # Aggiungi dimensione batch se manca
-        for k in ["input_ids", "attention_mask"]:
-            if k in enc_full and enc_full[k].dim() == 1:
-                enc_full[k] = enc_full[k].unsqueeze(0)
-            if k in enc_user and enc_user[k].dim() == 1:
-                enc_user[k] = enc_user[k].unsqueeze(0)
+        if isinstance(enc_full, dict):
+            for k in ["input_ids", "attention_mask"]:
+                if k in enc_full and hasattr(enc_full[k], "dim") and enc_full[k].dim() == 1:
+                    enc_full[k] = enc_full[k].unsqueeze(0)
+        if isinstance(enc_user, dict):
+            for k in ["input_ids", "attention_mask"]:
+                if k in enc_user and hasattr(enc_user[k], "dim") and enc_user[k].dim() == 1:
+                    enc_user[k] = enc_user[k].unsqueeze(0)
 
         input_ids = enc_full["input_ids"][0]
         attention_mask = enc_full["attention_mask"][0]
         labels = input_ids.clone()
-
-        # Maschera i token utente
         user_len = enc_user["input_ids"].shape[-1]
         labels[:user_len] = -100
 
@@ -91,6 +95,58 @@ class VLMJsonlDataset(Dataset):
         return sample
 
 
+# -------------------------
+# Collate function
+# -------------------------
+def collate_fn(examples):
+    input_ids = pad_sequence(
+        [ex["input_ids"] for ex in examples],
+        batch_first=True,
+        padding_value=processor.tokenizer.pad_token_id
+    )
+    attention_mask = pad_sequence(
+        [ex["attention_mask"] for ex in examples],
+        batch_first=True,
+        padding_value=0
+    )
+    labels = pad_sequence(
+        [ex["labels"] for ex in examples],
+        batch_first=True,
+        padding_value=-100
+    )
+
+    image_token_id = processor.tokenizer.additional_special_tokens_ids[
+        processor.tokenizer.additional_special_tokens.index("<image>")
+    ]
+    labels[labels == image_token_id] = -100
+
+    out = {
+        "input_ids": input_ids,
+        "attention_mask": attention_mask,
+        "labels": labels
+    }
+
+    if "pixel_values" in examples[0]:
+        pvs = [ex["pixel_values"] for ex in examples]
+        max_frames = max(pv.shape[0] for pv in pvs)
+        max_h = max(pv.shape[-2] for pv in pvs)
+        max_w = max(pv.shape[-1] for pv in pvs)
+
+        padded_pixel_values_list = []
+        for pv in pvs:
+            f, c, h, w = pv.shape
+            padded = torch.zeros(
+                (max_frames, c, max_h, max_w),
+                dtype=pv.dtype,
+                device=pv.device
+            )
+            padded[:f, :, :h, :w] = pv
+            padded_pixel_values_list.append(padded)
+
+        out["pixel_values"] = torch.stack(padded_pixel_values_list, dim=0)
+
+    return out
+
 
 # -------------------------
 # Main
@@ -99,6 +155,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_jsonl", type=str, required=True)
     parser.add_argument("--val_jsonl", type=str)
+    parser.add_argument("--use_qlora", action="store_true")
+    parser.add_argument("--use_lora", action="store_true")
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument("--model_id", type=str, default="HuggingFaceTB/SmolVLM2-2.2B-Instruct")
     parser.add_argument("--batch_size", type=int, default=1)
@@ -110,14 +168,58 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
 
-    print(f"Carico processor e modello: {args.model_id}")
     processor = AutoProcessor.from_pretrained(args.model_id, trust_remote_code=True)
-    model = AutoModelForImageTextToText.from_pretrained(
-        args.model_id, trust_remote_code=True, torch_dtype="auto", device_map="auto"
-    )
+
+    if args.use_qlora or args.use_lora:
+        lora_config = LoraConfig(
+            r=8,
+            lora_alpha=8,
+            lora_dropout=0.1,
+            target_modules=['down_proj', 'o_proj', 'k_proj', 'q_proj', 'gate_proj', 'up_proj', 'v_proj'],
+            use_dora=not args.use_qlora,
+            init_lora_weights="gaussian"
+        )
+        lora_config.inference_mode = False
+
+        bnb_config = None
+        if args.use_qlora:
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16
+            )
+
+        model = AutoModelForImageTextToText.from_pretrained(
+            args.model_id,
+            quantization_config=bnb_config,
+            _attn_implementation="flash_attention_2",
+            device_map="auto",
+            trust_remote_code=True,
+        )
+        model.add_adapter(lora_config)
+        model.enable_adapters()
+        model = prepare_model_for_kbit_training(model)
+        model = get_peft_model(model, lora_config)
+        print(model.get_nb_trainable_parameters())
+    else:
+        model = AutoModelForImageTextToText.from_pretrained(
+            args.model_id,
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
+            trust_remote_code=True,
+            _attn_implementation="flash_attention_2",
+        ).to(device)
+
+        # opzionale: blocca la parte vision
+        for param in model.model.vision_model.parameters():
+            param.requires_grad = False
+
+    peak_mem = torch.cuda.max_memory_allocated()
+    print(f"The model as is is holding: {peak_mem / 1024**3:.2f} GB of GPU RAM")
 
     train_ds = VLMJsonlDataset(args.train_jsonl, processor)
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, collate_fn=lambda x: x[0])
+    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn)
 
     optimizer = AdamW(model.parameters(), lr=args.lr)
     num_training_steps = len(train_loader) * args.epochs
@@ -153,18 +255,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-'''
-
-python3 smolvlm2_train.py \
-  --train_jsonl /home/battistini/private_datasets/train/data.jsonl \
-  --val_jsonl   /home/battistini/private_datasets/val/data.jsonl \
-  --output_dir  /home/battistini/exp/outputs/ft-smolvlm2-bt-video \
-  --batch_size 1 \
-  --gradient_accumulation_steps 32 \
-  --lr 2e-4 \
-  --epochs 1
-
-
-'''
