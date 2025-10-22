@@ -15,10 +15,7 @@ from typing import List, Dict, Tuple, Optional
 
 SYS_PREFIX = (
     "SYSTEM: You are a BehaviorTree.CPP code generator.\n"
-    "CONSTRAINTS:\n"
-    "- Output ONLY one BT.CPP XML tree (no prose, no comments, no markdown).\n"
-    '- Format: <BehaviorTree ID="MainTree"> ... </BehaviorTree>\n'
-    "- Close all tags. Use readable node names and ports only when meaningful.\n"
+    "Output ONLY one BT.CPP XML tree (no prose, no comments, no markdown)."
 )
 
 TPL_MINIMAL = SYS_PREFIX + "\nINSTRUCTION: {task_instruction}\n\nReturn only the XML."
@@ -221,6 +218,8 @@ def main():
                     help="Sottocartella (dentro lo split) per copiare le immagini")
     ap.add_argument("--no-copy-image", action="store_true",
                     help="Non copiare le immagini; salva path assoluti")
+    ap.add_argument("--dropout_ratio", type=float, default=0.0,
+                help="Probabilità (0.0-1.0) di svuotare 'task_instruction' per forzare il visual grounding")
 
     args = ap.parse_args()
 
@@ -259,6 +258,11 @@ def main():
                 except Exception:
                     continue
 
+                # --- INIZIO: LOGICA DROPOUT ---
+                if args.dropout_ratio > 0 and random.random() < args.dropout_ratio:
+                    meta["task_instruction"] = "" # Svuota l'istruzione
+                # --- FINE: LOGICA DROPOUT ---
+
                 xml_text = safe_xml(xml_path.read_text(encoding="utf-8"))
 
                 if args.no_copy_video:
@@ -292,20 +296,21 @@ def main():
         Manteniamo gli altri campi invariati per coerenza col mixing dei prompt.
         """
         m = dict(base_meta) if base_meta else {}
-        if local_prompt_text and local_prompt_text.strip():
-            m["task_instruction"] = local_prompt_text.strip()
-        else:
-            ti = (base_meta or {}).get("task_instruction", "")
-            m["task_instruction"] = f"{ti}\nFocus only on the local subtask depicted in the image. Ignore video-specific details."
+        # if local_prompt_text and local_prompt_text.strip():
+        #     m["task_instruction"] = local_prompt_text.strip()
+        # else:
+        ti = (base_meta or {}).get("task_instruction", "")
+        m["task_instruction"] = ti
         return m
 
     def process_split_locals(split_eps: List[Tuple[str, Path]], split_dir: Path):
         if not args.enable_locals:
             return
-        jsonl_path = split_dir / args.jsonl-name-locals if hasattr(args, "jsonl-name-locals") else split_dir / args.jsonl_name_locals  # safety for hyphen/underscore
+        # jsonl_path = split_dir / args.jsonl-name-locals if hasattr(args, "jsonl-name-locals") else split_dir / args.jsonl_name_locals  # safety for hyphen/underscore
+        jsonl_path = split_dir / args.jsonl_name
         # gestisci attributo con underscore (nome effettivo argparse)
-        jsonl_path = split_dir / getattr(args, "jsonl_name_locals")
-        with jsonl_path.open("w", encoding="utf-8") as jf:
+        # jsonl_path = split_dir / getattr(args, "jsonl_name_locals")
+        with jsonl_path.open("a", encoding="utf-8") as jf:
             for ds_name, ep_dir in split_eps:
                 meta_path = ep_dir / args.meta_filename
                 base_meta = {}
@@ -318,8 +323,10 @@ def main():
                 # Scansiona locals
                 for local_dir in discover_locals(ep_dir, args.locals_dirname):
                     local_id = local_dir.name  # es. local_1
-                    xml_path  = local_dir / args.local_xml_filename
+                    # xml_path  = local_dir / args.local_xml_filename
                     prompt_md = local_dir / args.local_prompt_filename
+                    # Carica il BT globale, non il subtree locale
+                    xml_path  = ep_dir / args.xml_filename
                     img_path  = find_first_image(local_dir, args.local_image_glob)
 
                     if not (xml_path.exists() and img_path and img_path.exists()):
@@ -328,6 +335,11 @@ def main():
                     xml_text = safe_xml(xml_path.read_text(encoding="utf-8"))
                     local_prompt_text = prompt_md.read_text(encoding="utf-8") if prompt_md.exists() else None
                     meta = make_local_meta(base_meta, local_prompt_text)
+
+                    # --- INIZIO: LOGICA DROPOUT ---
+                    if args.dropout_ratio > 0 and random.random() < args.dropout_ratio:
+                        meta["task_instruction"] = "" # Svuota l'istruzione
+                    # --- FINE: LOGICA DROPOUT ---
 
                     # copia o referenzia immagine
                     if args.no_copy_image:
@@ -434,6 +446,10 @@ python3 vlm_ft/tools/build_jsonl_from_episodes.py \
 
 
   
-    # video + locals 
+  python3 vlm_ft/tools/build_jsonl_from_episodes.py \
+  --episodes_root dataset \
+  --out_root private_datasets \
+  --prompt_mode mix --mix_ratio 8,2,0 \
+  --enable-locals \
 
 '''

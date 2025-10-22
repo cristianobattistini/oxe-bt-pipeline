@@ -5,6 +5,7 @@ import os
 import json
 import argparse
 from typing import Dict, Any, List
+import random 
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -166,22 +167,24 @@ class VLMJsonlDataset(Dataset):
 
                 # Risoluzione path per eventuali video nel messaggio user
                 for c in msgs[0].get("content", []):
-                    if isinstance(c, dict) and c.get("type") == "video":
+                    media_type = c.get("type")
+                    if isinstance(c, dict) and (media_type == "video" or media_type == "image"):
                         p = c.get("path", "")
                         if not p:
                             continue
+                        
                         abs_p = os.path.abspath(os.path.join(base_dir, p))
                         if not os.path.exists(abs_p):
-                            # fallback: .../train/<p>
+                            # fallback: .../train/<p> (comune se il val.jsonl referenzia media in train)
                             alt_p = os.path.abspath(os.path.join(os.path.dirname(base_dir), "train", p))
                             if os.path.exists(alt_p):
                                 abs_p = alt_p
                             else:
-                                print(f"[WARN] Video non trovato: {abs_p}")
+                                print(f"[WARN] {media_type.upper()} non trovato: {abs_p}")
                                 # evita crash del processor se il file manca
                                 c.clear()
                                 c["type"] = "text"
-                                c["text"] = "[VIDEO_MISSING]"
+                                c["text"] = f"[{media_type.upper()}_MISSING]"
                         c["path"] = abs_p
 
                 self.samples.append({"messages": msgs})
@@ -199,7 +202,7 @@ class VLMJsonlDataset(Dataset):
 # -------------------------
 # Collate: come nel tutorial (processor + maschere + padding)
 # -------------------------
-def make_collate_fn(processor: AutoProcessor):
+def make_collate_fn(processor: AutoProcessor, dropout_ratio: float = 0.0):
     # garantisci il pad token
     if processor.tokenizer.pad_token_id is None:
         if processor.tokenizer.eos_token_id is None:
@@ -217,6 +220,17 @@ def make_collate_fn(processor: AutoProcessor):
         items = []
         for ex in examples:
             messages = ex["messages"]
+
+            if dropout_ratio > 0 and random.random() < dropout_ratio:
+                # Applico il dropout: trovo il blocco "INSTRUCTION:" e svuoto.
+                # Assumiamo che `messages[0]["content"]` sia una lista di dict.
+                user_content = messages[0].get("content", [])
+                for content_part in user_content:
+                    if (content_part.get("type") == "text" and
+                        content_part.get("text", "").lstrip().startswith("INSTRUCTION:")):
+                        
+                        content_part["text"] = "" # Svuota l'istruzione
+                        break # Trovato e svuotato
 
             # chat completa (user+assistant) — include anche i video
             inst = processor.apply_chat_template(
@@ -348,6 +362,8 @@ def main():
                         help="Conserva solo gli ultimi K checkpoint (0=tutti)")
     parser.add_argument("--resume_from", type=str, default=None,
                         help="Cartella di un checkpoint da cui riprendere")
+    parser.add_argument("--dropout_ratio", type=float, default=0.0,
+                        help="Probabilità (es. 0.5) di svuotare l'istruzione di testo per forzare il visual grounding.")
     
     ckpt_dir = args.checkpoint_dir or os.path.join(args.output_dir, "ckpts")
     _safe_makedirs(args.output_dir)
@@ -419,7 +435,7 @@ def main():
 
     # ----------------- Dati & DataLoader -----------------
     train_ds = VLMJsonlDataset(args.train_jsonl)
-    collate = make_collate_fn(processor)
+    collate = make_collate_fn(processor, dropout_ratio=args.dropout_ratio)
     train_loader = DataLoader(
         train_ds,
         batch_size=args.batch_size,
