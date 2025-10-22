@@ -21,7 +21,7 @@ FRAME ORDER (authoritative; do not reorder):
 [7] frame_07.jpg  (t=7)
 
 TEMPORAL CONSTRAINTS:
-- Interpret keyframes strictly in ascending index 0→7. Do not permute or skip.
+- Interpret keyframes strictly in ascending index 0→8. Do not permute or skip.
 - Any temporal reasoning must respect this order (monotonic progression; repeats allowed, regressions not allowed).
 - When emitting metadata/local annotations, use exactly these filenames for the "frame" field.
 

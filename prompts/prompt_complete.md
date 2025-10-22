@@ -113,7 +113,7 @@ INSTRUCTION → BT MAPPING (apply strictly)
 - If the instruction implies parameters missing from the library, set those to null and justify in metadata.evaluation_notes.
 
 CONTACT SHEET MODE (K=8 tiles)
-- Interpret tiles strictly in ascending index 0→7, row‑major (left→right, top→bottom).
+- Interpret tiles strictly in ascending index 0→8, row‑major (left→right, top→bottom).
 - Do not reorder, merge, or skip tiles.
 - When referencing frames in metadata, use: "frame_source": "contact_sheet", "frame_order": ["tile_0","tile_1","tile_2","tile_3","tile_4","tile_5","tile_6","tile_7"].
 

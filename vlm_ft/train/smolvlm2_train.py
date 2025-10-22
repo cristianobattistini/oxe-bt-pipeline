@@ -44,6 +44,101 @@ def move_to_device(batch, device):
     return batch
 
 
+def _safe_makedirs(p):
+    os.makedirs(p, exist_ok=True)
+
+def _rotate_checkpoints(ckpt_dir, keep_last_k):
+    if keep_last_k <= 0 or not os.path.isdir(ckpt_dir):
+        return
+    sub = sorted([d for d in os.listdir(ckpt_dir) if (ckpt_dir+'/'+d).endswith(('/')) or True],
+                 key=lambda x: os.path.getmtime(os.path.join(ckpt_dir, x)))
+    if len(sub) <= keep_last_k:
+        return
+    for d in sub[:-keep_last_k]:
+        try:
+            import shutil
+            shutil.rmtree(os.path.join(ckpt_dir, d), ignore_errors=True)
+        except Exception:
+            pass
+
+def save_checkpoint(tag, model, processor, optimizer, scheduler, global_step, epoch, ckpt_dir, use_lora):
+    """Salva adapter/weights + stato ottimizzatore/scheduler."""
+    path = os.path.join(ckpt_dir, tag)
+    _safe_makedirs(path)
+
+    # 1) pesi modello
+    if use_lora:
+        # salva SOLO l’adapter (leggero)
+        model.save_pretrained(path)
+    else:
+        # salva tutto (pesante!)
+        model.save_pretrained(path)
+
+    # 2) metadati/optimizer/scheduler
+    state = {
+        "global_step": int(global_step),
+        "epoch": int(epoch),
+        "optimizer": optimizer.state_dict() if optimizer is not None else None,
+        "scheduler": scheduler.state_dict() if scheduler is not None else None,
+        "rng": torch.get_rng_state(),
+    }
+    if torch.cuda.is_available():
+        state["cuda_rng"] = torch.cuda.get_rng_state_all()
+
+    torch.save(state, os.path.join(path, "trainer_state.pt"))
+
+    # 3) symlink 'latest'
+    latest = os.path.join(ckpt_dir, "latest")
+    try:
+        if os.path.islink(latest) or os.path.exists(latest):
+            import shutil
+            if os.path.islink(latest): os.unlink(latest)
+            elif os.path.isdir(latest): shutil.rmtree(latest)
+            else: os.remove(latest)
+        os.symlink(path, latest, target_is_directory=True)
+    except Exception:
+        pass
+
+def load_checkpoint_if_any(model, resume_path, optimizer=None, scheduler=None, device="cuda", use_lora=True):
+    """Carica adapter/weights e stato ottimizzatore/scheduler se presenti."""
+    if resume_path is None:
+        return model, optimizer, scheduler, 0, 0
+
+    # 1) pesi modello
+    if use_lora:
+        from peft import PeftModel
+        # carica gli adapter dentro al modello corrente
+        model = PeftModel.from_pretrained(model, resume_path, is_trainable=True)
+    else:
+        # per full-finetune: ricarica pesi completi
+        from transformers import AutoModelForImageTextToText
+        # Nota: in questo caso conviene ri-creare il modello da resume_path,
+        # ma dato che abbiamo già una istanza, carichiamo lo state_dict:
+        sd = torch.load(os.path.join(resume_path, "pytorch_model.bin"), map_location=device)
+        model.load_state_dict(sd, strict=False)
+
+    # 2) stato trainer
+    trainer_state = os.path.join(resume_path, "trainer_state.pt")
+    start_step, start_epoch = 0, 0
+    if os.path.exists(trainer_state):
+        st = torch.load(trainer_state, map_location=device)
+        start_step = int(st.get("global_step", 0))
+        start_epoch = int(st.get("epoch", 0))
+        if optimizer is not None and st.get("optimizer") is not None:
+            optimizer.load_state_dict(st["optimizer"])
+        if scheduler is not None and st.get("scheduler") is not None:
+            scheduler.load_state_dict(st["scheduler"])
+        try:
+            torch.set_rng_state(st["rng"])
+            if torch.cuda.is_available() and "cuda_rng" in st:
+                torch.cuda.set_rng_state_all(st["cuda_rng"])
+        except Exception:
+            pass
+
+    print(f"[RESUME] Ripartenza da {resume_path} (epoch={start_epoch}, step={start_step})")
+    return model, optimizer, scheduler, start_step, start_epoch
+
+
 # -------------------------
 # Dataset: NON tokenizza, risolve solo i path.
 # -------------------------
@@ -197,6 +292,33 @@ def make_collate_fn(processor: AutoProcessor):
     return collate
 
 
+@torch.no_grad()
+def evaluate(model, val_loader, device, writer=None, epoch=None):
+    if val_loader is None:
+        return None
+
+    model.eval()
+    total_loss, total_steps = 0.0, 0
+
+    for batch in val_loader:
+        # CPU -> GPU
+        batch = move_to_device(batch, device)
+        if "pixel_values" in batch and torch.is_tensor(batch["pixel_values"]):
+            batch["pixel_values"] = batch["pixel_values"].to(torch.float32, non_blocking=True)
+
+        outputs = model(**batch)
+        loss = outputs.loss
+        total_loss += loss.item()
+        total_steps += 1
+
+    val_loss = total_loss / max(1, total_steps)
+    if writer is not None and epoch is not None:
+        writer.add_scalar("loss/val_epoch", val_loss, epoch)
+
+    model.train()   # IMPORTANT: torna in train mode
+    return val_loss
+
+
 # -------------------------
 # Main
 # -------------------------
@@ -214,6 +336,24 @@ def main():
     parser.add_argument("--gradient_accumulation_steps", type=int, default=16)
     parser.add_argument("--num_workers", type=int, default=0)  # alza dopo il primo run
     parser.add_argument("--log_dir", type=str, default=None)
+    parser.add_argument("--val_every", type=int, default=1, help="Valida ogni N epoche (default: 1)")
+    parser.add_argument("--patience", type=int, default=0, help="Early stopping patience in epoche (0=disattivato)")
+    parser.add_argument("--checkpoint_dir", type=str, default=None,
+                    help="Dove salvare i checkpoint (default: <output_dir>/ckpts)")
+    parser.add_argument("--save_every_steps", type=int, default=0,
+                        help="Salva un checkpoint ogni N step (0=disattivo)")
+    parser.add_argument("--save_every_epochs", type=int, default=1,
+                        help="Salva un checkpoint al termine di ogni N epoche (0=disattivo)")
+    parser.add_argument("--keep_last_k", type=int, default=3,
+                        help="Conserva solo gli ultimi K checkpoint (0=tutti)")
+    parser.add_argument("--resume_from", type=str, default=None,
+                        help="Cartella di un checkpoint da cui riprendere")
+    
+    ckpt_dir = args.checkpoint_dir or os.path.join(args.output_dir, "ckpts")
+    _safe_makedirs(args.output_dir)
+    _safe_makedirs(ckpt_dir)
+
+
 
     args = parser.parse_args()
 
@@ -248,6 +388,7 @@ def main():
             quantization_config=bnb_config,
             _attn_implementation="eager",
             device_map="auto",
+            max_memory={0: "11GiB", 1: "11GiB"},
             trust_remote_code=True,
         )
         model.add_adapter(lora_config)
@@ -288,6 +429,44 @@ def main():
         pin_memory=(device == "cuda"),   # OK: i tensori sono CPU qui
     )
 
+    val_loader = None
+    if args.val_jsonl and os.path.exists(args.val_jsonl):
+        val_ds = VLMJsonlDataset(args.val_jsonl)
+        val_loader = DataLoader(
+            val_ds,
+            batch_size=args.batch_size,  # spesso si può alzare un po' perché non si fa backward
+            shuffle=False,
+            collate_fn=collate,
+            num_workers=args.num_workers,
+            pin_memory=(device == "cuda"),
+        )
+
+
+    # ----------------- Ottimizzazione -----------------
+    optimizer = AdamW(model.parameters(), lr=args.lr)
+
+    num_training_steps = len(train_loader) * args.epochs
+    scheduler = get_linear_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=max(1, num_training_steps // 100),
+        num_training_steps=num_training_steps,
+    )
+
+    # ---- RESUME (se richiesto) ----
+    use_lora_flag = bool(args.use_lora or args.use_qlora)
+    model, optimizer, scheduler, global_step, start_epoch = load_checkpoint_if_any(
+        model,
+        args.resume_from if args.resume_from and args.resume_from != "latest" else (
+            os.path.join(ckpt_dir, "latest") if args.resume_from == "latest" else None
+        ),
+        optimizer=optimizer,
+        scheduler=scheduler,
+        device=device,
+        use_lora=use_lora_flag,
+    )
+
+
+
     # ----- TensorBoard -----
     from torch.utils.tensorboard import SummaryWriter
     log_dir = args.log_dir or os.path.join(args.output_dir, "tblogs")
@@ -302,6 +481,17 @@ def main():
     global_step = 0
     optimizer.zero_grad(set_to_none=True)
 
+    # prerequisiti prima del loop (una volta sola)
+    use_lora_flag = bool(args.use_lora or args.use_qlora)
+    ckpt_dir = args.checkpoint_dir or os.path.join(args.output_dir, "ckpts")
+    os.makedirs(ckpt_dir, exist_ok=True)
+
+    best_val = float("inf")
+    bad_epochs = 0
+    best_dir = os.path.join(args.output_dir, "best")
+    os.makedirs(best_dir, exist_ok=True)
+
+    # --------- TRAINING LOOP CORRETTO + CHECKPOINTING ----------
     for epoch in range(args.epochs):
         print(f"\nEpoch {epoch+1}/{args.epochs}")
         epoch_loss_sum, epoch_steps = 0.0, 0
@@ -325,22 +515,69 @@ def main():
             epoch_loss_sum += loss.item()
             epoch_steps += 1
 
-            # gradient accumulation
-            if (global_step + 1) % args.gradient_accumulation_steps == 0:
+            do_step = ((global_step + 1) % args.gradient_accumulation_steps == 0)
+
+            if do_step:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
-                writer.add_scalar("lr", scheduler.get_last_lr()[0], global_step)
+                writer.add_scalar("lr", scheduler.get_last_lr()[0], global_step + 1)
+
+                # checkpoint per STEP (opzionale)
+                if getattr(args, "save_every_steps", 0) > 0 and ((global_step + 1) % args.save_every_steps == 0):
+                    tag = f"step_{global_step + 1:08d}"
+                    save_checkpoint(tag, model, processor, optimizer, scheduler,
+                                    global_step + 1, epoch, ckpt_dir, use_lora_flag)
+                    _rotate_checkpoints(ckpt_dir, getattr(args, "keep_last_k", 0))
 
             if global_step % 10 == 0:
                 pbar.set_description(f"step {global_step} | loss {loss.item():.4f}")
 
             global_step += 1
 
-        # media epoch
+        # --- FLUSH FINALE: gestisce l'accumulation monca a fine epoca ---
+        if (global_step % args.gradient_accumulation_steps) != 0:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+            scheduler.step()
+            optimizer.zero_grad(set_to_none=True)
+            writer.add_scalar("lr", scheduler.get_last_lr()[0], global_step)
+
+        # media epoch (train)
         if epoch_steps > 0:
             writer.add_scalar("loss/train_epoch", epoch_loss_sum / epoch_steps, epoch)
+
+        # --- VALIDATION per epoca ---
+        if (val_loader is not None) and ((epoch + 1) % args.val_every == 0):
+            val_loss = evaluate(model, val_loader, device, writer, epoch)
+            print(f"[VAL] epoch {epoch+1}: val_loss={val_loss:.4f}")
+
+            # best checkpoint
+            if val_loss < best_val:
+                best_val = val_loss
+                bad_epochs = 0
+                model.save_pretrained(best_dir)
+                processor.save_pretrained(best_dir)
+                print(f"✓ Nuovo best salvato in {best_dir} (val_loss={best_val:.4f})")
+            else:
+                bad_epochs += 1
+                if args.patience > 0 and bad_epochs >= args.patience:
+                    print(f"Early stopping: nessun miglioramento per {bad_epochs} epoche.")
+                    # salva un checkpoint finale di sicurezza prima di uscire
+                    tag = f"epoch_{epoch+1:03d}_earlystop"
+                    save_checkpoint(tag, model, processor, optimizer, scheduler,
+                                    global_step, epoch + 1, ckpt_dir, use_lora_flag)
+                    _rotate_checkpoints(ckpt_dir, getattr(args, "keep_last_k", 0))
+                    break
+
+        # checkpoint per EPOCA (opzionale)
+        if getattr(args, "save_every_epochs", 0) > 0 and ((epoch + 1) % args.save_every_epochs == 0):
+            tag = f"epoch_{epoch + 1:03d}"
+            save_checkpoint(tag, model, processor, optimizer, scheduler,
+                            global_step, epoch + 1, ckpt_dir, use_lora_flag)
+            _rotate_checkpoints(ckpt_dir, getattr(args, "keep_last_k", 0))
+
 
     # ----- Salvataggio e chiusura -----
     os.makedirs(args.output_dir, exist_ok=True)
@@ -357,12 +594,66 @@ if __name__ == "__main__":
 '''
 
 python smolvlm2_train.py \
---train_jsonl /home/battistini/exp/private_datasets/train/data.jsonl \
---val_jsonl /home/battistini/exp/private_datasets/val/data.jsonl \
---output_dir /home/battistini/exp/private_datasets/output_smolvlm2 \
---batch_size 1 \
---epochs 1 \
---lr 2e-4 \
---gradient_accumulation_steps 16
+  --train_jsonl /home/battistini/exp/private_datasets/oxe_vlm_jsonl/train/data.jsonl \
+  --val_jsonl   /home/battistini/exp/private_datasets/oxe_vlm_jsonl/val/data.jsonl \
+  --output_dir  /home/battistini/exp/output_smolvlm2_lora \
+  --log_dir     /home/battistini/exp/output_smolvlm2_lora/tblogs \
+  --batch_size 1 --epochs 1 --gradient_accumulation_steps 8 \
+  --use_lora
+
+mkdir -p /home/battistini/exp/output_smolvlm2_lora
+
+python vlm_ft/train/smolvlm2_train.py \
+  --train_jsonl /home/battistini/exp/private_datasets/oxe_vlm_jsonl/train/data.jsonl \
+  --val_jsonl   /home/battistini/exp/private_datasets/oxe_vlm_jsonl/val/data.jsonl \
+  --output_dir  /home/battistini/exp/output_smolvlm2_lora \
+  --log_dir     /home/battistini/exp/output_smolvlm2_lora/tblogs \
+  --batch_size 1 --epochs 3 --lr 2e-4 --gradient_accumulation_steps 8 \
+  --use_lora 2>&1 | tee /home/battistini/exp/output_smolvlm2_lora/train.log
+
+
+
+
+
+
+
+
+
+DATA=/home/battistini/exp/private_datasets/oxe_vlm_jsonl
+OUT=/home/battistini/exp/output_smolvlm2_lora
+LOGDIR=$OUT/tblogs
+mkdir -p "$OUT" "$LOGDIR"
+
+
+tmux new -s vlm
+
+
+
+
+python vlm_ft/train/smolvlm2_train.py \
+  --train_jsonl "$DATA/train/data.jsonl" \
+  --val_jsonl   "$DATA/val/data.jsonl" \
+  --output_dir  "$OUT" \
+  --log_dir     "$LOGDIR" \
+  --batch_size 1 \
+  --epochs 3 \
+  --lr 2e-4 \
+  --gradient_accumulation_steps 8 \
+  --val_every 1 \
+  --patience 2 \
+  --use_lora 2>&1 | tee "$OUT/train.log"
+
+
+# dentro tmux
+tmux new-window -n tb
+tensorboard --logdir "$LOGDIR" --port 6006 --bind_all
+tensorboard --logdir /home/battistini/storage/oxe-bt-pipeline/output_smolvlm2_lora/tblogs             --port 6007 --bind_all --reload_interval 5
+
+# inference usando il checkpoint
+python inference.py \
+  --adapter_dir "$OUT/best" \
+  --video "/home/battistini/exp/private_datasets/val/videos/asu_table_top_converted_externally_to_rlds_0.1.0/episode_092/contact_video.mp4" \
+  --prompt "Return only one BehaviorTree.CPP XML. No prose."
 
 '''
+

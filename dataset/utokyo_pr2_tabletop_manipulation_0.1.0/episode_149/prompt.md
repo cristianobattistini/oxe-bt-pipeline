@@ -121,8 +121,8 @@ INSTRUCTION → BT MAPPING (apply strictly)
 - Objects/poses named in the instruction become symbolic targets consistent with the frames (e.g., "card","pregrasp_pose","bin_A").
 - If the instruction implies parameters missing from the library, set those to null and justify in metadata.evaluation_notes.
 
-CONTACT SHEET MODE (K=8 frames)
-- Interpret frames strictly in ascending index 0→7, row‑major (left→right, top→bottom).
+CONTACT SHEET MODE (K=9 frames)
+- Interpret frames strictly in ascending index 0→8, row‑major (left→right, top→bottom).
 - Do not reorder, merge, or skip frames.
 - When referencing frames in metadata, use: "frame_source": "contact_sheet", "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"].
 

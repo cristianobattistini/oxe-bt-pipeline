@@ -35,7 +35,7 @@ from typing import List, Optional, Dict, Tuple
 
 # ====== DEFAULTS MODIFICABILI ======
 DATASET_ROOT = Path("dataset1")
-DEFAULT_DATASET = "austin_buds_dataset_converted_externally_to_rlds_0.1.0"
+DEFAULT_DATASET = "dlr_sara_grid_clamp_converted_externally_to_rlds_0.1.0"
 EPISODE_PREFIX = "episode_"
 EP_NUM_WIDTH = 3
 DEFAULT_LOCALS = [1, 2, 3]
@@ -519,7 +519,7 @@ if __name__ == "__main__":
 
 '''
 # Dataset (già sotto DATASET_ROOT=dataset1)
-DS="austin_buds_dataset_converted_externally_to_rlds_0.1.0"
+DS="dlr_sara_grid_clamp_converted_externally_to_rlds_0.1.0"
 
 # 1) Anteprima locals da episode_001 in avanti
 python chat_stage.py status --from 1 --dataset "$DS"

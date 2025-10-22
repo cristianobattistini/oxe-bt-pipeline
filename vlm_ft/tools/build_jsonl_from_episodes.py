@@ -7,7 +7,7 @@ import random
 import argparse
 import shutil
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 
 # -------------------------------
 # PROMPT: schema MINIMALE / varianti
@@ -98,7 +98,7 @@ def safe_xml(xml_text: str) -> str:
 def make_records_for_episode(meta: dict, xml_text: str, mode: str, mix_ratio: str) -> List[Dict]:
     """
     Restituisce una lista di RECORD *logici* (prompt stringa + response stringa).
-    La conversione al formato 'messages' avviene più avanti quando conosciamo il path del video.
+    La conversione al formato 'messages' avviene più avanti quando conosciamo il path del media.
     """
     if mode == "minimal":
         return [{"prompt": prompt_minimal(meta), "response": xml_text}]
@@ -111,49 +111,78 @@ def make_records_for_episode(meta: dict, xml_text: str, mode: str, mix_ratio: st
     recs += [{"prompt": prompt_dom(meta),      "response": xml_text}] * c
     return recs
 
-def to_chat_record(prompt_text: str, xml_text: str, video_path: str,
-                   dataset_id: str, episode_id: str) -> Dict:
-    """
-    Converte (prompt+response+video) nel formato chat richiesto dal processor di SmolVLM2.
-    - role=user: due blocchi di testo (SYSTEM/CONSTRAINTS e INSTRUCTION...) + il video
-    - role=assistant: solo l'XML
-    """
-    # Spezza il prompt in due parti di testo per maggiore chiarezza (non obbligatorio ma utile).
-    # Qui usiamo la riga vuota tra SYS_PREFIX e il resto come separatore.
+def split_prompt(prompt_text: str) -> Tuple[str, str]:
     if "\nINSTRUCTION:" in prompt_text:
         sys_part, instr_part = prompt_text.split("\nINSTRUCTION:", 1)
         sys_part = sys_part.strip()
         instr_part = ("INSTRUCTION:" + instr_part).strip()
     else:
         sys_part, instr_part = prompt_text, ""
+    return sys_part, instr_part
 
+def to_chat_record_video(prompt_text: str, xml_text: str, video_path: str,
+                         dataset_id: str, episode_id: str) -> Dict:
+    sys_part, instr_part = split_prompt(prompt_text)
     messages = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": sys_part},
-                {"type": "text", "text": instr_part},
-                {"type": "video", "path": video_path}
-            ]
-        },
-        {
-            "role": "assistant",
-            "content": [
-                {"type": "text", "text": xml_text}
-            ]
-        }
+        {"role": "user",
+         "content": [
+             {"type": "text", "text": sys_part},
+             {"type": "text", "text": instr_part},
+             {"type": "video", "path": video_path}
+         ]},
+        {"role": "assistant", "content": [{"type": "text", "text": xml_text}]}
     ]
-    return {
-        "messages": messages,
-        "meta": {"dataset_id": dataset_id, "episode_id": episode_id}
-    }
+    return {"messages": messages, "meta": {"dataset_id": dataset_id, "episode_id": episode_id}}
+
+def to_chat_record_image(prompt_text: str, xml_text: str, image_path: str,
+                         dataset_id: str, episode_id: str, local_id: str) -> Dict:
+    """
+    Versione per locals: inserisce un blocco 'image' al posto del video.
+    """
+    sys_part, instr_part = split_prompt(prompt_text)
+    messages = [
+        {"role": "user",
+         "content": [
+             {"type": "text", "text": sys_part},
+             {"type": "text", "text": instr_part},
+             {"type": "image", "path": image_path}
+         ]},
+        {"role": "assistant", "content": [{"type": "text", "text": xml_text}]}
+    ]
+    return {"messages": messages,
+            "meta": {"dataset_id": dataset_id, "episode_id": episode_id, "local_id": local_id}}
+
+# -------------------------------
+# Helpers per LOCALS (immagine + subtree)
+# -------------------------------
+
+def discover_locals(ep_dir: Path, locals_dirname: str) -> List[Path]:
+    """
+    Ritorna la lista di cartelle local_* presenti in episode/locals/.
+    """
+    c = ep_dir / locals_dirname
+    if not c.exists():
+        return []
+    return sorted([p for p in c.iterdir() if p.is_dir() and p.name.startswith("local_")])
+
+def find_first_image(local_dir: Path, image_glob: str) -> Optional[Path]:
+    imgs = sorted(list(local_dir.glob(image_glob)))
+    if imgs:
+        return imgs[0]
+    # fallback: prova png/jpg generici
+    for patt in ["*.jpg", "*.jpeg", "*.png"]:
+        imgs = sorted(list(local_dir.glob(patt)))
+        if imgs:
+            return imgs[0]
+    return None
 
 # -------------------------------
 # Pipeline principale
 # -------------------------------
 
 def main():
-    ap = argparse.ArgumentParser("Build JSONL for SmolVLM FT from episodes (video only)")
+    ap = argparse.ArgumentParser("Build JSONL for SmolVLM FT from episodes (video) and locals (images)")
+    # --- invariato: video ---
     ap.add_argument("--episodes_root", type=str, required=True,
                     help="Radice con i dataset che contengono episode_*")
     ap.add_argument("--out_root", type=str, required=True,
@@ -174,6 +203,25 @@ def main():
                     help="Non copiare i video; salva il path assoluto al file originale")
     ap.add_argument("--limit", type=int, default=0,
                     help="Processa solo i primi N episodi (debug)")
+
+    # --- nuovo: locals (immagini) ---
+    ap.add_argument("--enable-locals", action="store_true",
+                    help="Se presente, genera anche il dataset images+BT per i locals")
+    ap.add_argument("--locals-dirname", type=str, default="locals",
+                    help="Nome directory dei locals dentro l'episodio")
+    ap.add_argument("--local-xml-filename", type=str, default="subtree_.xml",
+                    help="Nome del file XML del subtree locale")
+    ap.add_argument("--local-prompt-filename", type=str, default="local_prompt.md",
+                    help="Nome del file testo con l'istruzione specifica del local")
+    ap.add_argument("--local-image-glob", type=str, default="frame_*.jpg",
+                    help="Glob per l'immagine del local (es. frame_*.jpg)")
+    ap.add_argument("--jsonl-name-locals", type=str, default="data_locals.jsonl",
+                    help="Nome del JSONL per i locals (immagini)")
+    ap.add_argument("--images-subdir", type=str, default="images",
+                    help="Sottocartella (dentro lo split) per copiare le immagini")
+    ap.add_argument("--no-copy-image", action="store_true",
+                    help="Non copiare le immagini; salva path assoluti")
+
     args = ap.parse_args()
 
     episodes_root = Path(args.episodes_root).resolve()
@@ -195,7 +243,8 @@ def main():
     train_eps = all_eps[:n_train]
     val_eps = all_eps[n_train:]
 
-    def process_split(split_eps: List[Tuple[str, Path]], split_dir: Path):
+    # -------- VIDEO (invariato) --------
+    def process_split_video(split_eps: List[Tuple[str, Path]], split_dir: Path):
         jsonl_path = split_dir / args.jsonl_name
         with jsonl_path.open("w", encoding="utf-8") as jf:
             for ds_name, ep_dir in split_eps:
@@ -205,28 +254,24 @@ def main():
                 if not (meta_path.exists() and xml_path.exists() and video_path.exists()):
                     continue
 
-                # meta
                 try:
                     meta = json.loads(meta_path.read_text(encoding="utf-8"))
                 except Exception:
                     continue
 
-                # xml
                 xml_text = safe_xml(xml_path.read_text(encoding="utf-8"))
 
-                # video: copia o referenzia
                 if args.no_copy_video:
                     video_field = str(video_path.resolve())
                 else:
                     dest = split_dir / args.videos_subdir / ds_name / ep_dir.name / args.video_filename
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(video_path, dest)
-                    video_field = str(dest.relative_to(split_dir))  # path relativo nello split
+                    video_field = str(dest.relative_to(split_dir))
 
-                # record logici (prompt/response) -> chat record (messages)
                 records = make_records_for_episode(meta, xml_text, args.prompt_mode, args.mix_ratio)
                 for rec in records:
-                    chat_rec = to_chat_record(
+                    chat_rec = to_chat_record_video(
                         prompt_text=rec["prompt"],
                         xml_text=rec["response"],
                         video_path=video_field,
@@ -235,15 +280,91 @@ def main():
                     )
                     jf.write(json.dumps(chat_rec, ensure_ascii=False) + "\n")
 
-    process_split(train_eps, train_dir)
-    process_split(val_eps, val_dir)
+    process_split_video(train_eps, train_dir)
+    process_split_video(val_eps, val_dir)
+
+    # -------- LOCALS (nuovo, opzionale) --------
+    def make_local_meta(base_meta: dict, local_prompt_text: Optional[str]) -> dict:
+        """
+        Costruisce un meta ad-hoc per il local:
+        - se esiste local_prompt.md lo usa come task_instruction;
+        - altrimenti usa base_meta.task_instruction con nota di focalizzazione locale.
+        Manteniamo gli altri campi invariati per coerenza col mixing dei prompt.
+        """
+        m = dict(base_meta) if base_meta else {}
+        if local_prompt_text and local_prompt_text.strip():
+            m["task_instruction"] = local_prompt_text.strip()
+        else:
+            ti = (base_meta or {}).get("task_instruction", "")
+            m["task_instruction"] = f"{ti}\nFocus only on the local subtask depicted in the image. Ignore video-specific details."
+        return m
+
+    def process_split_locals(split_eps: List[Tuple[str, Path]], split_dir: Path):
+        if not args.enable_locals:
+            return
+        jsonl_path = split_dir / args.jsonl-name-locals if hasattr(args, "jsonl-name-locals") else split_dir / args.jsonl_name_locals  # safety for hyphen/underscore
+        # gestisci attributo con underscore (nome effettivo argparse)
+        jsonl_path = split_dir / getattr(args, "jsonl_name_locals")
+        with jsonl_path.open("w", encoding="utf-8") as jf:
+            for ds_name, ep_dir in split_eps:
+                meta_path = ep_dir / args.meta_filename
+                base_meta = {}
+                if meta_path.exists():
+                    try:
+                        base_meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                    except Exception:
+                        base_meta = {}
+
+                # Scansiona locals
+                for local_dir in discover_locals(ep_dir, args.locals_dirname):
+                    local_id = local_dir.name  # es. local_1
+                    xml_path  = local_dir / args.local_xml_filename
+                    prompt_md = local_dir / args.local_prompt_filename
+                    img_path  = find_first_image(local_dir, args.local_image_glob)
+
+                    if not (xml_path.exists() and img_path and img_path.exists()):
+                        continue
+
+                    xml_text = safe_xml(xml_path.read_text(encoding="utf-8"))
+                    local_prompt_text = prompt_md.read_text(encoding="utf-8") if prompt_md.exists() else None
+                    meta = make_local_meta(base_meta, local_prompt_text)
+
+                    # copia o referenzia immagine
+                    if args.no_copy_image:
+                        image_field = str(img_path.resolve())
+                    else:
+                        dest = split_dir / args.images_subdir / ds_name / ep_dir.name / local_id / img_path.name
+                        dest.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(img_path, dest)
+                        image_field = str(dest.relative_to(split_dir))
+
+                    # records come per i video, ma con blocco immagine
+                    records = make_records_for_episode(meta, xml_text, args.prompt_mode, args.mix_ratio)
+                    for rec in records:
+                        chat_rec = to_chat_record_image(
+                            prompt_text=rec["prompt"],
+                            xml_text=rec["response"],
+                            image_path=image_field,
+                            dataset_id=ds_name,
+                            episode_id=ep_dir.name,
+                            local_id=local_id
+                        )
+                        jf.write(json.dumps(chat_rec, ensure_ascii=False) + "\n")
+
+    process_split_locals(train_eps, train_dir)
+    process_split_locals(val_eps, val_dir)
 
     print(f"Creati: {train_dir / args.jsonl_name}  e  {val_dir / args.jsonl_name}")
+    if args.enable_locals:
+        print(f"Creati locals: {train_dir / args.jsonl_name_locals}  e  {val_dir / args.jsonl_name_locals}")
     print(f"Esempio video: {train_dir / args.videos_subdir}")
-    print("Schema record: {'messages': [...], 'meta': {...}}  con content: [{type:'text'| 'video', ...}]")
+    if args.enable_locals:
+        print(f"Esempio images: {train_dir / args.images_subdir}")
+    print("Schema record: {'messages': [...], 'meta': {...}}  con content: [{type:'text'|'video'|'image', ...}]")
 
 if __name__ == "__main__":
     main()
+
 
 
 '''
@@ -289,4 +410,30 @@ python3 vlm_ft/tools/build_jsonl_from_episodes.py \
   --episodes_root ~/datasets/private/oxe_episodes \
   --out_root      ~/datasets/private/oxe_vlm_jsonl \
   --prompt_mode   minimal
+
+
+  python3 vlm_ft/tools/build_jsonl_from_episodes.py \
+  --episodes_root dataset \
+  --out_root private_datasets \
+  --prompt_mode minimal
+
+  # video + locals 
+  python3 vlm_ft/tools/build_jsonl_from_episodes.py \
+  --episodes_root dataset \
+  --out_root private_datasets \
+  --prompt_mode mix --mix_ratio 6,3,1 \
+  --enable-locals \
+  --no-copy-video --no-copy-image
+
+
+  python3 vlm_ft/tools/build_jsonl_from_episodes.py \
+  --episodes_root dataset \
+  --out_root private_datasets \
+  --prompt_mode minimal \
+  --enable-locals
+
+
+  
+    # video + locals 
+
 '''
