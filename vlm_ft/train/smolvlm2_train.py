@@ -22,6 +22,8 @@ from tqdm import tqdm
 
 from torch.utils.tensorboard import SummaryWriter
 
+import wandb
+
 
 # Disabilita FlashAttention; abilita backend SDPA compatibili
 try:
@@ -328,6 +330,8 @@ def evaluate(model, val_loader, device, writer=None, epoch=None):
     val_loss = total_loss / max(1, total_steps)
     if writer is not None and epoch is not None:
         writer.add_scalar("loss/val_epoch", val_loss, epoch)
+    if epoch is not None:
+        wandb.log({"loss/val_epoch": val_loss, "epoch": epoch})
 
     model.train()   # IMPORTANT: torna in train mode
     return val_loss
@@ -337,6 +341,8 @@ def evaluate(model, val_loader, device, writer=None, epoch=None):
 # Main
 # -------------------------
 def main():
+
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_jsonl", type=str, required=True)
     parser.add_argument("--val_jsonl", type=str)
@@ -348,23 +354,26 @@ def main():
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=16)
-    parser.add_argument("--num_workers", type=int, default=0)  # alza dopo il primo run
+    parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--log_dir", type=str, default=None)
-    parser.add_argument("--val_every", type=int, default=1, help="Valida ogni N epoche (default: 1)")
-    parser.add_argument("--patience", type=int, default=0, help="Early stopping patience in epoche (0=disattivato)")
-    parser.add_argument("--checkpoint_dir", type=str, default=None,
-                    help="Dove salvare i checkpoint (default: <output_dir>/ckpts)")
-    parser.add_argument("--save_every_steps", type=int, default=0,
-                        help="Salva un checkpoint ogni N step (0=disattivo)")
-    parser.add_argument("--save_every_epochs", type=int, default=1,
-                        help="Salva un checkpoint al termine di ogni N epoche (0=disattivo)")
-    parser.add_argument("--keep_last_k", type=int, default=3,
-                        help="Conserva solo gli ultimi K checkpoint (0=tutti)")
-    parser.add_argument("--resume_from", type=str, default=None,
-                        help="Cartella di un checkpoint da cui riprendere")
-    parser.add_argument("--dropout_ratio", type=float, default=0.0,
-                        help="Probabilità (es. 0.5) di svuotare l'istruzione di testo per forzare il visual grounding.")
-    
+    parser.add_argument("--val_every", type=int, default=1)
+    parser.add_argument("--patience", type=int, default=0)
+    parser.add_argument("--checkpoint_dir", type=str, default=None)
+    parser.add_argument("--save_every_steps", type=int, default=0)
+    parser.add_argument("--save_every_epochs", type=int, default=1)
+    parser.add_argument("--keep_last_k", type=int, default=3)
+    parser.add_argument("--resume_from", type=str, default=None)
+    parser.add_argument("--dropout_ratio", type=float, default=0.0)
+    parser.add_argument("--seed", type=int, default=42)
+
+    args = parser.parse_args()
+
+    # seed
+    import random
+    random.seed(args.seed); torch.manual_seed(args.seed)
+    if torch.cuda.is_available(): torch.cuda.manual_seed_all(args.seed)
+
+    # CHECKPOINTS folders 
     ckpt_dir = args.checkpoint_dir or os.path.join(args.output_dir, "ckpts")
     _safe_makedirs(args.output_dir)
     _safe_makedirs(ckpt_dir)
@@ -372,6 +381,15 @@ def main():
 
 
     args = parser.parse_args()
+
+    # ---- INIT W&B ----
+    wandb.init(
+        project="smolvlm2-train",         # nome del tuo progetto su wandb
+        name=os.path.basename(args.output_dir.rstrip("/")),  # nome run automatico
+        config=vars(args),                # logga tutti gli argomenti di training
+        dir=args.output_dir,              # dove salvare i file locali
+    )
+
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
@@ -528,6 +546,8 @@ def main():
 
             # logging per step
             writer.add_scalar("loss/train_step", loss.item(), global_step)
+            wandb.log({"loss/train_step": loss.item(), "step": global_step})
+
             epoch_loss_sum += loss.item()
             epoch_steps += 1
 
@@ -538,7 +558,9 @@ def main():
                 optimizer.step()
                 scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
+
                 writer.add_scalar("lr", scheduler.get_last_lr()[0], global_step + 1)
+                wandb.log({"lr": scheduler.get_last_lr()[0], "step": global_step + 1})
 
                 # checkpoint per STEP (opzionale)
                 if getattr(args, "save_every_steps", 0) > 0 and ((global_step + 1) % args.save_every_steps == 0):
@@ -600,6 +622,8 @@ def main():
     model.save_pretrained(args.output_dir)
     processor.save_pretrained(args.output_dir)
     writer.close()
+    wandb.finish()
+
     print(f"Modello salvato in {args.output_dir}")
 
 
