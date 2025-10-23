@@ -464,13 +464,14 @@ def main():
     )
 
     val_loader = None
+    val_collate = make_collate_fn(processor, dropout_ratio=0.0)
     if args.val_jsonl and os.path.exists(args.val_jsonl):
         val_ds = VLMJsonlDataset(args.val_jsonl)
         val_loader = DataLoader(
             val_ds,
             batch_size=args.batch_size,  # spesso si può alzare un po' perché non si fa backward
             shuffle=False,
-            collate_fn=collate,
+            collate_fn=val_collate,
             num_workers=args.num_workers,
             pin_memory=(device == "cuda"),
         )
@@ -650,6 +651,7 @@ python vlm_ft/train/smolvlm2_train.py \
   --log_dir     /home/battistini/exp/output_smolvlm2_lora/tblogs \
   --batch_size 1 --epochs 3 --lr 2e-4 --gradient_accumulation_steps 8 \
   --use_lora 2>&1 | tee /home/battistini/exp/output_smolvlm2_lora/train.log
+  --dropout_ratio 0.5
 
 
 
