@@ -309,14 +309,15 @@ def make_collate_fn(processor: AutoProcessor, dropout_ratio: float = 0.0):
 
 
 @torch.no_grad()
-def evaluate(model, val_loader, device, writer=None, epoch=None):
+def evaluate(model, val_loader, device, writer=None, log_step=None, log_key="loss/val_epoch"):
     if val_loader is None:
         return None
 
     model.eval()
     total_loss, total_steps = 0.0, 0
 
-    for batch in val_loader:
+    pbar_val = tqdm(val_loader, desc="Validating", dynamic_ncols=True, leave=False)
+    for batch in pbar_val:
         # CPU -> GPU
         batch = move_to_device(batch, device)
         if "pixel_values" in batch and torch.is_tensor(batch["pixel_values"]):
@@ -328,10 +329,16 @@ def evaluate(model, val_loader, device, writer=None, epoch=None):
         total_steps += 1
 
     val_loss = total_loss / max(1, total_steps)
-    if writer is not None and epoch is not None:
-        writer.add_scalar("loss/val_epoch", val_loss, epoch)
-    if epoch is not None:
-        wandb.log({"loss/val_epoch": val_loss, "epoch": epoch})
+    
+    if log_step is not None:
+        # Logga su TensorBoard
+        if writer is not None:
+            writer.add_scalar(log_key, val_loss, log_step)
+        
+        # Logga su W&B
+        # Determina se l'asse X è 'step' o 'epoch' in base alla chiave
+        wandb_step_key = "epoch" if "epoch" in log_key else "step"
+        wandb.log({log_key: val_loss, wandb_step_key: log_step})
 
     model.train()   # IMPORTANT: torna in train mode
     return val_loss
@@ -357,6 +364,7 @@ def main():
     parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--log_dir", type=str, default=None)
     parser.add_argument("--val_every", type=int, default=1)
+    parser.add_argument("--val_every_steps", type=int, default=50, help="Esegui validazione ogni N step (optimizer steps). 0 per disabilitare.") # <--- AGGIUNGI QUESTA
     parser.add_argument("--patience", type=int, default=0)
     parser.add_argument("--checkpoint_dir", type=str, default=None)
     parser.add_argument("--save_every_steps", type=int, default=0)
@@ -525,6 +533,7 @@ def main():
     bad_epochs = 0
     best_dir = os.path.join(args.output_dir, "best")
     os.makedirs(best_dir, exist_ok=True)
+    stop_training = False 
 
     # --------- TRAINING LOOP CORRETTO + CHECKPOINTING ----------
     for epoch in range(args.epochs):
@@ -555,28 +564,60 @@ def main():
             do_step = ((global_step + 1) % args.gradient_accumulation_steps == 0)
 
             if do_step:
+                # --- Step Optimizer ---
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
+                
+                current_optimizer_step = global_step + 1
 
-                writer.add_scalar("lr", scheduler.get_last_lr()[0], global_step + 1)
-                wandb.log({"lr": scheduler.get_last_lr()[0], "step": global_step + 1})
+                # --- Logging LR ---
+                writer.add_scalar("lr", scheduler.get_last_lr()[0], current_optimizer_step)
+                wandb.log({"lr": scheduler.get_last_lr()[0], "step": current_optimizer_step})
 
-                # checkpoint per STEP (opzionale)
-                if getattr(args, "save_every_steps", 0) > 0 and ((global_step + 1) % args.save_every_steps == 0):
-                    tag = f"step_{global_step + 1:08d}"
+                # --- Checkpoint per STEP (opzionale) ---
+                if getattr(args, "save_every_steps", 0) > 0 and (current_optimizer_step % args.save_every_steps == 0):
+                    tag = f"step_{current_optimizer_step:08d}"
                     save_checkpoint(tag, model, processor, optimizer, scheduler,
-                                    global_step + 1, epoch, ckpt_dir, use_lora_flag)
+                                    current_optimizer_step, epoch, ckpt_dir, use_lora_flag)
                     _rotate_checkpoints(ckpt_dir, getattr(args, "keep_last_k", 0))
+
+                # --- NUOVA VALIDAZIONE per STEP (se richiesta) ---
+                if (val_loader is not None) and (args.val_every_steps > 0) and (current_optimizer_step % args.val_every_steps == 0):
+                    print(f"\n[VAL] Esecuzione validazione allo step {current_optimizer_step}...")
+                    val_loss = evaluate(model, val_loader, device, writer, 
+                                        log_step=current_optimizer_step, 
+                                        log_key="loss/val_step")
+                    print(f"[VAL] step {current_optimizer_step}: val_loss={val_loss:.4f}")
+
+                    # --- Logica Best Checkpoint & Early Stopping ---
+                    if val_loss < best_val:
+                        best_val = val_loss
+                        bad_epochs = 0
+                        model.save_pretrained(best_dir)
+                        processor.save_pretrained(best_dir)
+                        print(f"✓ Nuovo best salvato in {best_dir} (val_loss={best_val:.4f})")
+                    else:
+                        bad_epochs += 1
+                        print(f"[VAL] Nessun miglioramento. Pazienza: {bad_epochs}/{args.patience}")
+                        if args.patience > 0 and bad_epochs >= args.patience:
+                            print(f"Early stopping: nessun miglioramento per {bad_epochs} validazioni.")
+                            tag = f"step_{current_optimizer_step:08d}_earlystop"
+                            save_checkpoint(tag, model, processor, optimizer, scheduler,
+                                            current_optimizer_step, epoch + 1, ckpt_dir, use_lora_flag)
+                            _rotate_checkpoints(ckpt_dir, getattr(args, "keep_last_k", 0))
+                            stop_training = True
+                            break # Esce dal loop dei batch
 
             if global_step % 10 == 0:
                 pbar.set_description(f"step {global_step} | loss {loss.item():.4f}")
 
             global_step += 1
 
+
         # --- FLUSH FINALE: gestisce l'accumulation monca a fine epoca ---
-        if (global_step % args.gradient_accumulation_steps) != 0:
+        if (global_step % args.gradient_accumulation_steps) != 0 and not stop_training:
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             scheduler.step()
@@ -586,13 +627,16 @@ def main():
         # media epoch (train)
         if epoch_steps > 0:
             writer.add_scalar("loss/train_epoch", epoch_loss_sum / epoch_steps, epoch)
+            wandb.log({"loss/train_epoch": epoch_loss_sum / epoch_steps, "epoch": epoch})
 
-        # --- VALIDATION per epoca ---
-        if (val_loader is not None) and ((epoch + 1) % args.val_every == 0):
-            val_loss = evaluate(model, val_loader, device, writer, epoch)
+        # --- VALIDATION per epoca (SOLO SE LA VALIDAZIONE PER STEP È DISABILITATA) ---
+        if (val_loader is not None) and (args.val_every_steps <= 0) and ((epoch + 1) % args.val_every == 0):
+            val_loss = evaluate(model, val_loader, device, writer, 
+                                log_step=epoch, 
+                                log_key="loss/val_epoch")
             print(f"[VAL] epoch {epoch+1}: val_loss={val_loss:.4f}")
 
-            # best checkpoint
+            # best checkpoint (logica duplicata per validazione a fine epoca)
             if val_loss < best_val:
                 best_val = val_loss
                 bad_epochs = 0
@@ -603,12 +647,12 @@ def main():
                 bad_epochs += 1
                 if args.patience > 0 and bad_epochs >= args.patience:
                     print(f"Early stopping: nessun miglioramento per {bad_epochs} epoche.")
-                    # salva un checkpoint finale di sicurezza prima di uscire
                     tag = f"epoch_{epoch+1:03d}_earlystop"
                     save_checkpoint(tag, model, processor, optimizer, scheduler,
                                     global_step, epoch + 1, ckpt_dir, use_lora_flag)
                     _rotate_checkpoints(ckpt_dir, getattr(args, "keep_last_k", 0))
-                    break
+                    stop_training = True
+                    # non serve 'break' qui, è già l'ultima cosa prima del check sotto
 
         # checkpoint per EPOCA (opzionale)
         if getattr(args, "save_every_epochs", 0) > 0 and ((epoch + 1) % args.save_every_epochs == 0):
@@ -616,6 +660,11 @@ def main():
             save_checkpoint(tag, model, processor, optimizer, scheduler,
                             global_step, epoch + 1, ckpt_dir, use_lora_flag)
             _rotate_checkpoints(ckpt_dir, getattr(args, "keep_last_k", 0))
+
+        # --- Check per uscire dal loop delle epoche ---
+        if stop_training:
+            print("Stop training richiesto da early stopping.")
+            break
 
 
     # ----- Salvataggio e chiusura -----
