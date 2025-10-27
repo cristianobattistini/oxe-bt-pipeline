@@ -175,7 +175,30 @@ def generate_once(model, processor, device, system_text, prompt_text, video_path
             batch[k] = v.to(device, non_blocking=True)
     if "pixel_values" in batch and torch.is_tensor(batch["pixel_values"]):
         # Usa il dtype corretto atteso dal modello (spesso bfloat16 su GPU recenti)
-        model_dtype = getattr(model.config, "torch_dtype", torch.float32)
+
+        # Usa il dtype corretto atteso dal modello (spesso bfloat16 su GPU recenti)
+        model_dtype_config = getattr(model.config, "torch_dtype", torch.float32) # Prendi il valore dalla config
+
+        # Converti la stringa (se necessario) in un oggetto torch.dtype
+        if isinstance(model_dtype_config, str):
+            if model_dtype_config == "float32":
+                model_dtype = torch.float32
+            elif model_dtype_config == "float16":
+                model_dtype = torch.float16
+            elif model_dtype_config == "bfloat16":
+                model_dtype = torch.bfloat16
+            else:
+                # Fallback se la stringa non è riconosciuta
+                print(f"Warning: Unrecognized torch_dtype string '{model_dtype_config}' in model config. Using float32.", file=sys.stderr)
+                model_dtype = torch.float32
+        elif isinstance(model_dtype_config, torch.dtype):
+            model_dtype = model_dtype_config # Era già del tipo giusto
+        else:
+            # Fallback per tipi inaspettati
+             print(f"Warning: Unexpected type for torch_dtype '{type(model_dtype_config)}' in model config. Using float32.", file=sys.stderr)
+             model_dtype = torch.float32
+
+        # Ora usa model_dtype, che è sicuramente un oggetto torch.dtype
         batch["pixel_values"] = batch["pixel_values"].to(model_dtype, non_blocking=True)
 
     logits_processor = LogitsProcessorList() # Sempre una lista
