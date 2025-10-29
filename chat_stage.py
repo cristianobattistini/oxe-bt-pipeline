@@ -246,10 +246,9 @@ def parse_stage_file(p: Path) -> Optional[Dict]:
     return None
 
 def choose_root_names(ep_dir: Path) -> Tuple[str, str]:
-    """Se esiste bt_full.xml nell’episodio, usa bt_full.{xml,json}, altrimenti bt.{xml,json}."""
-    if (ep_dir / "bt_full.xml").exists():
-        return "bt_full.xml", "bt_full.json"
-    return "bt.xml", "bt.json"
+    """Forza sempre la scrittura su bt.xml / meta.json."""
+    return "bt.xml", "meta.json"
+
 
 def target_for_item(item: Dict, dataset: str) -> Path:
     ep_dir = DATASET_ROOT / dataset / ep_name(item["ep"])

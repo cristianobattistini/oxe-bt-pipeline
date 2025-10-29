@@ -1,0 +1,19 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <SetTCPYaw yaw_deg="0"/>
+    <DetectObject target="grid_clamp" timeout_ms="1500"/>
+    <MoveAbove target="grid_clamp" offset_z="0.05" timeout_ms="1500"/>
+    <OpenGripper width="0.06" timeout_ms="800"/>
+    <ApproachAndAlign target="grid_clamp" tolerance="0.01" timeout_ms="1500"/>
+    <CloseGripper force="20" timeout_ms="1000"/>
+    <IsGraspStable/>
+    <RaiseHeld target="grid_clamp" distance="0.10" timeout_ms="1000"/>
+    <DetectObject target="grid" timeout_ms="1500"/>
+    <MoveAbove target="grid" offset_z="0.08" timeout_ms="2000"/>
+    <ApproachAndAlign target="grid" tolerance="0.01" timeout_ms="2000"/>
+    <PlaceOnSurface target="grid_clamp" area_id="board" yaw_deg="0" press_force="10" timeout_ms="1500"/>
+    <OpenGripper width="0.04" timeout_ms="800"/>
+    <Retreat distance="0.10" timeout_ms="1000"/>
+    <Wait timeout_ms="500"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,338 @@
+{
+  "dataset_id": "dlr_sara_grid_clamp_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_011",
+  "task_summary": "The robot positions a grid clamp precisely on a designated placement area, following detection, alignment, grasp, transfer, and placement steps.",
+  "task_long_description": {
+    "overview": "In this sequence, the manipulator detects the grid clamp on the workspace, computes a top grasp pose, approaches and aligns over it, grasps it gently, lifts it, and transfers it to a defined placement area before releasing it. The scene involves a table setup with several clamps and the SARA robotic arm executing the motion smoothly.",
+    "preconditions": [
+      "Clamp present in workspace",
+      "Placement area clear",
+      "Gripper calibrated"
+    ],
+    "stepwise_plan": [
+      "Detect the grid clamp using vision",
+      "Compute grasp pose with a top strategy",
+      "Approach and align with the clamp",
+      "Close gripper with low force to grasp",
+      "Lift clamp slightly",
+      "Move above target area",
+      "Place clamp at goal pose with low press force",
+      "Open gripper to release",
+      "Retreat to safe distance"
+    ],
+    "success_criteria": [
+      "Clamp placed flush on grid area",
+      "No misalignment or tilt",
+      "Gripper fully released"
+    ],
+    "failure_and_recovery": [
+      "Detection failure → retry perception",
+      "Grasp slip → repeat alignment and grasp"
+    ],
+    "termination": "End when gripper open and clamp stable on grid"
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "approach completed, clamp about to be placed",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Place grid clamp",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 2000,
+    "tolerance": 0.01,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "robot_arm",
+    "grid_clamp",
+    "table",
+    "placement_area"
+  ],
+  "objects_from_instruction": [
+    "grid_clamp"
+  ],
+  "blackboard_keys": [
+    "goal_pose"
+  ],
+  "node_specs": [
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {
+        "target": "grid_clamp",
+        "timeout_ms": 1500
+      },
+      "description": "Detect grid clamp in workspace"
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {
+        "target": "grid_clamp",
+        "strategy": "top",
+        "result_key": "goal_pose"
+      },
+      "description": "Compute grasp pose for grid clamp"
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {
+        "target": "grid_clamp",
+        "tolerance": 0.01,
+        "timeout_ms": 2000
+      },
+      "description": "Approach and align with clamp"
+    },
+    {
+      "id": "CloseGripper",
+      "type": "Action",
+      "ports": {
+        "force": 10,
+        "timeout_ms": 1000
+      },
+      "description": "Close gripper to grasp clamp"
+    },
+    {
+      "id": "RaiseHeld",
+      "type": "Action",
+      "ports": {
+        "target": "grid_clamp",
+        "distance": 0.1,
+        "timeout_ms": 1000
+      },
+      "description": "Lift grasped clamp"
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {
+        "target": "placement_area",
+        "offset_z": 0.05,
+        "timeout_ms": 2000
+      },
+      "description": "Move above placement area"
+    },
+    {
+      "id": "PlaceAtTol",
+      "type": "Action",
+      "ports": {
+        "pose_key": "goal_pose",
+        "yaw_deg": 0,
+        "press_force": 10,
+        "tolerance": 0.01,
+        "timeout_ms": 2000
+      },
+      "description": "Place clamp on area with precision"
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {
+        "width": 0.08,
+        "timeout_ms": 800
+      },
+      "description": "Open gripper to release clamp"
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {
+        "distance": 0.1,
+        "timeout_ms": 1000
+      },
+      "description": "Move away after placement"
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 9,
+    "actions": 9,
+    "conditions": 0,
+    "depth": 1
+  },
+  "failure_modes": [
+    "Clamp not detected",
+    "Grasp slip",
+    "Placement misalignment"
+  ],
+  "recovery_strategy": [
+    "Retry perception",
+    "Re-align and re-grasp",
+    "Re-attempt placement"
+  ],
+  "assumptions": [
+    "Frames show steady approach and placement; instruction consistent with visual evidence."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Clamp stable at target grid",
+      "Arm retreat confirmed"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {
+          "target": "grid_clamp",
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ComputeGraspPose",
+        "attrs": {
+          "target": "grid_clamp",
+          "strategy": "top",
+          "result_key": "goal_pose"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {
+          "target": "grid_clamp",
+          "tolerance": 0.01,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "CloseGripper",
+        "attrs": {
+          "force": 10,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "RaiseHeld",
+        "attrs": {
+          "target": "grid_clamp",
+          "distance": 0.1,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {
+          "target": "placement_area",
+          "offset_z": 0.05,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {
+        "id": "PlaceAtTol",
+        "attrs": {
+          "pose_key": "goal_pose",
+          "yaw_deg": 0,
+          "press_force": 10,
+          "tolerance": 0.01,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {
+          "width": 0.08,
+          "timeout_ms": 800
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.1,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

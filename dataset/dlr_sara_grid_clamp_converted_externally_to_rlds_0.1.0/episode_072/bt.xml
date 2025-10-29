@@ -1,0 +1,27 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <ObjectInGripper target="grid_clamp"/>
+      <Sequence>
+        <ScanForTarget target="grid_clamp" pattern="grid" max_attempts="3" timeout_ms="2000"/>
+        <DetectObject target="grid_clamp" timeout_ms="1500"/>
+        <MoveAbove target="grid_clamp" offset_z="0.05" timeout_ms="2000"/>
+        <OpenGripper width="0.06" timeout_ms="500"/>
+        <ComputeGraspPose target="grid_clamp" strategy="top" result_key="std_top"/>
+        <Pick grasp_key="std_top" timeout_ms="1500"/>
+        <IsGraspStable/>
+        <RaiseHeld target="grid_clamp" distance="0.10" timeout_ms="1000"/>
+      </Sequence>
+    </Fallback>
+    <SetTCPYaw yaw_deg="90"/>
+    <ScanForTarget target="grid_fixture" pattern="grid" max_attempts="3" timeout_ms="2000"/>
+    <DetectObject target="grid_fixture" timeout_ms="1500"/>
+    <MoveAbove target="grid_fixture" offset_z="0.05" timeout_ms="2000"/>
+    <ApproachAndAlign target="grid_fixture" tolerance="0.005" timeout_ms="2000"/>
+    <LowerUntilContact speed="slow" max_depth="0.05" force_threshold="5" timeout_ms="1500"/>
+    <PlaceOnSurface target="grid_clamp" area_id="board" yaw_deg="90" press_force="10" timeout_ms="1500"/>
+    <OpenGripper width="0.06" timeout_ms="500"/>
+    <Retreat distance="0.10" timeout_ms="1000"/>
+    <Wait timeout_ms="500"/>
+  </Sequence>
+</BehaviorTree>

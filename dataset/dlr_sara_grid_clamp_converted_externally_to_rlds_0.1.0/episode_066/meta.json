@@ -1,0 +1,376 @@
+{
+  "dataset_id": "dlr_sara_grid_clamp_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_066",
+  "task_summary": "Pick up a grid clamp from a lineup and place it onto a grid fixture.",
+  "task_long_description": {
+    "overview": "The robot arm is tasked with a pick-and-place operation. It must identify and grasp one 'grid clamp' object from a row of identical objects on the worksurface. After securing the clamp, it transfers it to a nearby 'grid' fixture (referred to as 'board') and places it down, presumably locking it into a track. The scene is a structured industrial or lab setting.",
+    "preconditions": [
+      "Robot arm is at a 'home' or 'pre-pick' pose.",
+      "Gripper is empty and open.",
+      "At least one 'grid_clamp' object is present at the pick location.",
+      "The 'board' (grid fixture) placement location is clear."
+    ],
+    "stepwise_plan": [
+      "Check if the clamp is already held. If not, execute the pick sub-task.",
+      "Ensure gripper is open.",
+      "Move above the target 'grid_clamp'.",
+      "Lower the gripper until contact with the clamp.",
+      "Close the gripper to grasp the clamp.",
+      "Verify the grasp is stable.",
+      "Lift the clamp (RaiseHeld).",
+      "Move above the target placement 'board'.",
+      "Lower the clamp until it makes contact with the board.",
+      "Open the gripper to release the clamp.",
+      "Retreat the arm to a safe distance."
+    ],
+    "success_criteria": [
+      "The 'grid_clamp' is successfully released from the gripper.",
+      "The 'grid_clamp' is resting on the 'board' fixture in the correct location."
+    ],
+    "failure_and_recovery": [
+      "Pick fail (grasp unstable): The sequence fails; an outer recovery loop (not modeled) would be needed to retry.",
+      "Place fail (object dropped): The sequence fails."
+    ],
+    "termination": "The robot arm has completed the 'Retreat' action after successfully opening the gripper at the placement site."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Place grid clamp",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "grid_clamp",
+    "board"
+  ],
+  "objects_from_instruction": [
+    "grid_clamp"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "Sequence",
+      "type": "Composite",
+      "ports": {},
+      "description": "Executes children sequentially."
+    },
+    {
+      "id": "Fallback",
+      "type": "Composite",
+      "ports": {},
+      "description": "Executes children until one succeeds."
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {
+        "target": "string"
+      },
+      "description": "Checks if the specified object is held."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {
+        "width": "float",
+        "timeout_ms": "int"
+      },
+      "description": "Opens the gripper to a width."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {
+        "target": "string",
+        "offset_z": "float",
+        "timeout_ms": "int"
+      },
+      "description": "Moves above a target object/location."
+    },
+    {
+      "id": "LowerUntilContact",
+      "type": "Action",
+      "ports": {
+        "speed": "string",
+        "max_depth": "float",
+        "force_threshold": "float",
+        "timeout_ms": "int"
+      },
+      "description": "Moves down until contact is detected."
+    },
+    {
+      "id": "CloseGripper",
+      "type": "Action",
+      "ports": {
+        "force": "float",
+        "timeout_ms": "int"
+      },
+      "description": "Closes the gripper with a specific force."
+    },
+    {
+      "id": "IsGraspStable",
+      "type": "Condition",
+      "ports": {},
+      "description": "Checks if the current grasp is stable."
+    },
+    {
+      "id": "RaiseHeld",
+      "type": "Action",
+      "ports": {
+        "target": "string",
+        "distance": "float",
+        "timeout_ms": "int"
+      },
+      "description": "Lifts the currently held object."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {
+        "distance": "float",
+        "timeout_ms": "int"
+      },
+      "description": "Moves the end-effector back."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 12,
+    "actions": 8,
+    "conditions": 2,
+    "depth": 4
+  },
+  "failure_modes": [
+    "Grasp failed (unstable grasp).",
+    "Object dropped during transfer.",
+    "Placement contact failed or object placed incorrectly."
+  ],
+  "recovery_strategy": [
+    "The Fallback node prevents re-picking an already held object. Other failures would likely require a full task retry (not modeled)."
+  ],
+  "assumptions": [
+    "The instruction 'Place grid clamp' was interpreted as the full pick-and-place task, as the visual frames [0]-[8] clearly show the robot starting without the object and executing a full pick, transfer, and place sequence.",
+    "Symbolic IDs 'grid_clamp' (object) and 'board' (placement area_id, from the node library) are correctly mapped to the visual objects.",
+    "Perception nodes (DetectObject, etc.) are assumed to have run prior to frame [0], or the object/target poses are pre-defined."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Object successfully picked from start location.",
+      "Object successfully placed on 'board'.",
+      "Robot retreats without collision."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "placement_contact_fail"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {
+          "width": 0.08,
+          "timeout_ms": 500
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "Fallback",
+        "Sequence_1",
+        "OpenGripper"
+      ]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {
+          "target": "grid_clamp",
+          "offset_z": 0.05,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "Fallback",
+        "Sequence_1",
+        "MoveAbove"
+      ]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "LowerUntilContact",
+        "attrs": {
+          "speed": "slow",
+          "max_depth": 0.05,
+          "force_threshold": 5,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "Fallback",
+        "Sequence_1",
+        "LowerUntilContact"
+      ]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "CloseGripper",
+        "attrs": {
+          "force": 40,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "Fallback",
+        "Sequence_1",
+        "CloseGripper"
+      ]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "RaiseHeld",
+        "attrs": {
+          "target": "grid_clamp",
+          "distance": 0.05,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "Fallback",
+        "Sequence_1",
+        "RaiseHeld"
+      ]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {
+          "target": "board",
+          "offset_z": 0.05,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "Sequence_2",
+        "MoveAbove_1"
+      ]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {
+        "id": "LowerUntilContact",
+        "attrs": {
+          "speed": "slow",
+          "max_depth": 0.05,
+          "force_threshold": 5,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "Sequence_2",
+        "LowerUntilContact_1"
+      ]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {
+        "id": "LowerUntilContact",
+        "attrs": {
+          "speed": "slow",
+          "max_depth": 0.05,
+          "force_threshold": 5,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "Sequence_2",
+        "LowerUntilContact_1"
+      ]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "place",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {
+          "width": 0.08,
+          "timeout_ms": 500
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "Sequence_2",
+        "OpenGripper_1"
+      ]
+    }
+  ]
+}

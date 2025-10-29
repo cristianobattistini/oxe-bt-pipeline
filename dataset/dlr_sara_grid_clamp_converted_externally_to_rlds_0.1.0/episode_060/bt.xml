@@ -1,0 +1,13 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <DetectObject target="grid_clamp" timeout_ms="1000"/>
+    <ComputeGraspPose target="grid_clamp" strategy="top" result_key="goal_pose"/>
+    <ApproachAndAlign target="grid_clamp" tolerance="0.01" timeout_ms="1500"/>
+    <GraspAtPose pose_key="goal_pose" strategy="top" timeout_ms="1500"/>
+    <RaiseHeld target="grid_clamp" distance="0.10" timeout_ms="1000"/>
+    <MoveAbove target="goal_area" offset_z="0.05" timeout_ms="1500"/>
+    <PlaceDown target="goal_area" timeout_ms="1000"/>
+    <OpenGripper width="0.08" timeout_ms="800"/>
+    <Retreat distance="0.10" timeout_ms="1000"/>
+  </Sequence>
+</BehaviorTree>
