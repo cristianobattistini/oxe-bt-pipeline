@@ -825,7 +825,7 @@ python generate_folders.py \
 python generate_folders.py \
   --mode videos \
   --out-root out \
-  --dest-root dataset1/austin_buds_dataset_converted_externally_to_rlds_0.1.0 \
+  --dest-root dataset/dlr_sara_grid_clamp_converted_externally_to_rlds_0.1.0 \
   --video-duration 4.0 \
   --overwrite
 '''
