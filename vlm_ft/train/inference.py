@@ -174,9 +174,8 @@ def generate_once(model, processor, device, system_text, prompt_text, video_path
         if torch.is_tensor(v):
             batch[k] = v.to(device, non_blocking=True)
     if "pixel_values" in batch and torch.is_tensor(batch["pixel_values"]):
-        # Usa il dtype corretto atteso dal modello (spesso bfloat16 su GPU recenti)
 
-        # Usa il dtype corretto atteso dal modello (spesso bfloat16 su GPU recenti)
+        # Usa il dtype corretto atteso dal modello
         model_dtype_config = getattr(model.config, "torch_dtype", torch.float32) # Prendi il valore dalla config
 
         # Converti la stringa (se necessario) in un oggetto torch.dtype
@@ -205,7 +204,7 @@ def generate_once(model, processor, device, system_text, prompt_text, video_path
 
     # --- Logica VDD ---
     if vdd_alpha > 0:
-        print(f"⚠️ VDD attivo (alpha={vdd_alpha}). L'inferenza sarà molto più lenta.")
+        print(f"VDD attivo (alpha={vdd_alpha}). L'inferenza sarà molto più lenta.")
         # Crea i messaggi per il calcolo del bias (senza video)
         bias_messages = build_messages(system_text, prompt_text, video_path=None)
         vdd_processor = VDDLogitsProcessor(model, processor, bias_messages, vdd_alpha, device)
@@ -323,9 +322,7 @@ def run_repl(args):
                         max_tokens = new_max
                         print(f"OK: max_new_tokens -> {max_tokens}")
                     except ValueError as e:
-                        print(f"Valore intero non valido: {e}")
-                
-                # --- BLOCCHI NUOVI (indentazione corretta) ---
+                        print(f"Valore intero non valido: {e}")                
                 elif cmd == "alpha":
                     try:
                         new_alpha = float(arg)
@@ -352,7 +349,6 @@ def run_repl(args):
                      else:
                          print("Usa True/False, 1/0, Yes/No, On/Off o nessun argomento per toggle.")
                      print(f"OK: do_sample -> {do_sample}")
-                # ----------------------------------------------
                 
                 elif cmd == "show":
                     print(f"SYSTEM:\n{current_system}\nVIDEO: {current_video}\nMAX: {max_tokens}\nALPHA: {vdd_alpha}\nTEMP: {temperature}\nSAMPLE: {do_sample}")
