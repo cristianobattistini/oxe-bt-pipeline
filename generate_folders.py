@@ -252,29 +252,38 @@ def frame_id_to_index(frame_id: Optional[str]) -> Optional[int]:
 
 def find_frame_file(out_root_for_ep: Path, frame_id: str) -> Optional[Path]:
     """
-    Cerca il file immagine del frame dentro:
-      <out_ds_ep>/final_selected/sampled_frames/frame_XX.{jpg,jpeg,png}
-    Restituisce il Path se trovato, altrimenti None.
+    Trova il file immagine corrispondente a frame_id.
+    Accetta formati tipo frame_3, frame_03, frame_0003, ecc.
     """
-    idx = frame_id_to_index(frame_id)
+    # normalizza numeri (frame_3 -> 3, frame_0003 -> 3)
+    m = re.match(r"frame_0*(\d+)", frame_id)
+    idx = int(m.group(1)) if m else None
     if idx is None:
         return None
+
     d = out_root_for_ep / "final_selected" / "sampled_frames"
     if not d.exists():
         return None
-    names = [f"frame_{idx:02d}", f"frame_{idx}"]
-    exts  = [".jpg", ".jpeg", ".png"]
-    for n in names:
-        for e in exts:
-            p = d / f"{n}{e}"
-            if p.exists():
-                return p
-    # fallback: qualsiasi estensione
-    for n in names:
-        for p in d.glob(f"{n}.*"):
-            if p.is_file():
-                return p
+
+    # accetta diversi pattern (2, 3 o 4 cifre)
+    candidate_names = [
+        f"frame_{idx}.jpg",
+        f"frame_{idx:02d}.jpg",
+        f"frame_{idx:03d}.jpg",
+        f"frame_{idx:04d}.jpg",
+    ]
+    for name in candidate_names:
+        p = d / name
+        if p.exists():
+            return p
+
+    # fallback: cerca file che contengano l'indice numerico
+    for p in d.glob(f"frame_*{idx}*.jpg"):
+        if p.is_file():
+            return p
+
     return None
+
 
 def pick_top_k_frames(meta: dict, k: int = 3) -> list[str]:
     order = (meta.get("frame_ranking") or {}).get("order") or []
@@ -478,13 +487,20 @@ def init_mode(out_root: Path, dest_root: Path, prompt_src: Path, prompt_name: st
 # -------------------- Modalità LOCALS --------------------
 
 def locals_mode(project_root: Path, dest_root: Path, node_lib_path: Path, overwrite: bool, dry_run: bool):
+    print(f"[DEBUG] locals_mode start: project_root={project_root}")
+    print(f"[DEBUG] dest_root={dest_root}")
     if not node_lib_path or not node_lib_path.exists():
         raise FileNotFoundError("--node-lib è obbligatorio in --mode locals e deve esistere.")
     node_lib_text = load_text(node_lib_path)
 
     created = skipped = 0
+    print(f"[DEBUG] dataset dirs found under {dest_root}: {[p.name for p in dest_root.iterdir() if p.is_dir()]}")
+
     for ds_dir in sorted([p for p in dest_root.iterdir() if p.is_dir()]):
+
         dataset_id = ds_dir.name
+        print(f"[DEBUG] Processing dataset {dataset_id}")
+
         for ep_dir in sorted([p for p in ds_dir.iterdir() if p.is_dir() and p.name.startswith("episode_")]):
             episode_id = ep_dir.name
 
@@ -495,8 +511,6 @@ def locals_mode(project_root: Path, dest_root: Path, node_lib_path: Path, overwr
                 continue
 
             bt_text  = load_text(bt_path)
-            bt_full  = ep_dir / "bt_full.xml"
-            write_safe(bt_full, bt_text, overwrite=False)
 
             meta = parse_meta(meta_path) if meta_path.exists() else {}
             tld_text = guess_task_long_description(meta_path) if meta_path.exists() else guess_task_long_description(meta_path)
@@ -805,7 +819,7 @@ python generate_folders.py \
 python generate_folders.py \
   --mode refresh_images \
   --out-root out \
-  --dest-root dataset/asu_table_top_converted_externally_to_rlds_0.1.0 \
+  --dest-root dataset/dlr_sara_grid_clamp_converted_externally_to_rlds_0.1.0 \
   --dry-run
 
   
