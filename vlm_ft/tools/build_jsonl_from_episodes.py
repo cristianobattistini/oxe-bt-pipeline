@@ -9,6 +9,40 @@ import shutil
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 
+def load_actions_line(ep_dir: Path, actions_filename: str) -> Optional[str]:
+    """
+    Legge ep_dir/actions.txt e restituisce la riga completa 'actions=[...]'.
+    Restituisce None se assente o vuota.
+    """
+    p = ep_dir / actions_filename
+    if not p.exists():
+        return None
+    try:
+        line = p.read_text(encoding="utf-8").strip()
+    except Exception:
+        return None
+    line = line.replace("\r", "").strip()
+    return line if line else None
+
+def augment_instruction_with_actions(meta: dict, ep_dir: Path, actions_filename: str) -> None:
+    """
+    Appende 'actions=[...]' all'INSTRUCTION se presente actions.txt.
+    Idempotente: se l'INSTRUCTION contiene già 'actions=[', non fa nulla.
+    """
+    ti = meta.get("task_instruction", "")
+    if not isinstance(ti, str):
+        ti = ""
+    if "actions=[" in ti:
+        return
+    actions_line = load_actions_line(ep_dir, actions_filename)
+    if not actions_line:
+        return
+    if ti.strip():
+        meta["task_instruction"] = ti.rstrip() + "\n" + actions_line
+    else:
+        meta["task_instruction"] = actions_line
+
+
 # -------------------------------
 # PROMPT: schema MINIMALE / varianti
 # -------------------------------
@@ -43,18 +77,18 @@ def build_domain_constraints(meta: dict) -> str:
     return " ".join(parts) if parts else "None."
 
 def prompt_minimal(meta: dict) -> str:
-    return TPL_MINIMAL.format(task_instruction=clip(meta.get("task_instruction", ""), 200))
+    return TPL_MINIMAL.format(task_instruction=meta.get("task_instruction", ""))
 
 def prompt_summary(meta: dict) -> str:
     return TPL_SUMMARY.format(
-        task_instruction=clip(meta.get("task_instruction", ""), 200),
-        task_summary=clip(meta.get("task_summary", ""), 400),
+        task_instruction=meta.get("task_instruction", ""),
+        task_summary=meta.get("task_summary", "")
     )
 
 def prompt_dom(meta: dict) -> str:
     return TPL_DOM.format(
-        task_instruction=clip(meta.get("task_instruction", ""), 200),
-        task_summary=clip(meta.get("task_summary", ""), 400),
+        task_instruction=meta.get("task_instruction", ""),
+        task_summary=meta.get("task_summary", ""),
         dom_constraints=build_domain_constraints(meta),
     )
 
@@ -200,8 +234,8 @@ def main():
                     help="Non copiare i video; salva il path assoluto al file originale")
     ap.add_argument("--limit", type=int, default=0,
                     help="Processa solo i primi N episodi (debug)")
-
-    # --- nuovo: locals (immagini) ---
+    ap.add_argument("--actions_filename", type=str, default="actions.txt",
+                help="Nome del file con la riga actions=[...] da appendere all'INSTRUCTION")
     ap.add_argument("--enable-locals", action="store_true",
                     help="Se presente, genera anche il dataset images+BT per i locals")
     ap.add_argument("--locals-dirname", type=str, default="locals",
@@ -262,6 +296,9 @@ def main():
                 if args.dropout_ratio > 0 and random.random() < args.dropout_ratio:
                     meta["task_instruction"] = "" # Svuota l'istruzione
                 # --- FINE: LOGICA DROPOUT ---
+
+                # Append actions=[...] da actions.txt (idempotente)
+                augment_instruction_with_actions(meta, ep_dir, args.actions_filename)
 
                 xml_text = safe_xml(xml_path.read_text(encoding="utf-8"))
 
