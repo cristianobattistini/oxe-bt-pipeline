@@ -355,6 +355,7 @@ def main():
     parser.add_argument("--val_jsonl", type=str)
     parser.add_argument("--use_qlora", action="store_true")
     parser.add_argument("--use_lora", action="store_true")
+    parser.add_argument("--r", type=int, default=16)
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument("--model_id", type=str, default="HuggingFaceTB/SmolVLM2-2.2B-Instruct")
     parser.add_argument("--batch_size", type=int, default=1)
@@ -407,11 +408,12 @@ def main():
     # ----------------- Modello -----------------
     if args.use_qlora or args.use_lora:
         lora_config = LoraConfig(
-            r=8,
-            lora_alpha=8,
+            r=args.r,
+            lora_alpha=args.r,
             lora_dropout=0.1,
             target_modules=['down_proj', 'o_proj', 'k_proj', 'q_proj', 'gate_proj', 'up_proj', 'v_proj'],
-            use_dora=not args.use_qlora,
+            use_dora=not args.use_qlora,            trust_remote_code=True,
+
             init_lora_weights="gaussian"
         )
         lora_config.inference_mode = False
