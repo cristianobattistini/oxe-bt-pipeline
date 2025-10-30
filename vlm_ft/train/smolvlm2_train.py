@@ -430,7 +430,6 @@ def main():
             quantization_config=bnb_config,
             _attn_implementation="eager",
             device_map="auto",
-            max_memory={0: "11GiB", 1: "11GiB"},
             trust_remote_code=True,
         )
         model.add_adapter(lora_config)
