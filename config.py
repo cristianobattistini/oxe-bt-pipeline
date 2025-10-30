@@ -31,9 +31,9 @@ datasets = [
     # "cmu_franka_exploration_dataset_converted_externally_to_rlds/0.1.0",
     # "asu_table_top_converted_externally_to_rlds/0.1.0",
     # "ucsd_kitchen_dataset_converted_externally_to_rlds/0.1.0",
-    # "berkeley_gnm_cory_hall/0.1.0",
+    "berkeley_gnm_cory_hall/0.1.0",
     # "austin_buds_dataset_converted_externally_to_rlds/0.1.0",
-    "dlr_sara_grid_clamp_converted_externally_to_rlds/0.1.0",
+    # "dlr_sara_grid_clamp_converted_externally_to_rlds/0.1.0",
     # "dlr_sara_pour_converted_externally_to_rlds/0.1.0",
     # "dlr_edan_shared_control_converted_externally_to_rlds/0.1.0",
     # "ucsd_pick_and_place_dataset_converted_externally_to_rlds/0.1.0",
@@ -41,7 +41,7 @@ datasets = [
 ]
 
 # Subset rapido per prove (puoi aumentare in seguito)
-split = "train[:100%]"
+split = "train[:5%]"
 
 # Output root
 out_root = "out"

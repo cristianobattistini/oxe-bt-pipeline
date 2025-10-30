@@ -1,0 +1,272 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_053",
+  "task_summary": "The robot navigates through a hallway towards a designated goal location.",
+  "task_long_description": {
+    "overview": "This behavior tree controls a mobile robot navigating along an indoor hallway environment. The sequence of frames shows a smooth forward progression towards a goal, likely a marked endpoint at the end of the corridor. The robot performs consecutive navigations between intermediate waypoints before verifying that it has reached the final goal position.",
+    "preconditions": [
+      "Robot localization active",
+      "Hallway free of obstacles",
+      "Goal location predefined in map"
+    ],
+    "stepwise_plan": [
+      "Navigate to intermediate waypoint_1 along the hallway.",
+      "Proceed to waypoint_2 for path continuity.",
+      "Continue straight towards the final goal.",
+      "Verify arrival at the goal."
+    ],
+    "success_criteria": [
+      "Robot reaches the goal",
+      "No collisions detected",
+      "Final position within 0.5m of target"
+    ],
+    "failure_and_recovery": [
+      "If obstacle detected, replan path",
+      "If localization lost, retry navigation"
+    ],
+    "termination": "Tree succeeds once IsAt(goal) returns true."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable forward advance clearly visible in hallway perspective",
+        "predicts_next": "motion continues toward end of corridor",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 3000,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "hallway",
+    "goal_marker",
+    "walls"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [
+    "goal"
+  ],
+  "node_specs": [
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "waypoint_1",
+        "yaw_deg": 0,
+        "timeout_ms": 2000
+      },
+      "description": "Navigate to the first intermediate waypoint."
+    },
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "waypoint_2",
+        "yaw_deg": 0,
+        "timeout_ms": 2000
+      },
+      "description": "Navigate to the second intermediate waypoint."
+    },
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "goal",
+        "yaw_deg": 0,
+        "timeout_ms": 3000
+      },
+      "description": "Move towards the final goal position."
+    },
+    {
+      "id": "IsAt",
+      "type": "Condition",
+      "ports": {
+        "target": "goal"
+      },
+      "description": "Check whether the robot has reached the goal."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 5,
+    "actions": 3,
+    "conditions": 1,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Obstacle blockage",
+    "Localization drift",
+    "Goal unreachable"
+  ],
+  "recovery_strategy": [
+    "Retry navigation from last waypoint",
+    "Recompute path if goal not visible"
+  ],
+  "assumptions": [
+    "Instruction and frames agree: forward navigation through hallway.",
+    "Lighting consistent; no dynamic obstacles present."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Goal reached",
+      "Stable pose alignment"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "goal occluded",
+      "path blocked",
+      "sensor noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "waypoint_1",
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "waypoint_1",
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "waypoint_2",
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "waypoint_2",
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

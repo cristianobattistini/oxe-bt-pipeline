@@ -1,0 +1,272 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_046",
+  "task_summary": "Mobile robot perceives the corridor, then navigates to the named goal location at the end of the hallway and verifies arrival.",
+  "task_long_description": {
+    "overview": "The scene depicts a long indoor corridor with an illuminated doorway at the end. The robot must first perceive the scene to localize the goal, then proceed along the hallway while staying centered, and finally confirm it has reached the goal. The behavior emphasizes robust progress with retries if motion fails, and a bounded navigation attempt time per run.",
+    "preconditions": [
+      "Robot is operational and localized in the corridor",
+      "Goal location is known as 'goal' and visually discoverable",
+      "Path is approximately free of obstacles"
+    ],
+    "stepwise_plan": [
+      "Scan to confirm the goal direction",
+      "If already at goal, skip motion",
+      "Otherwise, attempt navigation to the named goal with retry and timeout",
+      "Verify arrival at the goal"
+    ],
+    "success_criteria": [
+      "Robot reaches the doorway labeled as goal",
+      "Final IsAt(goal) condition returns success"
+    ],
+    "failure_and_recovery": [
+      "If navigation stalls or times out, retry up to three times",
+      "If goal not detected, rescan before subsequent attempts"
+    ],
+    "termination": "Tree returns SUCCESS once IsAt(goal) is true after navigation or immediately if already at goal."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "corridor",
+    "walls",
+    "floor",
+    "goal_door"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [
+    "target_location",
+    "nav_status"
+  ],
+  "node_specs": [
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {
+        "target": "string",
+        "pattern": "string",
+        "max_attempts": "int",
+        "timeout_ms": "int"
+      },
+      "description": "Actively scan to locate the named goal in the corridor."
+    },
+    {
+      "id": "IsAt",
+      "type": "Condition",
+      "ports": {
+        "target": "string"
+      },
+      "description": "Returns success if the robot is already at the specified target."
+    },
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "string",
+        "yaw_deg": "int",
+        "timeout_ms": "int"
+      },
+      "description": "Navigate to a named map location with a target yaw."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 8,
+    "actions": 2,
+    "conditions": 2,
+    "depth": 5
+  },
+  "failure_modes": [
+    "Goal temporarily occluded leading to failed detection",
+    "Local planner stall in narrow corridor",
+    "Timeout before reaching the door"
+  ],
+  "recovery_strategy": [
+    "Rescan and retry navigation up to three times",
+    "Use bounded attempts with timeout to prevent deadlock"
+  ],
+  "assumptions": [
+    "The illuminated doorway at the end of the hallway corresponds to location_id='goal'. If this mapping is wrong, navigation may succeed to a different doorway."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Final IsAt(goal) returns success",
+      "Robot stops near the doorway with correct yaw"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {
+          "target": "goal",
+          "pattern": "line",
+          "max_attempts": 3,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 4000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 4000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 4000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 4000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 4000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 4000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

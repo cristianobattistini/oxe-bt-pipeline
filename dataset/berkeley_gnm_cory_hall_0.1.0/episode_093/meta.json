@@ -1,0 +1,257 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_093",
+  "task_summary": "Drive down a bright corridor and reach the named waypoint 'goal', confirming arrival and briefly stabilizing afterward.",
+  "task_long_description": {
+    "overview": "The frames depict a well-lit hallway with a white curved wall, dark floor, and doorway trim, indicating forward motion along a corridor toward a destination. The behavior focuses on minimal, reliable goal-seeking: verify whether the robot is already at the goal, otherwise command navigation to the named location with a neutral yaw. After arrival, a short wait helps stabilize pose estimates and sensors before task termination in this feature-sparse, reflective environment.",
+    "preconditions": [
+      "Map/topology where 'goal' is resolvable as a location_id",
+      "Localization active to evaluate IsAt('goal')",
+      "Navigation stack running with obstacle avoidance",
+      "Sensors operating in indoor lighting conditions"
+    ],
+    "stepwise_plan": [
+      "Evaluate IsAt('goal') to check if already at destination.",
+      "If not, NavigateToNamed to 'goal' with yaw 0 and bounded timeout.",
+      "Upon success, Wait briefly to stabilize and confirm steady state."
+    ],
+    "success_criteria": [
+      "IsAt('goal') true at the end of execution",
+      "NavigateToNamed('goal') completes within timeout",
+      "Robot remains stationary during the stabilization wait"
+    ],
+    "failure_and_recovery": [
+      "If NavigateToNamed fails or times out, the Fallback re-evaluates and can re-attempt navigation on subsequent ticks leveraging navigator recovery behaviors",
+      "Short wait mitigates minor localization jitter near glossy walls"
+    ],
+    "termination": "Sequence ends after confirming goal condition and completing the stabilization wait"
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "centered corridor alignment and reduced perspective change indicate nearing a stable pose consistent with arrival verification",
+        "predicts_next": "continued approach followed by IsAt evaluation and stabilization wait",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 3000,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "goal",
+    "corridor_wall_white",
+    "door_trim",
+    "floor"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsAt",
+      "type": "Condition",
+      "ports": {
+        "target": "goal"
+      },
+      "description": "Check whether robot is already at the named goal"
+    },
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "goal",
+        "yaw_deg": 0,
+        "timeout_ms": 3000
+      },
+      "description": "Navigate to a named location with neutral yaw and a bounded timeout"
+    },
+    {
+      "id": "Wait",
+      "type": "Action",
+      "ports": {
+        "timeout_ms": 500
+      },
+      "description": "Brief stabilization after arrival"
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 5,
+    "actions": 2,
+    "conditions": 1,
+    "depth": 3
+  },
+  "failure_modes": [
+    "Planner cannot find path to 'goal'",
+    "Localization drift near feature-poor wall prevents IsAt from triggering",
+    "Dynamic obstacle causes NavigateToNamed timeout"
+  ],
+  "recovery_strategy": [
+    "Allow re-ticks through Fallback to reissue NavigateToNamed after transient failure",
+    "Rely on navigator internal recovery (replan, clear costmaps) and stabilization wait"
+  ],
+  "assumptions": [
+    "Frames show forward corridor motion without explicit goal signage; 'goal' is a symbolic map waypoint resolved by the navigation stack"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Final IsAt('goal') true and successful NavigateToNamed within 3000 ms plus completed 500 ms wait"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Wait",
+        "attrs": {
+          "timeout_ms": 500
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

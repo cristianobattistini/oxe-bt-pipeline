@@ -1,0 +1,265 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_071",
+  "task_summary": "A mobile robot in a dim indoor hallway proceeds down the corridor and stops at the far-end goal near the doorway.",
+  "task_long_description": {
+    "overview": "The scene shows a forward-facing camera moving through a narrow hallway with white walls, dark floor trim, and ceiling lights, converging toward a brighter doorway at the far end. The task is pure navigation: reach the designated goal at the corridor’s end while keeping a stable heading. The behavior tree first checks whether the robot is already at the goal; if not, it commands a named-location navigation with a bounded attempt time and limited retries to handle transient issues like brief blockage or local planner hiccups.",
+    "preconditions": [
+      "Robot is localized in the hallway map.",
+      "The goal location_id 'goal' is defined and reachable.",
+      "Onboard navigation stack and odometry are running.",
+      "No hard obstacles fully blocking the corridor."
+    ],
+    "stepwise_plan": [
+      "Verify if the robot is already at the goal using a position check.",
+      "If not at the goal, issue NavigateToNamed(goal) with heading maintained toward the corridor center.",
+      "Allow up to 7 s per attempt, retry up to 3 times on timeout or planner failure.",
+      "On arrival, confirm success with IsAt(goal)."
+    ],
+    "success_criteria": [
+      "IsAt(goal) returns success within the retry budget.",
+      "Robot stops within the acceptable arrival radius while facing generally forward.",
+      "No collisions or prolonged stalls occur during approach."
+    ],
+    "failure_and_recovery": [
+      "If navigation times out, retry up to 3 times.",
+      "If localization drifts, the next retry reinitializes planning.",
+      "If a dynamic obstacle blocks the path, subsequent retries may succeed after it moves; otherwise terminate."
+    ],
+    "termination": "Terminate when IsAt(goal) succeeds or when all retries/timeouts are exhausted."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "hallway",
+    "walls",
+    "floor trim",
+    "ceiling lights",
+    "doorway",
+    "goal",
+    "person at far end"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsAt",
+      "type": "Condition",
+      "ports": {
+        "target": "goal"
+      },
+      "description": "Checks whether the robot has reached the named goal."
+    },
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "goal",
+        "yaw_deg": 0,
+        "timeout_ms": 7000
+      },
+      "description": "Drives the robot to the named location with a forward-facing yaw and bounded attempt time."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 5,
+    "actions": 1,
+    "conditions": 1,
+    "depth": 4
+  },
+  "failure_modes": [
+    "Global/local planner timeout",
+    "Localization drift in a low-texture hallway",
+    "Dynamic obstacle blocking the corridor",
+    "Slippage causing insufficient progress"
+  ],
+  "recovery_strategy": [
+    "Retry navigation up to 3 times with a 7 s timeout per attempt",
+    "Replan path on each retry",
+    "If retries exhausted, fail fast for higher-level recovery"
+  ],
+  "assumptions": [
+    "'goal' corresponds to the bright doorway or corridor end visible in later frames.",
+    "Hallway is mostly straight with adequate clearance; no stairs or branches in this episode.",
+    "Low light and motion blur may reduce feature tracking but do not prevent localization."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "IsAt(goal) returns success and robot halts near the doorway centerline.",
+      "No collision events and progress is monotonic along the corridor."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 7000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 7000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 7000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 7000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 7000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 7000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

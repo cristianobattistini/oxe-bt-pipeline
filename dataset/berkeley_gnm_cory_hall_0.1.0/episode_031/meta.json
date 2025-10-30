@@ -1,0 +1,305 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_031",
+  "task_summary": "Navigate down the corridor toward the blue-lit goal and confirm arrival.",
+  "task_long_description": {
+    "overview": "The robot is a mobile platform moving in a dim corridor with a distinctive cluster of blue lights at the far end, likely marking the goal. The behavior begins by ensuring the goal is visible; if not, it performs an arc scanning routine. Once detected, the robot aligns to the corridor centerline, drives to the named goal, and verifies arrival. Constraints include narrow passage geometry and low light, suggesting careful perception and steady approach.",
+    "preconditions": [
+      "Robot localization active",
+      "Corridor is traversable",
+      "Goal beacons powered and detectable",
+      "No obstacles blocking the path"
+    ],
+    "stepwise_plan": [
+      "Check if goal beacons are visible; otherwise scan in an arc",
+      "Detect and lock onto goal beacons",
+      "Approach and align with corridor toward the goal",
+      "Navigate to named location 'goal' with final yaw alignment",
+      "Verify arrival at goal"
+    ],
+    "success_criteria": [
+      "Robot reaches location_id='goal'",
+      "Final yaw approximately 90° at the turn",
+      "IsAt(target='goal') condition becomes true"
+    ],
+    "failure_and_recovery": [
+      "Perception failure: repeat scan via RetryUntilSuccessful",
+      "Temporary occlusion: re-run DetectObject",
+      "Misalignment: re-execute ApproachAndAlign before NavigateToNamed"
+    ],
+    "termination": "Tree returns SUCCESS when IsAt(target='goal') is true; otherwise continues retries on scanning."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable corridor alignment with clear beacon structure visible ahead",
+        "predicts_next": "continued forward motion toward the beacons; turn-in is imminent",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "goal_beacons",
+    "corridor",
+    "walls",
+    "floor"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {
+        "target": "string"
+      },
+      "description": "Checks if the visual goal beacons are currently in view."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {
+        "target": "string",
+        "pattern": "string",
+        "max_attempts": "int",
+        "timeout_ms": "int"
+      },
+      "description": "Performs an arc scan to locate the goal beacons if not visible."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {
+        "target": "string",
+        "timeout_ms": "int"
+      },
+      "description": "Runs a focused detection to lock onto the goal beacons."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {
+        "target": "string",
+        "tolerance": "float",
+        "timeout_ms": "int"
+      },
+      "description": "Centers and aligns heading with respect to the corridor and beacons."
+    },
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "string",
+        "yaw_deg": "int",
+        "timeout_ms": "int"
+      },
+      "description": "Drives to the named goal with final yaw alignment."
+    },
+    {
+      "id": "IsAt",
+      "type": "Condition",
+      "ports": {
+        "target": "string"
+      },
+      "description": "Confirms arrival at the goal location."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 9,
+    "actions": 4,
+    "conditions": 2,
+    "depth": 4
+  },
+  "failure_modes": [
+    "Goal not detected due to lighting or occlusion",
+    "Drift causing corridor wall proximity",
+    "Overshoot at turn near goal",
+    "Timeouts during navigation"
+  ],
+  "recovery_strategy": [
+    "Retry scanning with bounded attempts",
+    "Re-run ApproachAndAlign to re-center",
+    "Repeat NavigateToNamed if IsAt fails"
+  ],
+  "assumptions": [
+    "Blue light cluster represents 'goal_beacons' and the named location 'goal'; frames suggest a rightward yaw (~90°) near the end of the corridor."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "IsAt(target='goal') returns true within allotted time",
+      "No collision with corridor walls",
+      "Stable visual tracking of beacons during approach"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {
+          "target": "goal_beacons",
+          "pattern": "arc",
+          "max_attempts": 3,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {
+          "target": "goal_beacons",
+          "pattern": "arc",
+          "max_attempts": 3,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {
+          "target": "goal_beacons",
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {
+          "target": "goal_beacons",
+          "tolerance": 0.02,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {
+          "target": "goal_beacons",
+          "tolerance": 0.02,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 90,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 90,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 90,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

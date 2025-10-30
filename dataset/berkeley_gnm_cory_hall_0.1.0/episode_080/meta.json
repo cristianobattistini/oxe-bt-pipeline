@@ -1,0 +1,270 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_080",
+  "task_summary": "The robot navigates through a corridor toward a visual goal location visible at the end of the hallway.",
+  "task_long_description": {
+    "overview": "This episode captures a mobile robot traversing a straight indoor corridor toward a visible goal area under stable illumination. The task involves perceiving the distant goal, aligning to the central path, maintaining direction, and approaching the target until arrival confirmation. There are no obstacles or turns evident, implying a direct navigation behavior.",
+    "preconditions": [
+      "Robot initialized and localized within corridor",
+      "Goal visually detectable ahead"
+    ],
+    "stepwise_plan": [
+      "Detect the goal visually",
+      "Align to the central corridor axis",
+      "Navigate forward maintaining alignment",
+      "Verify arrival at the goal"
+    ],
+    "success_criteria": [
+      "Robot reaches goal without collision",
+      "Final position aligned within corridor axis tolerance"
+    ],
+    "failure_and_recovery": [
+      "Failure: goal not detected; Recovery: retry detection",
+      "Failure: drift from centerline; Recovery: re-align"
+    ],
+    "termination": "Task ends once IsAt(goal) returns true"
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable visual fixation on goal center achieved",
+        "predicts_next": "continuous forward movement and approach",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 3000,
+    "tolerance": 0.01,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "corridor",
+    "goal_area"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {
+        "target": "goal",
+        "timeout_ms": 1000
+      },
+      "description": "Detect the visual goal ahead."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {
+        "target": "goal",
+        "tolerance": 0.01,
+        "timeout_ms": 1500
+      },
+      "description": "Align orientation and heading toward goal."
+    },
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "goal",
+        "yaw_deg": 0,
+        "timeout_ms": 3000
+      },
+      "description": "Move the robot toward the named goal location."
+    },
+    {
+      "id": "IsAt",
+      "type": "Condition",
+      "ports": {
+        "target": "goal"
+      },
+      "description": "Confirm arrival at goal position."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 5,
+    "actions": 3,
+    "conditions": 1,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Goal detection loss",
+    "Localization drift",
+    "Blocked path"
+  ],
+  "recovery_strategy": [
+    "Retry detection with increased timeout",
+    "Re-align and continue navigation"
+  ],
+  "assumptions": [
+    "Frames show a corridor with consistent goal visibility; no dynamic obstacles are visible."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Robot arrives at goal with stable alignment"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "goal occluded",
+      "drift correction",
+      "lighting change"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {
+          "target": "goal",
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {
+          "target": "goal",
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {
+          "target": "goal",
+          "tolerance": 0.01,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {
+          "target": "goal",
+          "tolerance": 0.01,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}
