@@ -1,0 +1,54 @@
+######################################################################
+# Dockerfile per fine-tuning VLM (SmolVLM, MiniGPT-4, ecc.)
+# sullo stile del MNIST Toy Example – aggiornato a CUDA 12.1
+######################################################################
+
+FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-devel
+
+ARG USERNAME=battistini
+ARG USER_UID=1170
+ARG USER_GID=1170
+
+# ---------------------------------------------------------------
+# 1. Sistema base e pacchetti essenziali (come nel Toy Example)
+# ---------------------------------------------------------------
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        sudo git wget curl vim htop unzip ffmpeg libsm6 libxext6 && \
+    rm -rf /var/lib/apt/lists/*
+
+# ---------------------------------------------------------------
+# 2. Crea l'utente con UID/GID corrispondente a Westworld
+# ---------------------------------------------------------------
+RUN groupadd --gid $USER_GID $USERNAME && \
+    useradd --uid $USER_UID --gid $USER_GID -m $USERNAME && \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER $USERNAME
+WORKDIR /home/$USERNAME/exp
+
+# ---------------------------------------------------------------
+# 3. Copia i requisiti e installa le librerie Python
+# ---------------------------------------------------------------
+# 3) Requisiti Python
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r /tmp/requirements.txt && \
+    pip cache purge
+    
+# Aggiungi FlashAttention (precompilata o fallback a build)
+# --- FLASH ATTENTION (precompiled) ---
+# --- FLASH ATTENTION (compatibile con Torch 2.3.1 + CUDA 12.1 + cxx11abiFALSE) ---
+RUN pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.2.post1/flash_attn-2.7.2.post1+cu12torch2.3cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
+
+
+# ---------------------------------------------------------------
+# 4. Imposta variabili di ambiente per HuggingFace, TensorBoard, ecc.
+# ---------------------------------------------------------------
+ENV HF_HOME=/home/$USERNAME/.cache/huggingface \
+    TRANSFORMERS_CACHE=/home/$USERNAME/.cache/huggingface \
+    MPLCONFIGDIR=/home/$USERNAME/.cache/matplotlib \
+    PYTHONUNBUFFERED=1 \
+    TOKENIZERS_PARALLELISM=false
+
+CMD ["/bin/bash"]

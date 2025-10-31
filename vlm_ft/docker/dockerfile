@@ -1,25 +1,25 @@
 ######################################################################
 # Dockerfile per fine-tuning VLM (SmolVLM, MiniGPT-4, ecc.)
-# sullo stile del MNIST Toy Example – aggiornato a CUDA 12.1
+# Compatibile con driver di Elysium: PyTorch 2.2.2 + CUDA 11.8
 ######################################################################
 
-FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-devel
+# 1) BASE: cu118 (compatibile con driver più vecchi)
+FROM pytorch/pytorch:2.2.2-cuda11.8-cudnn8-devel
 
 ARG USERNAME=battistini
 ARG USER_UID=1170
 ARG USER_GID=1170
 
-# ---------------------------------------------------------------
-# 1. Sistema base e pacchetti essenziali (come nel Toy Example)
-# ---------------------------------------------------------------
+# 2) Sistema base e tool
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        sudo git wget curl vim htop unzip ffmpeg libsm6 libxext6 && \
+        sudo git wget curl vim htop unzip ffmpeg \
+        libsm6 libxext6 \
+        libgl1 libglib2.0-0 \
+        ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-# ---------------------------------------------------------------
-# 2. Crea l'utente con UID/GID corrispondente a Westworld
-# ---------------------------------------------------------------
+# 3) Utente non-root (UID/GID coerenti)
 RUN groupadd --gid $USER_GID $USERNAME && \
     useradd --uid $USER_UID --gid $USER_GID -m $USERNAME && \
     echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
@@ -27,28 +27,29 @@ RUN groupadd --gid $USER_GID $USERNAME && \
 USER $USERNAME
 WORKDIR /home/$USERNAME/exp
 
-# ---------------------------------------------------------------
-# 3. Copia i requisiti e installa le librerie Python
-# ---------------------------------------------------------------
-# 3) Requisiti Python
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --upgrade pip && \
-    pip install -r /tmp/requirements.txt && \
-    pip cache purge
-    
-# Aggiungi FlashAttention (precompilata o fallback a build)
-# --- FLASH ATTENTION (precompiled) ---
-# --- FLASH ATTENTION (compatibile con Torch 2.3.1 + CUDA 12.1 + cxx11abiFALSE) ---
-RUN pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.2.post1/flash_attn-2.7.2.post1+cu12torch2.3cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
-
-
-# ---------------------------------------------------------------
-# 4. Imposta variabili di ambiente per HuggingFace, TensorBoard, ecc.
-# ---------------------------------------------------------------
+# 4) Ambiente
 ENV HF_HOME=/home/$USERNAME/.cache/huggingface \
     TRANSFORMERS_CACHE=/home/$USERNAME/.cache/huggingface \
     MPLCONFIGDIR=/home/$USERNAME/.cache/matplotlib \
     PYTHONUNBUFFERED=1 \
-    TOKENIZERS_PARALLELISM=false
+    TOKENIZERS_PARALLELISM=false \
+    PIP_NO_CACHE_DIR=1 \
+    PATH=/home/$USERNAME/.local/bin:$PATH
+
+# 5) Requisiti Python
+#    - NON reinstallare torch/vision/audio dal requirements (sono già cu118 nella base)
+#    - Installa anche wandb
+COPY requirements.txt /tmp/requirements.txt
+RUN python -m pip install --upgrade pip && \
+    awk '!/^(torch|torchvision|torchaudio)==/' /tmp/requirements.txt > /tmp/requirements_notorch.txt && \
+    pip install --extra-index-url https://download.pytorch.org/whl/cu118 -r /tmp/requirements_notorch.txt && \
+    pip install --no-cache-dir -U wandb && \
+    pip cache purge
+
+# 6) Sanity check toolchain
+RUN python - <<'PY'
+import torch
+print("Torch:", torch.__version__, "CUDA:", torch.version.cuda, "CUDA available:", torch.cuda.is_available())
+PY
 
 CMD ["/bin/bash"]
