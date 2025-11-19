@@ -1,0 +1,18 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <DetectObject target="cloth" timeout_ms="800"/>
+    <OpenGripper width="0.09" timeout_ms="400"/>
+    <MoveAbove target="cloth_edge_A" offset_z="0.05" timeout_ms="800"/>
+    <ComputeGraspPose target="cloth_edge_A" strategy="pinch" result_key="grasp_cloth_edge_A"/>
+    <ApproachAndAlign target="cloth_edge_A" tolerance="0.005" timeout_ms="800"/>
+    <Pick grasp_key="grasp_cloth_edge_A" timeout_ms="800"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <MoveDelta axis="z" dist="0.1" timeout_ms="800"/>
+    <MoveTo target="fold_line_pose" timeout_ms="1200"/>
+    <LowerUntilContact speed="slow" max_depth="0.05" force_threshold="10" timeout_ms="800"/>
+    <PlaceAt pose_key="fold_place_pose" yaw_deg="90" press_force="10" timeout_ms="800"/>
+    <OpenGripper width="0.08" timeout_ms="400"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <Wait timeout_ms="400"/>
+  </Sequence>
+</BehaviorTree>

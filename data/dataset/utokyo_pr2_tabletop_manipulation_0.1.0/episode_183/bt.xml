@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <ScanForTarget target="cloth" pattern="grid" max_attempts="3" timeout_ms="1200"/>
+    <DetectObject target="cloth" timeout_ms="800"/>
+    <MoveAbove target="cloth" offset_z="0.08" timeout_ms="1200"/>
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <ApproachAndAlign target="cloth" tolerance="0.005" timeout_ms="1200"/>
+    <ComputeGraspPose target="cloth_corner" strategy="pinch" result_key="grasp_cloth_corner"/>
+    <Pick grasp_key="grasp_cloth_corner" timeout_ms="1500"/>
+    <MoveTo target="fold_position" timeout_ms="1200"/>
+    <PlaceAt pose_key="fold_position" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <Push target="cloth_edge" distance="0.1" direction_deg="180" timeout_ms="1200"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

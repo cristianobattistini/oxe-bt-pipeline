@@ -1,0 +1,137 @@
+{
+  "dataset_id": "utokyo_pr2_tabletop_manipulation_0.1.0",
+  "episode_id": "episode_097",
+  "task_summary": "Perceive a pink cloth, grasp one corner with a gentle pinch, lift slightly, and place it over the center to achieve a single fold, then release and retreat.",
+  "task_long_description": {
+    "overview": "A PR2-style manipulator folds a pink cloth lying flat on a wooden tabletop. The robot must first detect the cloth, align its gripper to a corner, and grasp gently to avoid dragging. After establishing a stable grasp, it lifts a small distance and places the corner onto a target pose near the cloth center to create a fold. Orientation control ensures the gripper approaches from the side. The sequence prioritizes precise alignment, low force, and short, safe motions, ending with release and retreat for clear post-task visibility.",
+    "preconditions": ["Cloth is visible on table", "Robot has workspace access from right side", "Gripper operational and empty", "No obstacles near the cloth"],
+    "stepwise_plan": [
+      "Detect the cloth and confirm visibility.",
+      "Pre-open gripper and compute a pinch grasp on one corner.",
+      "Move above the grasp point, set yaw, and align precisely.",
+      "Close gripper gently and verify grasp stability.",
+      "Lift slightly to avoid friction.",
+      "Create or retrieve a fold target pose near the cloth center.",
+      "Place the corner at the fold pose, then release.",
+      "Retreat to a safe distance."
+    ],
+    "success_criteria": ["Cloth shows a clear overlapping fold", "No excessive cloth displacement aside from the fold", "Gripper releases cleanly", "End-effector retreats without contact"],
+    "failure_and_recovery": [
+      "Perception failure: re-detect the cloth or adjust view.",
+      "Misalignment: re-approach and realign before grasp.",
+      "Weak grasp/slippage: reopen, recompute grasp, and retry.",
+      "Placement off-target: re-place using the stored fold pose."
+    ],
+    "termination": "Terminate after successful place, gripper open, and retreat completed."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.18, "frame_1": 0.40, "frame_2": 0.60, "frame_3": 0.90,
+      "frame_4": 0.35, "frame_5": 0.82, "frame_6": 0.58, "frame_7": 0.22, "frame_8": 0.10
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Tool is closely aligned over cloth edge; onset of precise orientation control is visible.",
+        "predicts_next": "Grasp and slight lift are likely to follow immediately.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "folding a cloth",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 1200,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["cloth", "table", "pr2_gripper"],
+  "objects_from_instruction": ["cloth"],
+  "blackboard_keys": ["grasp_cloth_corner", "fold_pose"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"cloth","timeout_ms":800},"description":"Detect the pink cloth on the table."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"cloth"},"description":"Verify the cloth is visible."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Pre-open gripper before grasping."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"cloth","strategy":"pinch","result_key":"grasp_cloth_corner"},"description":"Compute a pinch grasp at a cloth corner."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"grasp_cloth_corner"},"description":"Ensure grasp pose exists."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"grasp_cloth_corner","offset_z":0.02,"timeout_ms":1200},"description":"Move above the corner pregrasp."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":90},"description":"Set gripper yaw for side pinch."},
+    {"id":"AtOrientation","type":"Condition","ports":{"yaw_deg":90},"description":"Confirm yaw orientation reached."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"grasp_cloth_corner","tolerance":0.005,"timeout_ms":1200},"description":"Precisely approach the grasp point."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":10,"timeout_ms":800},"description":"Gently pinch cloth."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check grasp stability."},
+    {"id":"MoveDelta","type":"Action","ports":{"axis":"z","dist":0.05,"timeout_ms":1200},"description":"Lift slightly to clear table."},
+    {"id":"SetBlackboard","type":"Action","ports":{"key":"fold_pose","value":"cloth_center_fold"},"description":"Store target fold pose key."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"fold_pose"},"description":"Ensure fold pose exists."},
+    {"id":"PlaceAt","type":"Action","ports":{"pose_key":"fold_pose","yaw_deg":0,"press_force":10.0,"timeout_ms":1200},"description":"Place corner at fold target."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Release cloth."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":1200},"description":"Back away safely."}
+  ],
+  "tree_stats": {"nodes_total": 18, "actions": 12, "conditions": 5, "depth": 2},
+  "failure_modes": ["Cloth not detected", "Corner grasp misses or slips", "Cloth drags causing misfold", "Placement off target", "Release fails or re-contact during retreat"],
+  "recovery_strategy": ["Re-run detection and adjust view", "Recompute grasp and realign", "Reduce force and reattempt", "Re-place using fold_pose", "Open gripper and retreat, then retry"],
+  "assumptions": ["Contact sheet shows approach and light interaction; full fold completion is not clearly visible. The plan assumes a single corner fold toward the center and uses gentle force to avoid dragging."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["One corner overlapped near center, visible crease", "No table scraping after lift", "Robot retreats with gripper open"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"cloth","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"grasp_cloth_corner","offset_z":0.02,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"grasp_cloth_corner","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"AtOrientation","attrs":{"yaw_deg":90}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveDelta","attrs":{"axis":"z","dist":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceAt","attrs":{"pose_key":"fold_pose","yaw_deg":0,"press_force":10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
+}

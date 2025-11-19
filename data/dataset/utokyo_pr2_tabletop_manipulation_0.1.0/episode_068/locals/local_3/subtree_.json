@@ -1,0 +1,18 @@
+{
+  "frame_index": 2,
+  "local_intent": "Compute a pinch grasp pose for the grape and verify it exists, ensuring visibility first and retrying computation if needed.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_grape"],
+  "bb_write": ["grasp_grape"],
+  "assumptions": [
+    "Target visibility can be achieved via scan if not immediately visible",
+    "Scene remains static during grasp pose computation"
+  ],
+  "coherence_with_global": "Matches global plan by perceiving grapes (IsObjectVisible/Scan+Detect), computing pinch grasp with result_key 'grasp_grape', then verifying via PoseAvailable before downstream alignment/pick.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

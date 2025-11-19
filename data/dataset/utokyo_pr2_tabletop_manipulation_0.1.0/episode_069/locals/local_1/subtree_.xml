@@ -1,0 +1,14 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <DetectObject target="cloth" timeout_ms="800"/>
+    <MoveAbove target="cloth_center" offset_z="0.05" timeout_ms="1200"/>
+    <ApproachAndAlign target="cloth_edge" tolerance="0.005" timeout_ms="1200"/>
+    <Fallback>
+      <ContactDetected force_threshold="10"/>
+      <Sequence>
+        <LowerUntilContact speed="slow" max_depth="0.03" force_threshold="10" timeout_ms="800"/>
+        <ContactDetected force_threshold="10"/>
+      </Sequence>
+    </Fallback>
+  </Sequence>
+</BehaviorTree>

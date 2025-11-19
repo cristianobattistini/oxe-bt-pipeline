@@ -1,0 +1,21 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <ObjectInGripper target="grid_clamp"/>
+      <Sequence>
+        <OpenGripper width="0.08" timeout_ms="500"/>
+        <MoveAbove target="grid_clamp" offset_z="0.05" timeout_ms="2000"/>
+        <LowerUntilContact speed="slow" max_depth="0.05" force_threshold="5" timeout_ms="1500"/>
+        <CloseGripper force="40" timeout_ms="1000"/>
+        <IsGraspStable/>
+        <RaiseHeld target="grid_clamp" distance="0.05" timeout_ms="1000"/>
+      </Sequence>
+    </Fallback>
+    <Sequence>
+      <MoveAbove target="board" offset_z="0.05" timeout_ms="2000"/>
+      <LowerUntilContact speed="slow" max_depth="0.05" force_threshold="5" timeout_ms="1500"/>
+      <OpenGripper width="0.08" timeout_ms="500"/>
+      <Retreat distance="0.10" timeout_ms="1000"/>
+    </Sequence>
+  </Sequence>
+</BehaviorTree>

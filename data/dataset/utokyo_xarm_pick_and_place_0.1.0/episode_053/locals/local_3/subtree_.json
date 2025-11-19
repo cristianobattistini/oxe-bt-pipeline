@@ -1,0 +1,18 @@
+{
+  "frame_index": 2,
+  "local_intent": "Compute a side grasp pose for the white_plate, align to it, and verify the pose is available on the blackboard.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
+  "bb_write": ["white_plate_grasp"],
+  "assumptions": [
+    "White plate is visible and reachable (or DetectObject will fail/trigger retries at higher level)",
+    "Result key 'white_plate_grasp' is the agreed blackboard identifier used downstream"
+  ],
+  "coherence_with_global": "Matches GLOBAL_BT sequence around ComputeGraspPose: perception (DetectObject, MoveAbove), compute grasp (ComputeGraspPose), approach (ApproachAndAlign), and verification (PoseAvailable). Uses same target and result_key as global plan.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

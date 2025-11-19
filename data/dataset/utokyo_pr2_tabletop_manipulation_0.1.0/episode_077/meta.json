@@ -1,0 +1,131 @@
+{
+  "dataset_id": "utokyo_pr2_tabletop_manipulation_0.1.0",
+  "episode_id": "episode_077",
+  "task_summary": "Detect, grasp a grape cluster, move above the plate, place it on the plate, and retreat.",
+  "task_long_description": {
+    "overview": "A PR2-style gripper approaches a small dark grape cluster on a wooden tabletop near a white plate. The robot must perceive the grape, compute a pinch grasp, align and pick it without crushing, then transfer it above the plate and release so the grapes rest on the plate. Movements should be modestly precise to avoid knocking the plate. Visual confirmation and grasp stability checks reduce slippage risk. Short timeouts ensure responsiveness with up to three perception retries.",
+    "preconditions": ["Workspace clear except plate and grape cluster", "Camera view unobstructed", "Gripper calibrated and empty", "Targets 'grape' and 'plate_center' defined in perception"],
+    "stepwise_plan": [
+      "Open gripper and localize grape (retry scan if not visible).",
+      "Detect and compute pinch grasp pose for the grape.",
+      "Move above and align precisely; execute pick and verify stability.",
+      "Transfer above plate center and place with gentle press.",
+      "Open gripper to release and retreat to a safe height."
+    ],
+    "success_criteria": ["Grape is securely grasped then released on the plate", "No plate displacement or collisions", "Gripper retreats clear of scene"],
+    "failure_and_recovery": [
+      "Object not visible: perform raster scan up to three times.",
+      "Grasp slip: re-open, re-approach, recompute grasp and retry.",
+      "Contact with plate: retreat slightly, re-approach at higher offset.",
+      "Timeouts: abort current leaf, re-enter perception branch."
+    ],
+    "termination": "Task ends after successful release on plate and completed retreat, or after repeated failure of perception/grasp attempts."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Tool aligned over grapes with imminent grasp.",
+        "predicts_next": "Closing and lifting expected; confirms grasp phase.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "picking a grape",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 1200,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["grape","plate","table","pr2_gripper"],
+  "objects_from_instruction": ["grape"],
+  "blackboard_keys": ["grasp_grape","plate_center"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":"0.09","timeout_ms":"800"},"description":"Prepare gripper for approach."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"grape"},"description":"Quick visibility check before scanning."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"grape","pattern":"raster","max_attempts":"3","timeout_ms":"1500"},"description":"Active scan to find grape if not visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"grape","timeout_ms":"1200"},"description":"Run detector to get pose."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"grape","strategy":"pinch","result_key":"grasp_grape"},"description":"Compute pinch grasp pose and store key."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"grasp_grape"},"description":"Verify grasp pose exists on blackboard."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"grape","offset_z":"0.02","timeout_ms":"1200"},"description":"Position tool above grape."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"grape","tolerance":"0.005","timeout_ms":"1200"},"description":"Precision approach before grasp."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"grasp_grape","timeout_ms":"1200"},"description":"Execute grasp."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Confirm secure grasp."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"plate_center","offset_z":"0.02","timeout_ms":"1200"},"description":"Carry object above plate center."},
+    {"id":"PlaceAt","type":"Action","ports":{"pose_key":"plate_center","yaw_deg":"0","press_force":"10","timeout_ms":"1200"},"description":"Place object onto plate center."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":"0.09","timeout_ms":"400"},"description":"Release grape."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"0.1","timeout_ms":"1200"},"description":"Back off to safe pose."}
+  ],
+  "tree_stats": {"nodes_total": 17, "actions": 11, "conditions": 3, "depth": 5},
+  "failure_modes": ["Object not detected", "Misalignment during approach", "Crushed or slipped grape", "Collision with plate edge", "Timeouts during motion"],
+  "recovery_strategy": ["Raster scan and re-detect", "Recompute grasp and re-approach", "Use minimum closing force and retry", "Increase offset_z then descend again", "Abort and reset pose if repeated timeouts"],
+  "assumptions": ["Although the instruction says 'picking a grape', frames suggest a pick-and-place onto the plate; the tree includes a place step accordingly.", "Pinch strategy chosen to avoid crushing; actual cluster assumed small.", "Yaw set to 0 due to lack of explicit orientation cues."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Grape ends on plate and gripper retreats", "No object dropped mid-transfer", "No collision with plate"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"grape","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"grape","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"PoseAvailable","attrs":{"key":"grasp_grape"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"grasp_grape","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"plate_center","offset_z":0.02,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"plate_center","offset_z":0.02,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceAt","attrs":{"pose_key":"plate_center","yaw_deg":0,"press_force":10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.09,"timeout_ms":400}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
+}

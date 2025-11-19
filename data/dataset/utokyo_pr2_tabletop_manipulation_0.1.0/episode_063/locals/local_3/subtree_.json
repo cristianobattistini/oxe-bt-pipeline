@@ -1,0 +1,18 @@
+{
+  "frame_index": 2,
+  "local_intent": "Perceive grape, compute pinch grasp pose, and verify grasp_pose is available for downstream use.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_pose"],
+  "bb_write": ["grasp_pose"],
+  "assumptions": [
+    "Perception can localize the grape after scanning if initially not visible",
+    "Blackboard key 'grasp_pose' is the agreed key for downstream align/pick steps"
+  ],
+  "coherence_with_global": "Matches GLOBAL_BT around ComputeGraspPose: visibility-or-scan, detect grape, compute pinch grasp to 'grasp_pose', then verify with PoseAvailable to feed ApproachAndAlign and Pick.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

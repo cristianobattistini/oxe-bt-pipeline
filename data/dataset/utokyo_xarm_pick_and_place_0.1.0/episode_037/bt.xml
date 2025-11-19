@@ -1,0 +1,20 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="500"/>
+    <Action ID="DetectObject" target="white_plate" timeout_ms="1500"/>
+    <Action ID="MoveAbove" target="white_plate" offset_z="0.05" timeout_ms="1200"/>
+    <Action ID="ComputeGraspPose" target="white_plate" strategy="pinch" result_key="white_plate_grasp"/>
+    <Condition ID="PoseAvailable" key="white_plate_grasp"/>
+    <Action ID="ApproachAndAlign" target="white_plate" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="Pick" grasp_key="white_plate_grasp" timeout_ms="1200"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="DetectObject" target="red_plate" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="red_plate" strategy="press" result_key="place_pose"/>
+    <Condition ID="PoseAvailable" key="place_pose"/>
+    <Action ID="MoveAbove" target="red_plate" offset_z="0.05" timeout_ms="1200"/>
+    <Condition ID="ObjectInGripper" target="white_plate"/>
+    <Action ID="PlaceAt" pose_key="place_pose" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="400"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,157 @@
+{
+  "dataset_id": "utokyo_xarm_pick_and_place_0.1.0",
+  "episode_id": "episode_047",
+  "task_summary": "Detect and grasp the white plate, then move and place it centered on the red plate.",
+  "task_long_description": {
+    "overview": "A stationary 6-DoF arm with a parallel gripper must pick a white plate from the green workspace and place it onto a red plate located at the lower-left area. The robot first perceives the white plate, approaches with a small vertical offset, computes a side grasp, aligns precisely, and executes a pick. It then transfers the grasped plate toward the red plate, gently lowers until contact, places it centered, releases, and retreats. Movements use moderate timeouts and tight alignment tolerance to avoid sliding.",
+    "preconditions": [
+      "White plate visible on the table surface",
+      "Red plate present and reachable",
+      "Gripper functional and initially able to open"
+    ],
+    "stepwise_plan": [
+      "Perceive/confirm the white plate; scan if not visible.",
+      "Move above the plate and open the gripper.",
+      "Compute grasp pose (side strategy) and align precisely.",
+      "Pick the white plate and verify it is in the gripper.",
+      "Transfer to a pose above the red plate.",
+      "Lower until gentle contact and place centered.",
+      "Open gripper to release and retreat."
+    ],
+    "success_criteria": [
+      "White plate stably rests on top of the red plate",
+      "No object dropped during transfer",
+      "Arm safely retreats after placement"
+    ],
+    "failure_and_recovery": [
+      "Perception failure: retry scan until visible",
+      "Misalignment: re-approach and align again",
+      "Unstable grasp: reopen, recompute grasp, and re-pick",
+      "Premature contact: retreat slightly and re-approach"
+    ],
+    "termination": "Terminate after successful release with the white plate centered on the red plate and the arm in a safe retreated pose."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Pick up a white plate, and then place it on the red plate.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["white_plate","red_plate","robot_arm","gripper","table"],
+  "objects_from_instruction": ["white plate","red plate"],
+  "blackboard_keys": ["white_plate_grasp","above_red_plate","red_plate_center"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"white_plate"},"description":"Checks if target is currently visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"white_plate","pattern":"raster","max_attempts":3,"timeout_ms":1200},"description":"Active scan to detect the white plate if not visible."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"white_plate","offset_z":0.05,"timeout_ms":1200},"description":"Moves to a pose above the white plate with a small vertical offset."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Opens gripper before grasp and again to release."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"white_plate","strategy":"side","result_key":"white_plate_grasp"},"description":"Computes grasp pose and stores it in the blackboard."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"white_plate","tolerance":0.005,"timeout_ms":1200},"description":"Fine approach with tight alignment tolerance."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"white_plate_grasp","timeout_ms":1500},"description":"Executes grasp using computed pose."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"white_plate"},"description":"Verifies the plate is held after grasping."},
+    {"id":"MoveTo","type":"Action","ports":{"target":"above_red_plate","timeout_ms":1200},"description":"Transfers the grasped plate to a pose above the red plate."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":1200},"description":"Controlled lowering until contact is detected."},
+    {"id":"PlaceAt","type":"Action","ports":{"pose_key":"red_plate_center","yaw_deg":0,"press_force":10,"timeout_ms":1200},"description":"Places the white plate centered on the red plate."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Backs away to a safe pose after release."}
+  ],
+  "tree_stats": {"nodes_total": 16, "actions": 11, "conditions": 2, "depth": 4},
+  "failure_modes": [
+    "White plate not detected due to occlusion",
+    "Grasp slip from plate curvature",
+    "Collision with red plate rim during lowering",
+    "Premature release above target"
+  ],
+  "recovery_strategy": [
+    "Retry scan up to three times if not visible",
+    "Re-compute grasp pose and reattempt pick",
+    "If contact too early, retreat slightly and re-approach",
+    "If release fails, reopen gripper and gently press again"
+  ],
+  "assumptions": [
+    "White plate starts on the table; red plate is the destination surface at lower-left.",
+    "Placement goal is on top of, not inside, the red plate; yaw set to 0 by convention.",
+    "Offset and depths chosen (0.05 m) reflect safe clearances inferred from frames."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Final frames show the white plate resting on the red plate",
+      "No drop events or collisions visible",
+      "Arm ends in a clear retreat state"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"white_plate","pattern":"raster","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"white_plate","offset_z":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"white_plate","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"white_plate_grasp","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveTo","attrs":{"target":"above_red_plate","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveTo","attrs":{"target":"above_red_plate","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceAt","attrs":{"pose_key":"red_plate_center","yaw_deg":0,"press_force":10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

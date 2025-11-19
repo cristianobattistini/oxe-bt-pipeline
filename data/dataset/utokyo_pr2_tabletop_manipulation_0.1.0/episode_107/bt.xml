@@ -1,0 +1,18 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="grape_cluster" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <ComputeGraspPose target="grape_cluster" strategy="pinch" result_key="grasp_grape"/>
+    <MoveAbove target="grape_cluster" offset_z="0.05" timeout_ms="1200"/>
+    <ApproachAndAlign target="grape_cluster" tolerance="0.005" timeout_ms="1500"/>
+    <CloseGripper force="10" timeout_ms="800"/>
+    <Pick grasp_key="grasp_grape" timeout_ms="1200"/>
+    <MoveTo target="plate_center" timeout_ms="1500"/>
+    <PlaceAt pose_key="plate_center" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <Retreat distance="0.1" timeout_ms="1200"/>
+    <Wait timeout_ms="500"/>
+  </Sequence>
+</BehaviorTree>

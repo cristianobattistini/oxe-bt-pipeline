@@ -1,0 +1,302 @@
+{
+  "dataset_id": "dlr_sara_grid_clamp_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_026",
+  "task_summary": "The robot arm performs a precise placement of the grid clamp onto the fixture, lowering it carefully and releasing it upon contact.",
+  "task_long_description": {
+    "overview": "The sequence illustrates a robot arm placing a grid clamp fixture on a defined surface area. The arm moves above the target, aligns itself, lowers until gentle contact, opens the gripper to release, and retreats. The process emphasizes precision and controlled force during placement.",
+    "preconditions": [
+      "Grid clamp already grasped",
+      "Target fixture area free and visible",
+      "Robot gripper operational"
+    ],
+    "stepwise_plan": [
+      "Detect the placement target (grid clamp position reference)",
+      "Move above target maintaining safe offset",
+      "Approach and align for precise placement",
+      "Lower until contact detected",
+      "Open gripper to release clamp",
+      "Retreat safely upward"
+    ],
+    "success_criteria": [
+      "Clamp released and stable on fixture",
+      "No misalignment or drop",
+      "Retreat completed without collision"
+    ],
+    "failure_and_recovery": [
+      "Failure: misalignment or early contact; Recovery: retry alignment",
+      "Failure: gripper not open; Recovery: reopen and verify object release"
+    ],
+    "termination": "Sequence ends once the clamp is placed and the arm retreats clear of the fixture area."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Contact and alignment achieved; clamp just touching surface",
+        "predicts_next": "Release action imminent",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Place grid clamp",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 2000,
+    "tolerance": 0.01,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "robot_arm",
+    "grid_clamp",
+    "fixture",
+    "table_surface"
+  ],
+  "objects_from_instruction": [
+    "grid_clamp"
+  ],
+  "blackboard_keys": [
+    "target_pose",
+    "place_success"
+  ],
+  "node_specs": [
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {
+        "target": "grid_clamp",
+        "timeout_ms": 1500
+      },
+      "description": "Detect placement location of grid clamp."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {
+        "target": "grid_clamp",
+        "offset_z": 0.05,
+        "timeout_ms": 2000
+      },
+      "description": "Position end-effector above target clamp with offset."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {
+        "target": "grid_clamp",
+        "tolerance": 0.01,
+        "timeout_ms": 2000
+      },
+      "description": "Align precisely above clamp for placement."
+    },
+    {
+      "id": "LowerUntilContact",
+      "type": "Action",
+      "ports": {
+        "speed": "slow",
+        "max_depth": 0.05,
+        "force_threshold": 10,
+        "timeout_ms": 2000
+      },
+      "description": "Lower until surface contact is detected."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {
+        "width": 0.04,
+        "timeout_ms": 1000
+      },
+      "description": "Release clamp by opening gripper."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {
+        "distance": 0.1,
+        "timeout_ms": 1500
+      },
+      "description": "Move away from placed clamp."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 7,
+    "actions": 6,
+    "conditions": 0,
+    "depth": 2
+  },
+  "failure_modes": [
+    "misalignment",
+    "premature release",
+    "contact detection failure"
+  ],
+  "recovery_strategy": [
+    "retry alignment",
+    "pause and reattempt release"
+  ],
+  "assumptions": [
+    "Instruction implies placement action; frames confirm lowering and releasing motion.",
+    "Clamp already grasped prior to sequence."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Clamp sits flush on fixture with no shift."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {
+          "target": "grid_clamp",
+          "offset_z": 0.05,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {
+          "target": "grid_clamp",
+          "tolerance": 0.01,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {
+          "target": "grid_clamp",
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "place",
+      "active_leaf": {
+        "id": "LowerUntilContact",
+        "attrs": {
+          "speed": "slow",
+          "max_depth": 0.05,
+          "force_threshold": 10,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "place",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {
+          "width": 0.04,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {
+          "width": 0.04,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.1,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.1,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.1,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

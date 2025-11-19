@@ -1,0 +1,20 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="bread" timeout_ms="800"/>
+    </RetryUntilSuccessful>
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <ComputeGraspPose target="bread" strategy="pinch" result_key="bread_grasp"/>
+    <MoveAbove target="bread" offset_z="0.05" timeout_ms="1200"/>
+    <ApproachAndAlign target="bread" tolerance="0.005" timeout_ms="1200"/>
+    <LowerUntilContact speed="slow" max_depth="0.05" force_threshold="10" timeout_ms="1200"/>
+    <Pick grasp_key="bread_grasp" timeout_ms="1200"/>
+    <IsGraspStable/>
+    <MoveTo target="plate" timeout_ms="1500"/>
+    <MoveAbove target="plate" offset_z="0.05" timeout_ms="1200"/>
+    <LowerUntilContact speed="slow" max_depth="0.05" force_threshold="10" timeout_ms="1200"/>
+    <OpenGripper width="0.08" timeout_ms="500"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <Wait timeout_ms="400"/>
+  </Sequence>
+</BehaviorTree>

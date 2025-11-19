@@ -1,0 +1,23 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="800"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="grape"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="grape" pattern="spiral" max_attempts="3" timeout_ms="1500"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="grape" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="grape" strategy="pinch" result_key="grasp_grape"/>
+    <Action ID="MoveAbove" target="grape" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="grape" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.05" force_threshold="5.0" timeout_ms="1200"/>
+    <Action ID="CloseGripper" force="10" timeout_ms="1200"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="MoveDelta" axis="z" dist="0.1" timeout_ms="1500"/>
+    <Action ID="MoveAbove" target="plate" offset_z="0.1" timeout_ms="1500"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.05" force_threshold="5.0" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

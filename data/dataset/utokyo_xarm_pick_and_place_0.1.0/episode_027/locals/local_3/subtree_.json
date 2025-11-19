@@ -1,0 +1,18 @@
+{
+  "frame_index": 2,
+  "local_intent": "verify_grasp_pose_then_approach_align_and_pick_white_plate",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
+  "bb_write": [],
+  "assumptions": [
+    "A valid grasp pose was computed earlier and stored as 'white_plate_grasp'",
+    "Gripper is open and robot is free to execute ApproachAndAlign"
+  ],
+  "coherence_with_global": "Implements the GLOBAL_BT approach phase: confirms PoseAvailable for white_plate_grasp, executes ApproachAndAlign (the annotated active leaf), attempts Pick (with a RetryUntilSuccessful decorator), and verifies IsGraspStable before proceeding to placement.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

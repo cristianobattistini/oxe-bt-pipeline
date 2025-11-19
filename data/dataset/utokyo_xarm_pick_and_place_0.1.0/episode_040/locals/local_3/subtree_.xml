@@ -1,0 +1,17 @@
+<BehaviorTree ID="MainTree">
+    <Sequence>
+        <Fallback>
+            <Action ID="DetectObject" target="white_plate" timeout_ms="1200"/>
+            <Action ID="ScanForTarget" target="white_plate" pattern="spiral" max_attempts="3" timeout_ms="1500"/>
+        </Fallback>
+        <Condition ID="IsObjectVisible" target="white_plate"/>
+        <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+        <Action ID="ApproachAndAlign" target="white_plate" tolerance="0.005" timeout_ms="1500"/>
+        <Action ID="ComputeGraspPose" target="white_plate" strategy="suction" result_key="white_plate_grasp"/>
+        <RetryUntilSuccessful num_attempts="2">
+            <Action ID="Pick" grasp_key="white_plate_grasp" timeout_ms="1500"/>
+        </RetryUntilSuccessful>
+        <Condition ID="IsGraspStable"/>
+        <Condition ID="ObjectInGripper" target="white_plate"/>
+    </Sequence>
+</BehaviorTree>

@@ -1,0 +1,165 @@
+{
+  "dataset_id": "utokyo_pr2_tabletop_manipulation_0.1.0",
+  "episode_id": "episode_012",
+  "task_summary": "Detect, grasp, and relocate a grape bunch onto the plate, then release and retreat.",
+  "task_long_description": {
+    "overview": "A PR2 end-effector approaches a grape bunch on a tabletop beside a white plate. The robot must perceive the grapes, align precisely, establish gentle contact, close the gripper to secure the bunch, lift, move above the plate, place the grapes, open the gripper to release, and finally retreat. The environment includes a wooden table, a white plate, and the grape bunch. Timing uses conservative bins; alignment requires modest precision. Recovery uses fallback perception when visibility is poor.",
+    "preconditions": [
+      "Robot powered and homed; gripper functional",
+      "Workspace clear except plate and grapes",
+      "Plate pose within reachable workspace",
+      "Camera provides visibility of table area"
+    ],
+    "stepwise_plan": [
+      "Check/scan for grapes and detect them.",
+      "Move above grapes, orient tool, and open gripper.",
+      "Approach and align; lower until contact.",
+      "Close gripper and verify grasp stability.",
+      "Retreat upwards and search/confirm plate.",
+      "Move above plate and place grapes at plate center.",
+      "Open gripper to release and retreat."
+    ],
+    "success_criteria": [
+      "Grapes are grasped without slipping",
+      "Grapes end up resting on the plate surface",
+      "Gripper opens and the object remains on plate",
+      "Arm safely clears the scene"
+    ],
+    "failure_and_recovery": [
+      "Object not visible → scan pattern with retries",
+      "Contact not detected → re-approach and lower again",
+      "Grasp unstable/slip → reopen, re-align, and re-grasp with adjusted approach",
+      "Plate not localized → scan and re-detect before placing"
+    ],
+    "termination": "Terminate after successful release on plate followed by final retreat, or after unrecoverable detection/grasp failure."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "picking a grape",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["grape", "plate", "table", "robot_gripper"],
+  "objects_from_instruction": ["grape"],
+  "blackboard_keys": ["plate_center"],
+  "node_specs": [
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"string","pattern":"string","max_attempts":"int","timeout_ms":"int"},"description":"Actively scan using a specified pattern for the target when not immediately visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Run perception to localize the target object."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"string","offset_z":"float","timeout_ms":"int"},"description":"Move the TCP to a pregrasp pose above target."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":"int"},"description":"Rotate wrist yaw for better approach."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":"float","timeout_ms":"int"},"description":"Open gripper to the specified width."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"string","tolerance":"float","timeout_ms":"int"},"description":"Refine pose and approach with specified tolerance."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"string","max_depth":"float","force_threshold":"float","timeout_ms":"int"},"description":"Descend until contact is sensed or max depth reached."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":"float","timeout_ms":"int"},"description":"Close with gentle force to grasp grapes."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check that grasp is stable before transporting."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back off from the workspace safely."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"string"},"description":"Verify visibility of target (grape/plate)."},
+    {"id":"PlaceAt","type":"Action","ports":{"pose_key":"string","yaw_deg":"int","press_force":"float","timeout_ms":"int"},"description":"Place object at the specified pose and release."}
+  ],
+  "tree_stats": {"nodes_total": 20, "actions": 14, "conditions": 3, "depth": 3},
+  "failure_modes": [
+    "Grapes occluded leading to failed detection",
+    "Contact not detected causing overshoot",
+    "Weak grasp leading to slip during transfer",
+    "Plate localization error causing misplacement"
+  ],
+  "recovery_strategy": [
+    "Fallback to spiral or grid scan to re-acquire targets",
+    "Re-approach with smaller tolerance and repeat lowering",
+    "Re-open, re-align, and re-grasp; optionally increase force to 20 if permitted",
+    "Re-detect plate and re-plan approach path above plate"
+  ],
+  "assumptions": [
+    "Frames show a pick-and-place onto the plate; instruction only says 'picking a grape'. We prioritized the visual evidence and included placement.",
+    "Grapes are grasped as a small bunch using a gentle force."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Stable grasp confirmed; object transported and released on plate",
+      "No collisions with table or plate rim",
+      "Final retreat leaves scene clear"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"grape","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"grape","offset_z":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"grape","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"grape"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.02,"force_threshold":10.0,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceAt","attrs":{"pose_key":"plate_center","yaw_deg":0,"press_force":10.0,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

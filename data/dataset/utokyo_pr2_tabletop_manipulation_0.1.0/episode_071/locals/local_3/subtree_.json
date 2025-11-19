@@ -1,0 +1,19 @@
+{
+  "frame_index": 2,
+  "local_intent": "Compute a pinch grasp pose for the grape and verify the pose is available, retrying if necessary.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_grape"],
+  "bb_write": ["grasp_grape"],
+  "assumptions": [
+    "ComputeGraspPose writes the pose to result_key",
+    "PoseAvailable checks the same key",
+    "Retry up to 3 attempts if pose not available"
+  ],
+  "coherence_with_global": "Implements the global step of computing the grasp pose and verifying availability, with retries per failure-and-recovery policy.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

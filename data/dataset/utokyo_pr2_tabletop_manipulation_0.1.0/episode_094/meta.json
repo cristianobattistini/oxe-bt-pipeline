@@ -1,0 +1,153 @@
+{
+  "dataset_id": "utokyo_pr2_tabletop_manipulation_0.1.0",
+  "episode_id": "episode_094",
+  "task_summary": "Fold the pink cloth: detect it, pinch-grasp one edge, lift and carry over a fold line, lower to the table, press/place to form the crease, release, and retreat.",
+  "task_long_description": {
+    "overview": "A PR2-like manipulator folds a pink square cloth on a wooden tabletop. The robot pinches one edge, lifts the corner, reorients the wrist to align the fold, transports the grabbed edge across a nominal fold line, and lays it down to create a crease. Frames show approach, grasp, lift, transport, and placement. The sequence must be time-bounded with gentle motions near contact. Symbolic targets (cloth_edge_A, fold_line_pose, fold_place_pose) represent visual-servoed poses estimated online.",
+    "preconditions": [
+      "Cloth visible on the table within workspace",
+      "Gripper operational and empty",
+      "Perception able to localize a graspable edge"
+    ],
+    "stepwise_plan": [
+      "Perceive the cloth and open gripper.",
+      "Move above a chosen edge and compute a pinch grasp.",
+      "Align and execute the grasp.",
+      "Yaw the tool, lift, and transport towards the fold line.",
+      "Lower to table, press/place to form crease.",
+      "Release and retreat a safe distance."
+    ],
+    "success_criteria": [
+      "Cloth remains on table with one half folded over the other",
+      "No object slippage during transfer",
+      "End-effector safely clear after release"
+    ],
+    "failure_and_recovery": [
+      "If detection fails, rescan or adjust viewpoint.",
+      "If grasp slips, reopen, recompute grasp, and retry.",
+      "If contact not detected while lowering, increase depth slightly and retry."
+    ],
+    "termination": "Terminate after release and short wait once the cloth is folded and the arm has retreated."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable pinch contact at cloth edge while lifting begins is visible.",
+        "predicts_next": "transport of the grabbed edge towards fold line is expected.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "folding a cloth",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["cloth","table","robot_arm","gripper"],
+  "objects_from_instruction": ["cloth"],
+  "blackboard_keys": ["grasp_cloth_edge_A","fold_line_pose","fold_place_pose"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"cloth","timeout_ms":800},"description":"Detect cloth on tabletop."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":400},"description":"Prepare for pinch grasp."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"cloth_edge_A","offset_z":0.05,"timeout_ms":800},"description":"Pregrasp approach above edge."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"cloth_edge_A","strategy":"pinch","result_key":"grasp_cloth_edge_A"},"description":"Compute pinch grasp pose."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"cloth_edge_A","tolerance":0.005,"timeout_ms":800},"description":"Fine alignment to edge."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"grasp_cloth_edge_A","timeout_ms":800},"description":"Execute grasp."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":90},"description":"Orient tool for folding motion."},
+    {"id":"MoveDelta","type":"Action","ports":{"axis":"z","dist":0.1,"timeout_ms":800},"description":"Lift cloth from table."},
+    {"id":"MoveTo","type":"Action","ports":{"target":"fold_line_pose","timeout_ms":1200},"description":"Transport above fold line."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":800},"description":"Lower until table contact."},
+    {"id":"PlaceAt","type":"Action","ports":{"pose_key":"fold_place_pose","yaw_deg":90,"press_force":10,"timeout_ms":800},"description":"Place and press to form crease."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":400},"description":"Release the cloth."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off safely."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":400},"description":"Stabilization pause after fold."}
+  ],
+  "tree_stats": {"nodes_total": 15, "actions": 14, "conditions": 0, "depth": 2},
+  "failure_modes": [
+    "Cloth edge not detected or mislocalized",
+    "Pinch grasp fails leading to slip",
+    "No contact sensed while lowering",
+    "Misplacement causes unfold"
+  ],
+  "recovery_strategy": [
+    "Re-detect cloth and recompute edge pose",
+    "Reopen, re-approach, and retry pinch grasp",
+    "Increase max_depth slightly and reattempt contact",
+    "Re-align yaw and re-place"
+  ],
+  "assumptions": [
+    "Frames indicate a single-hand pinch-lift then place; no bimanual actions required.",
+    "Exact fold line is symbolic (fold_line_pose/fold_place_pose) inferred from context."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["One clean fold visible; gripper released; arm clear."],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"cloth","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"cloth_edge_A","offset_z":0.05,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"cloth_edge_A","tolerance":0.005,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"grasp_cloth_edge_A","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveDelta","attrs":{"axis":"z","dist":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveTo","attrs":{"target":"fold_line_pose","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceAt","attrs":{"pose_key":"fold_place_pose","yaw_deg":90,"press_force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}
+

@@ -1,0 +1,19 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <IsObjectVisible target="cloth"/>
+      <ScanForTarget target="cloth" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <DetectObject target="cloth" timeout_ms="1500"/>
+    <ComputeGraspPose target="cloth_edge" strategy="push" result_key="push_pose"/>
+    <MoveTo target="push_pose" timeout_ms="1500"/>
+    <ApproachAndAlign target="cloth_edge" tolerance="0.005" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <OpenGripper width="0.09" timeout_ms="400"/>
+    <Repeat num_cycles="2">
+      <Push target="cloth_edge" distance="0.1" direction_deg="180" timeout_ms="800"/>
+    </Repeat>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <Wait timeout_ms="400"/>
+  </Sequence>
+</BehaviorTree>

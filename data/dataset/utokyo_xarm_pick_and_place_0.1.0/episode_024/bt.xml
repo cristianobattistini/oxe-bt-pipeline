@@ -1,0 +1,24 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Fallback>
+      <Action ID="DetectObject" target="white_plate" timeout_ms="800"/>
+      <Action ID="ScanForTarget" target="white_plate" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="white_plate" offset_z="0.06" timeout_ms="1200"/>
+    <Action ID="SetTCPYaw" yaw_deg="90"/>
+    <Action ID="ApproachAndAlign" target="white_plate" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="white_plate" strategy="pinch" result_key="white_plate_grasp"/>
+    <Action ID="Pick" grasp_key="white_plate_grasp" timeout_ms="1200"/>
+    <Condition ID="ObjectInGripper" target="white_plate"/>
+    <Fallback>
+      <Action ID="DetectObject" target="red_plate" timeout_ms="800"/>
+      <Action ID="ScanForTarget" target="red_plate" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="red_plate" offset_z="0.08" timeout_ms="1500"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.05" force_threshold="10" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+    <Action ID="Wait" timeout_ms="400"/>
+  </Sequence>
+</BehaviorTree>

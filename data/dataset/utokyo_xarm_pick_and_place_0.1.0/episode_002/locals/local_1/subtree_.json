@@ -1,0 +1,18 @@
+{
+  "frame_index": 3,
+  "local_intent": "Grasp the white plate using suction: confirm visibility, ensure/compute grasp pose, approach and align, make gentle contact, pick with retries, verify grasp stability.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_white_plate"],
+  "bb_write": ["grasp_white_plate"],
+  "assumptions": [
+    "Key 'grasp_white_plate' is the expected grasp pose for Pick",
+    "Suction grasp is appropriate for the flat plate"
+  ],
+  "coherence_with_global": "Follows global plan around Pick: DetectObject → (PoseAvailable|ComputeGraspPose) → MoveAbove → ApproachAndAlign → LowerUntilContact → Pick (1200 ms, grasp_white_plate) → IsGraspStable.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

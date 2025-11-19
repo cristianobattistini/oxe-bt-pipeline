@@ -1,0 +1,116 @@
+{
+  "dataset_id": "utokyo_pr2_tabletop_manipulation_0.1.0",
+  "episode_id": "episode_082",
+  "task_summary": "Detect a grape on a plate, approach from above, compute a pinch grasp, close the gripper gently, and lift away.",
+  "task_long_description": {
+    "overview": "A PR2-style gripper must pick a single grape from a bunch resting on a small plate on a wooden tabletop. The robot first perceives the target, then approaches from above with a precise alignment to avoid colliding with the plate. A pinch strategy is computed and verified before making contact. The gripper then closes with low force, checks grasp stability, and retreats, lifting the picked grape above the plate. The sequence emphasizes careful approach and minimal force suitable for delicate fruit.",
+    "preconditions": ["Robot is homed with workspace clear except plate and grapes", "Camera view includes the grapes", "Gripper operational and empty", "Table pose known"],
+    "stepwise_plan": ["Detect grape", "Open gripper and move above target", "Approach and align precisely", "Compute pinch grasp and verify key exists", "Lower until contact", "Close gripper with low force", "Verify grasp stability", "Retreat upward with the grape"],
+    "success_criteria": ["A grape is held securely in the gripper", "No plate collision or excessive movement of the bunch", "Robot retreats to a safe height"],
+    "failure_and_recovery": ["Target not detected -> retry perception or small scan", "Contact with plate -> stop and retreat slightly", "Unstable grasp -> reopen and reattempt", "Occlusion by wrist -> adjust approach height"],
+    "termination": "Tree returns SUCCESS after stable grasp is confirmed and the arm retreats to a safe distance."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "picking a grape",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["grape", "grape_bunch", "plate", "table", "robot_gripper"],
+  "objects_from_instruction": ["grape"],
+  "blackboard_keys": ["grasp_grape"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"grape","timeout_ms":1500},"description":"Detect the grape target in the camera view."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Prepare the gripper with a wide opening."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"grape","offset_z":0.05,"timeout_ms":1200},"description":"Move to a pregrasp pose above the grape bunch."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"grape","tolerance":0.005,"timeout_ms":1500},"description":"Refine approach and alignment for precise grasping."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"grape","strategy":"pinch","result_key":"grasp_grape"},"description":"Compute a pinch grasp and store it on the blackboard."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"grasp_grape"},"description":"Verify that the computed grasp pose is available."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.03,"force_threshold":10,"timeout_ms":1200},"description":"Descend slowly until initial contact is detected."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":10,"timeout_ms":800},"description":"Close the gripper with minimal force to avoid crushing the grape."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check that the object is securely held."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":1200},"description":"Lift the object away from the plate to a safe height."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 8, "conditions": 2, "depth": 2},
+  "failure_modes": ["Grape not detected", "Collision with plate during approach", "Grape slips after closing", "Occlusion from wrist blocks vision"],
+  "recovery_strategy": ["Re-run DetectObject or perform a short scan pattern", "Raise and re-approach with smaller tolerance", "Open gripper and reattempt with adjusted pose", "Slightly change viewing angle then recompute grasp"],
+  "assumptions": ["Instruction says singular 'grape' but frames show a bunch; plan targets a single berry at the edge of the bunch.", "No container opening/placing required; only pick and lift."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Stable grasp of a single grape and safe lift-off", "No significant displacement of the plate or bunch"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"grape","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"grape","offset_z":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"grape","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"grape","strategy":"pinch","result_key":"grasp_grape"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"PoseAvailable","attrs":{"key":"grasp_grape"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.03,"force_threshold":10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
+}

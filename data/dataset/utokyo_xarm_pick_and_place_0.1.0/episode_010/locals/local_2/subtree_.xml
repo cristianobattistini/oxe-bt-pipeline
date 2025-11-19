@@ -1,0 +1,19 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="red_plate"/>
+      <Action ID="ScanForTarget" target="red_plate" pattern="grid" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <Action ID="SetBlackboard" key="red_plate_pose" value="red_plate_center"/>
+    <Action ID="MoveAbove" target="red_plate" offset_z="0.06" timeout_ms="1200"/>
+    <Action ID="ApproachAndAlign" target="red_plate" tolerance="0.01" timeout_ms="1200"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.02" force_threshold="5.0" timeout_ms="800"/>
+    <Condition ID="ContactDetected" force_threshold="5.0"/>
+    <Action ID="PlaceAt" pose_key="red_plate_pose" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Inverter>
+      <Condition ID="ObjectInGripper" target="white_plate"/>
+    </Inverter>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

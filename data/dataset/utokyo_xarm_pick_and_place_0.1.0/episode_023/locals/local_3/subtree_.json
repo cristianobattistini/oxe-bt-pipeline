@@ -1,0 +1,19 @@
+{
+  "frame_index": 2,
+  "local_intent": "Ensure white_plate is visible, move above it to 0.05m, and perform a precise approach/alignment.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": [],
+  "bb_write": [],
+  "assumptions": [
+    "ComputeGraspPose has been run earlier and a grasp pose is available on the blackboard (PoseAvailable in global BT).",
+    "Gripper is open and ready (OpenGripper executed earlier in global BT).",
+    "Vertical approach clearance is available for offset 0.05."
+  ],
+  "coherence_with_global": "Implements the 'approach' phase from the global sequence: verifies visibility of white_plate, executes MoveAbove with the same offset and timeout as the global BT, then runs ApproachAndAlign with a tight tolerance. Fits between PoseAvailable/ComputeGraspPose and subsequent Pick in the global plan.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

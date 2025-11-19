@@ -1,0 +1,19 @@
+{
+  "frame_index": 2,
+  "local_intent": "Verify approach/alignment to the white plate, execute pick, and if grasp unstable recompute grasp and retry.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
+  "bb_write": ["white_plate_grasp"],
+  "assumptions": [
+    "White plate is visible/reachable from current vantage",
+    "Gripper is open and operational before pick",
+    "Timeouts and tolerance bins match robot capabilities"
+  ],
+  "coherence_with_global": "Implements the detect→compute-grasp→approach/align→pick→verify loop from the global plan; includes a recovery branch to recompute and retry, using binned timeouts and top grasp strategy consistent with GLOBAL_BT and GLOBAL_DESCRIPTION.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

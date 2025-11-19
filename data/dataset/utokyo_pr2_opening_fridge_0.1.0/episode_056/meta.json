@@ -1,0 +1,166 @@
+{
+  "dataset_id": "utokyo_pr2_opening_fridge_0.1.0",
+  "episode_id": "episode_056",
+  "task_summary": "A PR2 approaches a fridge, grasps the handle, opens the hinged door, then releases and retreats.",
+  "task_long_description": {
+    "overview": "The scene shows a PR2 mobile manipulator performing a door-opening task on a small fridge. The robot first perceives and localizes the handle, approaches from a pregrasp pose, aligns its end-effector, grasps, and then pulls to open the hinged door. After successful opening, the gripper releases and the arm retreats to a safe position away from the open door. Timing and tolerances are conservative to avoid collisions with adjacent drawers and the door edge.",
+    "preconditions": [
+      "Fridge is closed and reachable from the robot base",
+      "Handle is accessible without occlusions",
+      "Gripper operational and free of objects",
+      "Sufficient workspace clearance to swing the hinged door"
+    ],
+    "stepwise_plan": [
+      "Perceive or scan to localize the fridge handle",
+      "Navigate/position arm to a front approach pose and pregrasp height",
+      "Align precisely with the handle and prepare the grasp",
+      "Grasp the handle and pull to open the hinged door",
+      "Release the handle and retreat to a safe pose"
+    ],
+    "success_criteria": [
+      "Hinged fridge door visibly open beyond initial closed state",
+      "No collisions with cabinet or door surfaces",
+      "Grasp achieved without slip during pull",
+      "Arm returns to a safe, non-contact pose"
+    ],
+    "failure_and_recovery": [
+      "Perception fails: rescan with arc pattern and retry",
+      "Misalignment: re-approach and realign with tighter tolerance",
+      "Grasp slip: reopen, recompute grasp, and reattempt",
+      "Door jam: retry open with limited attempts, then abort safely"
+    ],
+    "termination": "Terminate after door opens and the arm has released the handle and retreated to a safe distance."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "opening the fridge",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["PR2_robot", "fridge", "fridge_door", "fridge_handle", "fridge_interior", "adjacent_cabinet_drawers", "floor_area"],
+  "objects_from_instruction": ["fridge"],
+  "blackboard_keys": ["grasp_handle"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"fridge_handle"},"description":"Checks if the handle is currently visible to perception."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"fridge_handle","pattern":"arc","max_attempts":3,"timeout_ms":800},"description":"Actively scan to detect the handle if not immediately visible."},
+    {"id":"MoveTo","type":"Action","ports":{"target":"fridge_front","timeout_ms":1500},"description":"Move the end-effector/base to the frontal staging pose."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"fridge_handle_pregrasp","offset_z":0.05,"timeout_ms":1200},"description":"Position above the handle at a pregrasp offset."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"fridge_handle","tolerance":0.005,"timeout_ms":1200},"description":"Approach and align precisely with the handle."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Open gripper to accommodate the handle before grasping."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"fridge_handle","strategy":"pull","result_key":"grasp_handle"},"description":"Compute a pulling grasp pose on the handle and store it."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"grasp_handle","timeout_ms":1200},"description":"Execute the grasp based on the computed pose."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":90},"description":"Orient wrist yaw to align with the handle axis."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"fridge_door","container_type":"hinged_door","timeout_ms":1500},"description":"Open the hinged fridge door using the grasped handle."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":400},"description":"Short pause to ensure door settles."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Release the handle after opening."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.2,"timeout_ms":1200},"description":"Back off to a safe pose clear of the open door."}
+  ],
+  "tree_stats": {"nodes_total": 16, "actions": 12, "conditions": 1, "depth": 3},
+  "failure_modes": [
+    "Handle not detected due to occlusion or glare",
+    "Pregrasp alignment error causing missed grasp",
+    "Grasp slip during pulling motion",
+    "Door interference with nearby cabinet or robot body"
+  ],
+  "recovery_strategy": [
+    "Rescan with arc pattern and repeat detection",
+    "Re-approach with tighter tolerance and retry grasp",
+    "Reopen gripper, recompute grasp, and pick again",
+    "Abort pull, reposition base/arm, and retry open with capped attempts"
+  ],
+  "assumptions": [
+    "Handle is a pullable geometry appropriate for a pulling grasp strategy",
+    "Exact distances and offsets are approximate due to lack of metric calibration in frames",
+    "SetTCPYaw=90 aligns the wrist to the handle axis; if already aligned, it is a no-op"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Door opens to reveal interior shelves",
+      "Robot maintains stable grasp throughout pull",
+      "No collision with the door edge or adjacent drawers",
+      "Robot releases and retreats safely after opening"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"fridge_handle","pattern":"arc","max_attempts":3,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveTo","attrs":{"target":"fridge_front","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"fridge_handle_pregrasp","offset_z":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"fridge_handle","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"grasp_handle","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"fridge_door","container_type":"hinged_door","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"fridge_door","container_type":"hinged_door","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.2,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
+}

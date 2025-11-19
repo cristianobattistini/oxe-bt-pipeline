@@ -1,0 +1,19 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="DetectObject" target="white_plate" timeout_ms="800"/>
+    <Action ID="ComputeGraspPose" target="white_plate" strategy="top" result_key="white_plate_grasp"/>
+    <Action ID="ApproachAndAlign" target="white_plate" tolerance="0.01" timeout_ms="800"/>
+    <Fallback>
+      <Sequence>
+        <Action ID="Pick" grasp_key="white_plate_grasp" timeout_ms="1200"/>
+        <Condition ID="IsGraspStable"/>
+      </Sequence>
+      <Sequence>
+        <Action ID="ComputeGraspPose" target="white_plate" strategy="top" result_key="white_plate_grasp"/>
+        <Action ID="ApproachAndAlign" target="white_plate" tolerance="0.01" timeout_ms="800"/>
+        <Action ID="Pick" grasp_key="white_plate_grasp" timeout_ms="1200"/>
+        <Condition ID="IsGraspStable"/>
+      </Sequence>
+    </Fallback>
+  </Sequence>
+</BehaviorTree>

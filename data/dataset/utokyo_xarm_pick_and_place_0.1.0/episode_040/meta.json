@@ -1,0 +1,132 @@
+{
+  "dataset_id": "utokyo_xarm_pick_and_place_0.1.0",
+  "episode_id": "episode_040",
+  "task_summary": "Detect the white plate, grasp it, move above the red plate, and place the white plate on top before retreating.",
+  "task_long_description": {
+    "overview": "A fixed-base manipulator with a parallel-jaw or suction-style end-effector must relocate a shallow white plate onto a larger red plate. The contact sheet shows approach, edge alignment, lifting, transport, and placement over the red plate. The behavior prioritizes reliable perception with a scan fallback, precise alignment for a curved rim, and a gentle press during placement. Safety includes stable-grasp checks, short timeouts, and a small retreat to clear the scene after release.",
+    "preconditions": ["Robot and camera calibrated", "Workspace clear except white and red plates", "Gripper functional with suction/pinch capability", "Red plate reachable and static"],
+    "stepwise_plan": ["Perceive white plate; scan if not immediately visible", "Open gripper and move above white plate", "Align precisely and compute grasp", "Pick and verify grasp stability", "Perceive red plate and move above it", "Prepare place pose for the red plate center", "Lower until contact and place with light press", "Open gripper, retreat, and wait"],
+    "success_criteria": ["White plate ends centered on red plate", "No slippage after release", "Arm ends safely retracted"],
+    "failure_and_recovery": ["If detection fails, perform spiral scan", "If grasp fails, retry pick up to two times", "If contact not detected, re-approach and attempt again"],
+    "termination": "Tree ends after successful place, release, retreat, and brief wait."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "First secure engagement with the white plate rim; tool alignment is evident.",
+        "predicts_next": "Lift/transfer is expected after a successful grasp.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Pick up a white plate, and then place it on the red plate.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["white_plate", "red_plate", "robot_arm", "gripper", "table"],
+  "objects_from_instruction": ["white_plate", "red_plate"],
+  "blackboard_keys": ["white_plate_grasp", "place_pose"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Vision detect a symbolic target with a timeout."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"string","pattern":"string","max_attempts":"int","timeout_ms":"int"},"description":"Active search scan if detection fails."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"string"},"description":"Verify target is visible."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":"float","timeout_ms":"int"},"description":"Open jaws to desired width before grasp/release."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"string","offset_z":"float","timeout_ms":"int"},"description":"Move to a pre-grasp or pre-place height above target."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"string","tolerance":"float","timeout_ms":"int"},"description":"Refine pose and alignment at tight tolerance."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"string","strategy":"string","result_key":"string"},"description":"Plan suction/pinch grasp; store in blackboard."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"string","timeout_ms":"int"},"description":"Execute grasp using stored pose."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Checks grasp stability via sensors."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"string"},"description":"Confirms target object is held."},
+    {"id":"SetBlackboard","type":"Action","ports":{"key":"string","value":"string"},"description":"Write a symbolic pose key to blackboard."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"string"},"description":"Ensure a placement pose is available."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"string","max_depth":"float","force_threshold":"float","timeout_ms":"int"},"description":"Descend until contact sensed."},
+    {"id":"PlaceAt","type":"Action","ports":{"pose_key":"string","yaw_deg":"int","press_force":"float","timeout_ms":"int"},"description":"Place object at given pose with gentle press."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back away from the placement area."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":"int"},"description":"Brief stabilization pause."},
+    {"id":"RetryUntilSuccessful","type":"Decorator","ports":{"num_attempts":"int"},"description":"Retry child on failure a limited number of times."},
+    {"id":"Fallback","type":"Composite","ports":{},"description":"Try children in order until one succeeds."},
+    {"id":"Sequence","type":"Composite","ports":{},"description":"Execute children in order; all must succeed."}
+  ],
+  "tree_stats": {"nodes_total": 25, "actions": 16, "conditions": 5, "depth": 3},
+  "failure_modes": ["White plate not detected", "Grasp slip or unstable", "Red plate not detected", "Contact not sensed during placement", "Timeouts during motion"],
+  "recovery_strategy": ["Spiral scan for targets", "Retry pick up to two times", "Re-align with tighter tolerance", "Re-approach and lower again", "Retreat and re-detect if obstructed"],
+  "assumptions": ["End-effector can use suction-like grasp on a plate rim; frames suggest side engagement but exact tool unknown. The red plate is the placement goal; frames indicate approach, lift, transport, and placement consistent with the instruction."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["White plate resting stably on red plate center", "No collisions or drops", "Robot ends retracted"],
+    "test_scenarios": ["happy path", "object_missing", "grasp_fail", "perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"white_plate","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"white_plate","offset_z":0.03,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"white_plate","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"white_plate_grasp","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"red_plate","offset_z":0.03,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.04,"force_threshold":10.0,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceAt","attrs":{"pose_key":"place_pose","yaw_deg":0,"press_force":10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":500}},
+      "active_path_ids": []
+    }
+  ]
+}

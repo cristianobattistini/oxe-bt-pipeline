@@ -1,0 +1,19 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="DetectObject" target="fridge_door" timeout_ms="800"/>
+    </RetryUntilSuccessful>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="500"/>
+    <Action ID="MoveTo" target="fridge_handle_pregrasp" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="fridge_handle" tolerance="0.005" timeout_ms="1200"/>
+    <Action ID="CloseGripper" force="30" timeout_ms="1200"/>
+    <Action ID="SetTCPYaw" yaw_deg="90"/>
+    <Fallback>
+      <Condition ID="ContainerOpen" target="fridge_door"/>
+      <Action ID="OpenContainer" target="fridge_door" container_type="hinged_door" timeout_ms="1500"/>
+    </Fallback>
+    <Action ID="Retreat" distance="0.2" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="500"/>
+    <Action ID="Wait" timeout_ms="400"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,330 @@
+{
+  "dataset_id": "dlr_sara_grid_clamp_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_044",
+  "task_summary": "Place the clamp that is already held into a grid/slot on the wooden board, then retreat.",
+  "task_long_description": {
+    "overview": "A 6-DoF arm with a parallel gripper places a small grid clamp onto a specific slot on a wooden board. The contact sheet shows approach from above, alignment over the row, a careful descent until contact, opening the gripper to release, a short stabilization pause, and retreat. The behavior favors precise alignment and gentle contact to avoid disturbing neighboring clamps visible in the row.",
+    "preconditions": [
+      "Clamp is already secured in the gripper",
+      "Target slot (place_slot) is visible or can be detected",
+      "Workspace is clear along the vertical descent"
+    ],
+    "stepwise_plan": [
+      "Verify clamp is in gripper",
+      "Detect the target slot",
+      "Orient TCP to 90° yaw",
+      "Move above the slot with clearance",
+      "Approach and align laterally within tight tolerance",
+      "Lower slowly until contact is detected",
+      "Open gripper to release",
+      "Pause briefly to settle",
+      "Retreat vertically away from the board"
+    ],
+    "success_criteria": [
+      "Clamp released and resting on target slot/row",
+      "Neighboring clamps remain undisturbed",
+      "End-effector clears the board after retreat"
+    ],
+    "failure_and_recovery": [
+      "If slot not detected, repeat detection; if contact not reached within depth, re-align and retry descent; if release fails, reopen gripper and repeat short descent"
+    ],
+    "termination": "Tree ends after successful release and retreat."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Place grid clamp",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "grid_clamp",
+    "wooden_board",
+    "place_slot",
+    "row_of_clamps",
+    "robot_gripper"
+  ],
+  "objects_from_instruction": [
+    "grid_clamp"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {
+        "target": "grid_clamp"
+      },
+      "description": "Ensure the clamp is currently held before placing."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {
+        "target": "place_slot",
+        "timeout_ms": 1500
+      },
+      "description": "Detect the target slot/row location on the board."
+    },
+    {
+      "id": "SetTCPYaw",
+      "type": "Action",
+      "ports": {
+        "yaw_deg": 90
+      },
+      "description": "Orient the tool for aligned placement."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {
+        "target": "place_slot",
+        "offset_z": 0.05,
+        "timeout_ms": 2000
+      },
+      "description": "Move to a safe pre-place height above the slot."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {
+        "target": "place_slot",
+        "tolerance": 0.01,
+        "timeout_ms": 1500
+      },
+      "description": "Lateral approach and alignment to the slot within tight tolerance."
+    },
+    {
+      "id": "LowerUntilContact",
+      "type": "Action",
+      "ports": {
+        "speed": "slow",
+        "max_depth": 0.05,
+        "force_threshold": 5,
+        "timeout_ms": 1500
+      },
+      "description": "Controlled descent until contact is sensed."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {
+        "width": 0.06,
+        "timeout_ms": 800
+      },
+      "description": "Release the clamp."
+    },
+    {
+      "id": "Wait",
+      "type": "Action",
+      "ports": {
+        "timeout_ms": 500
+      },
+      "description": "Brief pause to allow the clamp to settle."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {
+        "distance": 0.1,
+        "timeout_ms": 1000
+      },
+      "description": "Retreat away from the board after placement."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 10,
+    "actions": 8,
+    "conditions": 1,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Slot not detected",
+    "Misalignment during approach",
+    "No contact sensed within max depth",
+    "Clamp sticks to gripper after opening"
+  ],
+  "recovery_strategy": [
+    "Retry detection",
+    "Re-align and repeat descent",
+    "Slightly increase offset then re-approach",
+    "Open again and micro-jiggle by re-approach"
+  ],
+  "assumptions": [
+    "The clamp is already grasped at episode start; frames show neighboring clamps on a row, suggesting precise placement into a slot/row rather than a bin."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Clamp rests on target slot/row and remains stable",
+      "Robot retreats without disturbing other clamps"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {
+          "target": "place_slot",
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {
+          "target": "place_slot",
+          "offset_z": 0.05,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {
+          "target": "place_slot",
+          "tolerance": 0.01,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "LowerUntilContact",
+        "attrs": {
+          "speed": "slow",
+          "max_depth": 0.05,
+          "force_threshold": 5,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "place",
+      "active_leaf": {
+        "id": "LowerUntilContact",
+        "attrs": {
+          "speed": "slow",
+          "max_depth": 0.05,
+          "force_threshold": 5,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {
+          "width": 0.06,
+          "timeout_ms": 800
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {
+        "id": "Wait",
+        "attrs": {
+          "timeout_ms": 500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.1,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.1,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

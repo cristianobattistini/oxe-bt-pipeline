@@ -1,0 +1,16 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <IsObjectVisible target="fridge_handle"/>
+      <ScanForTarget target="fridge_handle" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <MoveAbove target="fridge_handle" offset_z="0.05" timeout_ms="1500"/>
+    <OpenGripper width="0.09" timeout_ms="800"/>
+    <ApproachAndAlign target="fridge_handle" tolerance="0.005" timeout_ms="1500"/>
+    <CloseGripper force="20" timeout_ms="1200"/>
+    <ObjectInGripper target="fridge_handle"/>
+    <OpenContainer target="fridge_door" container_type="hinged_door" timeout_ms="2000"/>
+    <Retreat distance="0.1" timeout_ms="1200"/>
+    <Wait timeout_ms="400"/>
+  </Sequence>
+</BehaviorTree>

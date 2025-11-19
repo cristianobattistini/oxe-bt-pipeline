@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <IsObjectVisible target="fridge_handle"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Sequence>
+          <ScanForTarget target="fridge_handle" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+          <DetectObject target="fridge_handle" timeout_ms="800"/>
+        </Sequence>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <MoveTo target="fridge_front" timeout_ms="1200"/>
+    <IsAt target="fridge_front"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="OpenGripper" width="0.10" timeout_ms="800"/>
+    <Action ID="DetectObject" target="grid_clamp" timeout_ms="2000"/>
+    <Action ID="ApproachAndAlign" target="grid_clamp" tolerance="0.01" timeout_ms="3000"/>
+    <Action ID="ComputeGraspPose" target="grid_clamp" strategy="top" result_key="goal_pose"/>
+    <Action ID="GraspAtPose" pose_key="goal_pose" strategy="pinch" timeout_ms="3000"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="RaiseHeld" target="grid_clamp" distance="0.10" timeout_ms="1500"/>
+    <Action ID="MoveAbove" target="board" offset_z="0.05" timeout_ms="3000"/>
+    <Action ID="PlaceOnSurface" target="grid_clamp" area_id="board" yaw_deg="0" press_force="10" timeout_ms="3000"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1500"/>
+  </Sequence>
+</BehaviorTree>

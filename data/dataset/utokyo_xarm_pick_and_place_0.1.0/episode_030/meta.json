@@ -1,0 +1,175 @@
+{
+  "dataset_id": "utokyo_xarm_pick_and_place_0.1.0",
+  "episode_id": "episode_030",
+  "task_summary": "Perceive and pick the white plate, then move and place it onto the red plate, and finally retreat.",
+  "task_long_description": {
+    "overview": "A tabletop scene shows a white plate and a red plate with a white xArm manipulator. The robot must detect the white plate, approach from above, perform a precise top grasp, verify stability, and transport it. It then localizes the red plate, approaches above it, lowers until gentle contact, releases the plate, and retreats. Care is taken to align the grasp, use slow approach during contact, and respect timeouts to avoid stalls.",
+    "preconditions": [
+      "Workspace clear with reachable white and red plates",
+      "Gripper functional and initialized open",
+      "Camera provides sufficient visibility of plates",
+      "Robot base and kinematics calibrated"
+    ],
+    "stepwise_plan": [
+      "Detect white plate and open gripper.",
+      "Move above white plate and compute top grasp.",
+      "Approach and align; lower until contact and close gripper.",
+      "Verify grasp stability and retreat up.",
+      "Detect red plate and move above it.",
+      "Lower until contact over red plate and release.",
+      "Retreat to a safe height."
+    ],
+    "success_criteria": [
+      "White plate securely lifted by the gripper",
+      "White plate positioned centered on red plate",
+      "No collisions with table or environment",
+      "Gripper opens to release and final retreat executed"
+    ],
+    "failure_and_recovery": [
+      "White plate not detected: re-perceive from a slightly different pose",
+      "Misalignment during grasp: re-approach and realign with tighter tolerance",
+      "Unstable grasp: reopen, recompute grasp, and retry",
+      "Placement off-center: re-lower and nudge before release (if allowed)"
+    ],
+    "termination": "Task ends after plate release on the red plate and a completed retreat."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Pick up a white plate, and then place it on the red plate.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["white_plate","red_plate","robot_arm","gripper","table"],
+  "objects_from_instruction": ["white plate","red plate"],
+  "blackboard_keys": ["grasp_white"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"white_plate","timeout_ms":800},"description":"Detect the white plate."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Prepare gripper to grasp."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"white_plate","offset_z":0.05,"timeout_ms":1200},"description":"Position above the white plate."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"white_plate","strategy":"top","result_key":"grasp_white"},"description":"Compute a top grasp for the plate."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"white_plate","tolerance":0.005,"timeout_ms":1200},"description":"Approach and align precisely to the plate."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":800},"description":"Lower until gentle contact with plate/table."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":800},"description":"Close gripper to secure the plate."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verify grasp stability."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Lift up from the table."},
+
+    {"id":"DetectObject","type":"Action","ports":{"target":"red_plate","timeout_ms":800},"description":"Detect the red plate for placement."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"red_plate","offset_z":0.05,"timeout_ms":1200},"description":"Move above red plate."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":800},"description":"Lower until contact for placement."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Release the white plate onto red plate."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Retreat to safe pose after placement."}
+  ],
+  "tree_stats": {"nodes_total": 15, "actions": 13, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "White plate not detected due to occlusion or glare",
+    "Misalignment causing partial grasp",
+    "Slippage during transfer",
+    "Placement misaligned with red plate center",
+    "Contact too hard causing plate movement",
+    "Timeouts due to slow motion or obstruction"
+  ],
+  "recovery_strategy": [
+    "Re-detect from slightly different view",
+    "Re-approach with tighter tolerance",
+    "Reopen and recompute grasp pose, then retry",
+    "Adjust above target and re-lower before release",
+    "Use slower approach with same force threshold",
+    "Abort safely if repeated failures"
+  ],
+  "assumptions": [
+    "Frames show a successful pick of the white plate followed by placement over the red plate.",
+    "Top grasp is feasible; plates are rigid and stationary.",
+    "No precise place pose key is required; lowering until contact and release suffices.",
+    "Timeouts chosen from allowed bins; no instruction-specified retries."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "ObjectInGripper true after grasp",
+      "Release occurs while centered over red plate",
+      "No collision outside intended contact",
+      "Final retreat clears both plates"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"white_plate","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"white_plate","offset_z":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"white_plate","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"red_plate","offset_z":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.09,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

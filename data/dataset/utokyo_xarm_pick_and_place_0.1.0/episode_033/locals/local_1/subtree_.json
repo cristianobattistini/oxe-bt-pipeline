@@ -1,0 +1,19 @@
+{
+  "frame_index": 3,
+  "local_intent": "Perceive white_plate if needed, perform fine approach/align, compute grasp, attempt pick until successful, verify grasp, and retreat.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": [],
+  "bb_write": [],
+  "assumptions": [
+    "Camera can detect white_plate or ScanForTarget will succeed within attempts",
+    "ComputeGraspPose returns a usable grasp stored under 'white_grasp'",
+    "Gripper hardware available for Pick and Retreat actions"
+  ],
+  "coherence_with_global": "Implements the verify-phase around ApproachAndAlign from the global plan: re-check perception, align to white_plate with specified tolerance and timeout, compute a top grasp, attempt Pick with retries, confirm IsGraspStable, then retreat—consistent with the GLOBAL_BT stepwise plan and success/failure handling.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

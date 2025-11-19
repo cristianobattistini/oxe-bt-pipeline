@@ -1,0 +1,125 @@
+{
+  "dataset_id": "utokyo_pr2_tabletop_manipulation_0.1.0",
+  "episode_id": "episode_054",
+  "task_summary": "Perceive a pink cloth on the tabletop, approach and press to create contact, then execute two pushing strokes to fold the cloth, and finally retreat to a safe height.",
+  "task_long_description": {
+    "overview": "A robotic arm folds a pink cloth lying on a wooden tabletop. The robot must first localize the cloth, approach from above with an open gripper and aligned yaw, gently make contact with the surface, and perform one or more push strokes to fold the cloth onto itself without grasping. Care is taken to stay planar relative to the table, keep forces low at contact, and avoid displacing the cloth excessively. After folding is achieved, the robot lifts away and retreats to a safe pose.",
+    "preconditions": ["Tabletop is clear except for the cloth", "Camera view includes the cloth", "Gripper is unobstructed and operational"],
+    "stepwise_plan": [
+      "Raster scan and detect the cloth.",
+      "Move above the cloth and align tool yaw.",
+      "Lower until contact is detected with low force.",
+      "Perform a push stroke to initiate the fold.",
+      "Repeat push to complete the fold.",
+      "Lift and retreat to a safe standoff."
+    ],
+    "success_criteria": ["Cloth edge is pushed over itself forming a visible fold", "Cloth remains on the table without slipping away", "End effector retreats clear of the workspace"],
+    "failure_and_recovery": ["If detection fails, rescan (ScanForTarget).", "If contact is missed, reattempt LowerUntilContact.", "If fold is incomplete, the repeated push cycle helps achieve the fold.", "If misalignment occurs, re-run ApproachAndAlign."],
+    "termination": "Tree succeeds when push cycles finish and the robot retreats to a safe height."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "folding a cloth",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["pink_cloth", "tabletop", "robot_end_effector"],
+  "objects_from_instruction": ["cloth"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"cloth","pattern":"raster","max_attempts":3,"timeout_ms":1500},"description":"Raster scanning to localize the cloth with retries."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"cloth","timeout_ms":1200},"description":"Confirm the cloth pose is visible."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"cloth","offset_z":0.05,"timeout_ms":1500},"description":"Move to a pre-contact pose above the cloth."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":800},"description":"Keep gripper open to push without grasping."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":90},"description":"Align end effector to cloth edge."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.05,"force_threshold":10,"timeout_ms":1200},"description":"Gently descend until contact with table/cloth."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"cloth","tolerance":0.005,"timeout_ms":1200},"description":"Fine alignment before each push."},
+    {"id":"Push","type":"Action","ports":{"target":"cloth","distance":0.1,"direction_deg":180,"timeout_ms":1200},"description":"Push stroke to fold the cloth toward its center."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":400},"description":"Brief stabilization after push motion."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.05,"timeout_ms":800},"description":"Back off slightly between strokes."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"cloth","offset_z":0.10,"timeout_ms":1500},"description":"Lift above the folded cloth."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":1200},"description":"Final retreat to safe standoff."}
+  ],
+  "tree_stats": {"nodes_total": 15, "actions": 12, "conditions": 0, "depth": 4},
+  "failure_modes": ["Cloth not detected", "Premature or missed contact", "Push direction misaligned causing cloth drift", "Insufficient push distance leading to incomplete fold"],
+  "recovery_strategy": ["Rescan area and detect again", "Retry LowerUntilContact", "Re-run ApproachAndAlign to correct heading", "Use repeat push cycle to finish fold"],
+  "assumptions": ["Frames show a push-based fold without grasping; BT implements fold via two push strokes.", "Exact cloth edge pose is inferred from vision; no explicit grasping used."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Cloth exhibits a visible overlap along one edge", "Robot ends at safe height with workspace clear"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"pattern":"raster","max_attempts":3,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "transfer",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"distance":0.1,"direction_deg":180,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":400}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"distance":0.1,"direction_deg":180,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":400}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
+}

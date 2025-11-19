@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="DetectObject" target="fridge_handle" timeout_ms="800"/>
+    <Condition ID="IsObjectVisible" target="fridge_handle"/>
+    <Action ID="MoveTo" target="fridge_handle_pregrasp" timeout_ms="2000"/>
+    <Action ID="ApproachAndAlign" target="fridge_handle" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="500"/>
+    <Action ID="ComputeGraspPose" target="fridge_handle" strategy="pull" result_key="handle_grasp"/>
+    <Action ID="Pick" grasp_key="handle_grasp" timeout_ms="1200"/>
+    <Action ID="OpenContainer" target="fridge_door" container_type="hinged_door" timeout_ms="2000"/>
+    <Condition ID="ContainerOpen" target="fridge_door"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="400"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

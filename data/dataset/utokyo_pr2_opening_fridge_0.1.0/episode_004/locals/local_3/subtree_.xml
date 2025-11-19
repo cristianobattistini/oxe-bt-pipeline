@@ -1,0 +1,17 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="fridge_handle"/>
+      <Action ID="ScanForTarget" target="fridge_handle" pattern="arc" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <Action ID="DetectObject" target="fridge_handle" timeout_ms="1200"/>
+    <Fallback>
+      <Condition ID="AtOrientation" yaw_deg="90"/>
+      <Action ID="SetTCPYaw" yaw_deg="90"/>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="ApproachAndAlign" target="fridge_handle" tolerance="0.005" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Condition ID="IsAt" target="fridge_handle"/>
+  </Sequence>
+</BehaviorTree>

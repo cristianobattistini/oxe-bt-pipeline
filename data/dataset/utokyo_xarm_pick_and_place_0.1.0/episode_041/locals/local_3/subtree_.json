@@ -1,0 +1,19 @@
+{
+  "frame_index": 2,
+  "local_intent": "verify_visibility_and_alignment_before_pick; confirm grasp pose available and robot at target",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["white_plate_grasp"],
+  "bb_write": [],
+  "assumptions": [
+    "ComputeGraspPose ran earlier and stored pose as white_plate_grasp",
+    "Camera provides a clear view of white_plate for detection",
+    "Robot can reach and align to white_plate within specified tolerance"
+  ],
+  "coherence_with_global": "Implements the verification phase of the global plan: re-detects the white plate, performs approach-and-align (matching LOCAL_ANNOTATION), allows brief settling, then verifies the computed grasp pose and that the robot is at the target before proceeding to Pick.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

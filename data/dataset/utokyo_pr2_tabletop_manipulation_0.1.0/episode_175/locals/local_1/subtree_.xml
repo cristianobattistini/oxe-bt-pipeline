@@ -1,0 +1,11 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Condition ID="IsObjectVisible" target="grape"/>
+    <Condition ID="PoseAvailable" key="grasp_grape"/>
+    <Action ID="ApproachAndAlign" target="grape" tolerance="0.005" timeout_ms="1200"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="Pick" grasp_key="grasp_grape" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Condition ID="IsGraspStable"/>
+  </Sequence>
+</BehaviorTree>

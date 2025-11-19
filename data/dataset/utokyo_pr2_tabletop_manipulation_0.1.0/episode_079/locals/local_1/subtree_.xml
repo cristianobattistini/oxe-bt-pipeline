@@ -1,0 +1,14 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="cloth"/>
+      <Action ID="ScanForTarget" target="cloth" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <Action ID="SetTCPYaw" yaw_deg="90"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="ApproachAndAlign" target="cloth" tolerance="0.005" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Condition ID="AtOrientation" yaw_deg="90"/>
+    <Condition ID="IsAt" target="cloth"/>
+  </Sequence>
+</BehaviorTree>

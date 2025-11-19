@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <IsObjectVisible target="fridge_handle"/>
+      <ScanForTarget target="fridge_handle" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <ApproachAndAlign target="fridge_handle" tolerance="0.005" timeout_ms="1500"/>
+    <ComputeGraspPose target="fridge_handle" strategy="pull" result_key="handle_grasp"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Pick grasp_key="handle_grasp" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <ObjectInGripper target="fridge_handle"/>
+    <IsGraspStable/>
+  </Sequence>
+</BehaviorTree>

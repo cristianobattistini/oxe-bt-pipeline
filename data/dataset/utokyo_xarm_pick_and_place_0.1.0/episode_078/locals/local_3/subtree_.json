@@ -1,0 +1,19 @@
+{
+  "frame_index": 2,
+  "local_intent": "Perceive white_plate, prepare gripper and compute top grasp (grasp_white), approach and execute Pick with up to 2 attempts, verify grasp stability, then retreat to safe pose.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_white"],
+  "bb_write": ["grasp_white"],
+  "assumptions": [
+    "white_plate is visible or will be detected by DetectObject",
+    "ComputeGraspPose will produce a usable grasp stored as grasp_white",
+    "Gripper can open to the specified width before grasping"
+  ],
+  "coherence_with_global": "Matches GLOBAL_BT and GLOBAL_DESCRIPTION: perception (DetectObject) -> prepare (OpenGripper, ComputeGraspPose) -> approach (ApproachAndAlign) -> act (Pick with retries) -> verify (IsGraspStable) -> retreat.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

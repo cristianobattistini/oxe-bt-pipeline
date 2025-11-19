@@ -1,0 +1,13 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="cloth"/>
+      <Action ID="ScanForTarget" target="cloth" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <Action ID="DetectObject" target="cloth" timeout_ms="800"/>
+    <Action ID="MoveAbove" target="cloth" offset_z="0.05" timeout_ms="1200"/>
+    <Action ID="ApproachAndAlign" target="cloth" tolerance="0.005" timeout_ms="1200"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.02" force_threshold="5.0" timeout_ms="1200"/>
+    <Condition ID="ContactDetected" force_threshold="5.0"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Condition ID="ObjectInGripper" target="grid_clamp"/>
+    <Action ID="MoveAbove" target="grid_fixture" offset_z="0.10" timeout_ms="3000"/>
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="DetectObject" target="grid_fixture" timeout_ms="2000"/>
+    </RetryUntilSuccessful>
+    <Action ID="ApproachAndAlign" target="grid_fixture" tolerance="0.005" timeout_ms="3000"/>
+    <Action ID="SetTCPYaw" yaw_deg="90"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.05" force_threshold="10" timeout_ms="3000"/>
+    <Action ID="PlaceDown" target="grid_fixture" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1000"/>
+  </Sequence>
+</BehaviorTree>
