@@ -1,0 +1,13 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="pot_lid"/>
+      <Action ID="ScanForTarget" target="pot_lid" pattern="arc" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <Action ID="DetectObject" target="pot_lid" timeout_ms="800"/>
+    <Action ID="MoveAbove" target="pot_lid" offset_z="0.03" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="800"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.03" force_threshold="10" timeout_ms="1200"/>
+    <Condition ID="ContactDetected" force_threshold="10"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,14 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="t_block"/>
+      <Action ID="ScanForTarget" target="t_block" pattern="line" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <Action ID="DetectObject" target="t_block" timeout_ms="1200"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="ApproachAndAlign" target="t_block" tolerance="0.005" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Action ID="SetTCPYaw" yaw_deg="180"/>
+    <Condition ID="AtOrientation" yaw_deg="180"/>
+  </Sequence>
+</BehaviorTree>

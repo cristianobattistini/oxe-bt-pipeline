@@ -1,0 +1,114 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_018",
+  "task_summary": "Detect, grasp, raise, and maintain a hold on the blue Pepsi bottle.",
+  "task_long_description": {
+    "overview": "A table-top scene shows several bottles and small containers. The robot arm must find the Pepsi bottle (blue, positioned to the right in most frames), approach it with an open gripper, execute a side grasp, verify that the object is secured, lift it slightly, and keep holding it for a short duration. The behavior emphasizes reliable perception with a scan fallback and a bounded number of retries, followed by a precise approach and stable grasp suitable for a cylindrical plastic bottle.",
+    "preconditions": ["Workspace is clear of unexpected obstacles", "Pepsi bottle is present on the table", "Robot is homed and gripper operational"],
+    "stepwise_plan": ["Perceive the Pepsi bottle; if initial detection fails, perform a spiral scan", "Open the gripper", "Approach and align to the bottle within 1 cm tolerance", "Execute a standard side grasp", "Verify the object is in the gripper", "Raise the held bottle 0.10 m", "Hold for 2 s"],
+    "success_criteria": ["Bottle successfully grasped and lifted off the table", "Object remains in gripper for the hold duration", "No collisions or drops observed"],
+    "failure_and_recovery": ["If detection fails, the scan fallback is used", "If grasp fails or is unstable, the sequence is retried up to 3 times", "If object slips after lift, reopen, re-align, and reattempt"],
+    "termination": "Terminate after a successful hold duration is completed or after retries are exhausted."
+  },
+  "frame_ranking": {
+    "order": ["frame_5","frame_7","frame_3","frame_4","frame_6","frame_2","frame_1","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.20, "frame_1": 0.35, "frame_2": 0.48, "frame_3": 0.82,
+      "frame_4": 0.70, "frame_5": 0.93, "frame_6": 0.62, "frame_7": 0.88, "frame_8": 0.30
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Arm moves toward the right-side blue bottle with clear alignment to target.",
+        "predicts_next": "Grasp action expected imminently after alignment completes.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "hold pepsi bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 2000,
+    "tolerance": 0.01,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["pepsi_bottle", "green_bottle", "red_bottle", "tan_cup", "small_container"],
+  "objects_from_instruction": ["pepsi_bottle"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"pepsi_bottle","timeout_ms":1000},"description":"Visual detection of the Pepsi bottle."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"pepsi_bottle","pattern":"spiral","max_attempts":3,"timeout_ms":2000},"description":"Fallback scan to localize the bottle if initial detection fails."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":800},"description":"Prepare gripper for grasp."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"pepsi_bottle","tolerance":0.01,"timeout_ms":2000},"description":"Approach and align end-effector with the bottle."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"std_side","timeout_ms":1500},"description":"Execute standard side grasp on cylindrical bottle."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"pepsi_bottle"},"description":"Verify object is secured."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"pepsi_bottle","distance":0.10,"timeout_ms":1000},"description":"Lift the held bottle slightly off the surface."},
+    {"id":"HoldObject","type":"Action","ports":{"target":"pepsi_bottle","duration_ms":2000},"description":"Maintain a stable hold for a fixed duration."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 7, "conditions": 1, "depth": 4},
+  "failure_modes": ["Target not detected due to glare/occlusion", "Misalignment causing failed grasp", "Bottle slip after lift", "Timeout during approach due to obstruction"],
+  "recovery_strategy": ["Use scan fallback for perception", "Retry grasp up to 3 times", "Reopen and realign before next attempt", "Abort if retries exhausted"],
+  "assumptions": ["The rightmost blue bottle is Pepsi; visual branding is inferred from color/position.", "Holding means lifting and maintaining grasp without placing."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Robot secures the Pepsi bottle and holds it steadily for ≥2 s after a 0.10 m lift."],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"pepsi_bottle","timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"pepsi_bottle","pattern":"spiral","max_attempts":3,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"pepsi_bottle","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"std_side","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"pepsi_bottle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"pepsi_bottle","distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"pepsi_bottle","duration_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"pepsi_bottle","duration_ms":2000}},
+      "active_path_ids": []
+    }
+  ]
+}

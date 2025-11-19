@@ -1,0 +1,14 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="1000"/>
+    <Action ID="DetectObject" target="blue_bottle" timeout_ms="2000"/>
+    <Action ID="ComputeGraspPose" target="blue_bottle" strategy="side" result_key="goal_pose"/>
+    <Action ID="MoveAbove" target="blue_bottle" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="blue_bottle" tolerance="0.02" timeout_ms="2000"/>
+    <Action ID="GraspAtPose" pose_key="goal_pose" strategy="pinch" timeout_ms="1500"/>
+    <Action ID="CloseGripper" force="20" timeout_ms="1000"/>
+    <Condition ID="ObjectInGripper" target="blue_bottle"/>
+    <Action ID="RaiseHeld" target="blue_bottle" distance="0.10" timeout_ms="1500"/>
+    <Condition ID="IsGraspStable"/>
+  </Sequence>
+</BehaviorTree>

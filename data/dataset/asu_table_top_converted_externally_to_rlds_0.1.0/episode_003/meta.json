@@ -1,0 +1,129 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_003",
+  "task_summary": "Perceive the brown object, approach and align to it, then move it by pushing along the table and retreat.",
+  "task_long_description": {
+    "overview": "A UR-style arm on a tabletop must move a small brown/orange block among other colored items (green bottle, red can, pink cup, etc.). The safest strategy, consistent with the frames, is to push the brown object laterally instead of grasping it. The behavior first guarantees visual contact, aligns the TCP to the object, performs a short push to translate it, and then retreats to clear the scene. Timeouts and distances are modest to avoid disturbing neighboring objects.",
+    "preconditions": [
+      "Workspace clear enough to approach the brown object",
+      "Table surface reachable and unobstructed along the push direction",
+      "Gripper/TCP free (no object currently held)",
+      "Camera provides visibility of the brown object"
+    ],
+    "stepwise_plan": [
+      "If the brown object is not immediately visible, scan to find it.",
+      "Approach and align the end-effector with small tolerance.",
+      "Push the brown object a short distance to the left.",
+      "Retreat to a safe distance."
+    ],
+    "success_criteria": [
+      "Brown object translates on the table by roughly the commanded distance",
+      "No collisions with other objects",
+      "Robot ends in a safe, non-contact state"
+    ],
+    "failure_and_recovery": [
+      "Object lost from view: re-run scan stage.",
+      "Approach misalignment: repeat approach-and-align.",
+      "Insufficient motion from push: re-execute push with similar parameters if safe."
+    ],
+    "termination": "Terminate after a successful push and retreat without contact alarms."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "move brown object",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["brown_object", "green_bottle", "red_can", "pink_cup", "purple_cup", "clear_cup", "table"],
+  "objects_from_instruction": ["brown_object"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"brown_object"},"description":"Checks if the brown object is currently visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"brown_object","pattern":"spiral","max_attempts":3,"timeout_ms":2000},"description":"Active visual scan to locate the object if not visible."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"brown_object","tolerance":0.01,"timeout_ms":2000},"description":"Approach and align to the object with tight tolerance."},
+    {"id":"Push","type":"Action","ports":{"target":"brown_object","distance":0.10,"direction_deg":270,"timeout_ms":1500},"description":"Push the object leftwards along the table."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back away to a safe pose after pushing."}
+  ],
+  "tree_stats": {"nodes_total": 7, "actions": 4, "conditions": 1, "depth": 3},
+  "failure_modes": ["Object occluded during approach", "Push slips and changes heading", "Collision with neighboring objects", "Timeouts due to slow motion"],
+  "recovery_strategy": ["Re-scan and re-approach", "Reduce speed and repeat align", "Shorter push with corrected heading", "Abort and retreat if contact threshold exceeded"],
+  "assumptions": ["The brown object is the small orange/brown block seen in the lower-row frames; movement is executed as a push to the left due to likely non-graspable geometry. If instruction implied pick-and-place, frames suggest push instead and this plan follows the visual evidence."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Brown object translated laterally; robot ends clear of contact; no disturbance of other items"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"brown_object","pattern":"spiral","max_attempts":3,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"brown_object"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"brown_object","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"brown_object","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"brown_object"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"brown_object","distance":0.10,"direction_deg":270,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"brown_object","distance":0.10,"direction_deg":270,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"brown_object","distance":0.10,"direction_deg":270,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

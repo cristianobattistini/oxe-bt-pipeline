@@ -1,0 +1,256 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_013",
+  "task_summary": "Navigate through the hallway toward the blue door at the end of the corridor.",
+  "task_long_description": {
+    "overview": "The robot operates in a corridor-like environment with a visible blue door at the far end, representing the goal. The sequence of frames shows forward motion down the hall, keeping alignment with the walls and avoiding deviations. The robot must move smoothly and verify arrival at the goal region once the door dominates the field of view.",
+    "preconditions": [
+      "Robot initialized in starting corridor",
+      "Goal location identified visually as blue door",
+      "Navigation sensors active"
+    ],
+    "stepwise_plan": [
+      "Check if already at goal",
+      "If not, begin navigation toward goal",
+      "Maintain hallway alignment",
+      "Periodically verify goal proximity",
+      "Terminate once goal is reached"
+    ],
+    "success_criteria": [
+      "Robot arrives near blue door",
+      "Final frame shows clear proximity to goal region"
+    ],
+    "failure_and_recovery": [
+      "If navigation fails or goal lost, retry up to 3 times",
+      "Timeout of 7 seconds ensures recovery handling"
+    ],
+    "termination": "Terminate when condition IsAt(goal) returns true."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "clear forward motion with strong goal cue visible",
+        "predicts_next": "approach stabilization expected",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 7000,
+    "tolerance": null,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "blue door",
+    "corridor walls",
+    "floor"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsAt",
+      "type": "Condition",
+      "ports": {
+        "target": "goal"
+      },
+      "description": "Check whether robot is at the goal."
+    },
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "goal",
+        "yaw_deg": 0,
+        "timeout_ms": 5000
+      },
+      "description": "Navigate toward a named location (goal)."
+    },
+    {
+      "id": "Wait",
+      "type": "Action",
+      "ports": {
+        "timeout_ms": 500
+      },
+      "description": "Pause briefly to allow sensor update."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 10,
+    "actions": 2,
+    "conditions": 2,
+    "depth": 5
+  },
+  "failure_modes": [
+    "Localization drift",
+    "Navigation timeout",
+    "Blocked path"
+  ],
+  "recovery_strategy": [
+    "Retry navigation",
+    "Timeout-based reset"
+  ],
+  "assumptions": [
+    "Frames show continuous hallway motion toward goal; no dynamic obstacles observed."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Goal door centered in frame and close distance"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "goal occluded",
+      "visual drift",
+      "timeout exceeded"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "Wait",
+        "attrs": {
+          "timeout_ms": 500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

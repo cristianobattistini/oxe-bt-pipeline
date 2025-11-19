@@ -1,0 +1,23 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <RetryUntilSuccessful num_attempts="3">
+      <Fallback>
+        <Condition ID="IsAt" target="goal"/>
+        <Sequence>
+          <Timeout timeout_ms="7000">
+            <Parallel success_threshold="1" failure_threshold="2">
+              <Action ID="NavigateToNamed" location_id="goal" yaw_deg="0" timeout_ms="5000"/>
+              <Repeat num_cycles="5">
+                <Sequence>
+                  <Action ID="Wait" timeout_ms="500"/>
+                  <Condition ID="IsAt" target="goal"/>
+                </Sequence>
+              </Repeat>
+            </Parallel>
+          </Timeout>
+          <Condition ID="IsAt" target="goal"/>
+        </Sequence>
+      </Fallback>
+    </RetryUntilSuccessful>
+  </Sequence>
+</BehaviorTree>

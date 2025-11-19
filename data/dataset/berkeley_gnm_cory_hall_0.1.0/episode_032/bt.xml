@@ -1,0 +1,14 @@
+<BehaviorTree ID="MainTree">
+  <Fallback>
+    <IsAt target="goal"/>
+    <Sequence>
+      <SetBlackboard key="nav_mode" value="goal"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Timeout timeout_ms="5000">
+          <NavigateToNamed location_id="goal" yaw_deg="90" timeout_ms="5000"/>
+        </Timeout>
+      </RetryUntilSuccessful>
+      <IsAt target="goal"/>
+    </Sequence>
+  </Fallback>
+</BehaviorTree>

@@ -1,0 +1,17 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <IsObjectVisible target="t_block"/>
+      <ScanForTarget target="t_block" pattern="arc" max_attempts="3" timeout_ms="800"/>
+    </Fallback>
+    <MoveAbove target="t_block" offset_z="0.03" timeout_ms="1200"/>
+    <ApproachAndAlign target="t_block" tolerance="0.005" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <Repeat num_cycles="3">
+      <Push target="t_block" distance="0.1" direction_deg="90" timeout_ms="1200"/>
+    </Repeat>
+    <IsAt target="goal_area"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+    <Wait timeout_ms="500"/>
+  </Sequence>
+</BehaviorTree>

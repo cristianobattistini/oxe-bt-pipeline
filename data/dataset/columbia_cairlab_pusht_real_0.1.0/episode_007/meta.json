@@ -1,0 +1,163 @@
+{
+  "dataset_id": "columbia_cairlab_pusht_real_0.1.0",
+  "episode_id": "episode_007",
+  "task_summary": "Perceive the T-shaped block and the goal outline, align the circular end-effector, push the block toward the target along a NW direction, fine-align at the slot, and retreat.",
+  "task_long_description": {
+    "overview": "A tabletop pushing task is executed by a robot with a circular end-effector. The scene contains a T-shaped block and a drawn T-shaped goal outline. The robot first ensures both the block and the goal are visible, then approaches above the block, aligns its TCP yaw, and performs a primary push toward the goal. Near the goal, it performs a fine alignment and, if not yet correctly placed, issues a short corrective push before verifying placement and retreating. Timeouts are moderate to accommodate accurate alignment; tolerances are tight for precise placement.",
+    "preconditions": [
+      "Robot and camera initialized at 10Hz observation/control.",
+      "Workspace clear; block and goal on the plane.",
+      "End-effector free of grasped objects."
+    ],
+    "stepwise_plan": [
+      "Ensure visibility of block_T and target_slot (scan if needed).",
+      "Move above and align to the block with tight tolerance.",
+      "Set TCP yaw for diagonal push.",
+      "Execute primary push toward the goal.",
+      "Fine-align to the target outline; if not at goal, perform a small corrective push.",
+      "Verify placement and retreat from the workspace."
+    ],
+    "success_criteria": [
+      "Block pose overlaps the target outline within visual tolerance.",
+      "No loss of contact that causes large deviation.",
+      "Robot retreats to a safe distance."
+    ],
+    "failure_and_recovery": [
+      "Perception failure: re-scan for block/goal.",
+      "Insufficient displacement: issue corrective push.",
+      "Over-shoot or misalignment: re-align to target and nudge again.",
+      "Unexpected contact: time out and retreat."
+    ],
+    "termination": "Terminate when IsAt(target_slot) succeeds and the robot has executed Retreat."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Primary push starts with clear contact and direction visible.",
+        "predicts_next": "Approach to target outline and fine alignment expected.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "The task requires pushing a T-shaped block (gray) to a fixed target (green) with a circular end-effector (blue). Both observation and control frequencies are 10Hz.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 1200,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["block_T", "target_slot", "circular_end_effector"],
+  "objects_from_instruction": ["T-shaped block (gray)", "fixed target (green)", "circular end-effector (blue)"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"block_T"},"description":"Checks visibility of the T block."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"block_T","pattern":"line","max_attempts":3,"timeout_ms":800},"description":"Line scan to relocate the block."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"target_slot"},"description":"Checks visibility of the goal outline."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"target_slot","pattern":"line","max_attempts":3,"timeout_ms":800},"description":"Line scan to relocate the goal."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"block_T","offset_z":0.03,"timeout_ms":1200},"description":"Hover above the block before contact."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"block_T","tolerance":0.005,"timeout_ms":1200},"description":"Lateral alignment to prepare pushing."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":45},"description":"Yaw alignment for diagonal push path."},
+    {"id":"Push","type":"Action","ports":{"target":"block_T","distance":0.2,"direction_deg":135,"timeout_ms":1500},"description":"Primary push toward the goal."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"target_slot","tolerance":0.005,"timeout_ms":1200},"description":"Fine alignment near the goal outline."},
+    {"id":"IsAt","type":"Condition","ports":{"target":"target_slot"},"description":"Checks whether the block is at the goal."},
+    {"id":"Push","type":"Action","ports":{"target":"block_T","distance":0.1,"direction_deg":135,"timeout_ms":1200},"description":"Short corrective nudge if not yet at goal."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back away to a safe pose."}
+  ],
+  "tree_stats": {"nodes_total": 18, "actions": 10, "conditions": 3, "depth": 4},
+  "failure_modes": [
+    "Block not detected due to lighting/occlusion",
+    "Yaw misalignment causes sideways slip",
+    "Push distance insufficient to reach goal",
+    "Overshoot beyond target outline"
+  ],
+  "recovery_strategy": [
+    "Fallback scans for both block and goal",
+    "Re-align TCP yaw then retry push",
+    "Issue corrective short push and re-check",
+    "Timeout and retreat on abnormal contact"
+  ],
+  "assumptions": [
+    "Frames show a red T block and a blue goal outline; instruction mentions gray block and green target. We follow the frames.",
+    "Push direction set to 135° (north-west) based on block/goal geometry in frames.",
+    "No grasping is required; contact pushing only."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "IsAt(target_slot) becomes true after push/fine alignment",
+      "Final block pose visually overlaps the outline",
+      "Robot retreats cleanly without disturbing placement"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"block_T","pattern":"line","max_attempts":3,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"block_T","offset_z":0.03,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"block_T","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"block_T","distance":0.2,"direction_deg":135,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"block_T","distance":0.2,"direction_deg":135,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"target_slot","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"IsAt","attrs":{"target":"target_slot"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

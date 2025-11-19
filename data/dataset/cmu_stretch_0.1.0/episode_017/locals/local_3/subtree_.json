@@ -1,0 +1,15 @@
+{
+  "frame_index": 2,
+  "local_intent": "Verify the availability of the grasp pose 'grasp_handle'; if missing, detect the drawer handle and compute the pulling grasp, then confirm pose availability.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["grasp_handle"],
+  "bb_write": ["grasp_handle"],
+  "assumptions": ["Handle detection may be required before computing the grasp; retry up to 3 times."],
+  "coherence_with_global": "Matches GLOBAL_BT flow around PoseAvailable: uses DetectObject (with retry) and ComputeGraspPose for 'drawer_handle' then verifies 'grasp_handle' exists.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

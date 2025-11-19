@@ -1,0 +1,114 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_108",
+  "task_summary": "Perceive the bread on the tabletop, approach it with an open gripper, grasp it securely, then lift to confirm the pick.",
+  "task_long_description": {
+    "overview": "A fixed robotic arm must pick a small bread-like item from a cluttered tabletop. The scene shows multiple distractor objects (bottles, cans, cups) around the center zone. The robot should first detect and localize the bread, open the gripper, move above and align precisely, then close the gripper to grasp. After checking grasp stability, it lifts the item slightly to verify the pick while avoiding collisions with neighbors. No placement is required; the task ends after a successful lift with the bread in the gripper.",
+    "preconditions": ["Robot is homed and reachable workspace includes the bread.", "Vision system can detect the 'bread' target.", "Gripper operational and unobstructed."],
+    "stepwise_plan": ["Detect the bread.", "Open gripper.", "Move above the bread with small vertical offset.", "Approach and align with tight tolerance.", "Close gripper to grasp.", "Check grasp stability.", "Raise held object slightly to confirm pick."],
+    "success_criteria": ["Bread detected and localized.", "Gripper successfully closes on the bread.", "Stability check passes.", "Object lifted from table and remains in gripper."],
+    "failure_and_recovery": ["If detection fails, re-run perception.", "If alignment fails, back off and retry alignment.", "If grasp unstable, reopen, re-approach, and regrasp."],
+    "termination": "Terminate once the bread is confirmed in the gripper after a small lift."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Arm centered above the target region, alignment toward the bread appears imminent.",
+        "predicts_next": "Closing motion for grasp should follow.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick bread",
+  "instruction_to_ports": {
+    "force": 20,
+    "timeout_ms": 1500,
+    "tolerance": 0.01,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["bread", "green_bottle", "red_cylinder", "blue_cup", "metallic_cup"],
+  "objects_from_instruction": ["bread"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"bread","timeout_ms":1000},"description":"Detect and localize the bread target."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":1000},"description":"Prepare gripper for grasp."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"bread","offset_z":0.05,"timeout_ms":1500},"description":"Move to a pre-grasp pose above the bread."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"bread","tolerance":0.01,"timeout_ms":1500},"description":"Approach vertically and align with tight tolerance."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":1000},"description":"Close gripper to secure the bread."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check if the grasp is stable."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"bread","distance":0.10,"timeout_ms":1000},"description":"Lift the grasped bread slightly off the table."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"bread"},"description":"Verify the bread is held after lifting."}
+  ],
+  "tree_stats": {"nodes_total": 9, "actions": 6, "conditions": 2, "depth": 2},
+  "failure_modes": ["Target mis-detected due to similar color distractors", "Collision during approach with nearby items", "Insufficient gripping force leading to slip"],
+  "recovery_strategy": ["Re-run detection and re-center above target", "Back off and re-approach with same tolerance", "Open, realign, and regrasp with same parameters"],
+  "assumptions": ["'Bread' refers to the tan, loaf-like item near table center; exact shape not fully clear from frames."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Bread visually absent from table contact area after lift", "Positive ObjectInGripper condition", "No collisions during motion"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"bread","timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"bread","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"bread","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"bread","distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"bread","distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"bread"}},
+      "active_path_ids": []
+    }
+  ]
+}

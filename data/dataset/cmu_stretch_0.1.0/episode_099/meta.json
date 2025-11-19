@@ -1,0 +1,165 @@
+{
+  "dataset_id": "cmu_stretch_0.1.0",
+  "episode_id": "episode_099",
+  "task_summary": "Locate the dishwasher handle, align and grasp it, then pull to open the hinged door and retreat.",
+  "task_long_description": {
+    "overview": "A mobile manipulator approaches a stainless appliance with a horizontal bar handle that matches a dishwasher front. The robot must visually acquire the handle, move to a pre-grasp pose, align its wrist, and establish a stable grasp. With the handle secured, it performs a controlled pull to open the hinged door, verifying that the container state becomes open. The scene includes nearby cabinetry and a countertop appliance, so alignment and limited retreat distance are important to avoid collisions. Recovery includes retrying the open if verification fails.",
+    "preconditions": [
+      "Dishwasher front and handle are within reachable workspace",
+      "Path to handle is unobstructed",
+      "Gripper operational and empty",
+      "Hinged door unlatches with gentle pull"
+    ],
+    "stepwise_plan": [
+      "Scan and detect the dishwasher handle.",
+      "Move to a pre-grasp and align to the handle axis.",
+      "Open gripper, set wrist yaw, and advance slightly.",
+      "Close gripper on the handle to secure grasp.",
+      "Attempt to open the dishwasher (hinged door) and verify open state.",
+      "Retreat to a safe distance."
+    ],
+    "success_criteria": [
+      "Door angle increases from closed state",
+      "ContainerOpen(dishwasher) condition satisfied",
+      "No collisions with adjacent cabinetry",
+      "Robot retreats to a safe standoff"
+    ],
+    "failure_and_recovery": [
+      "Handle not detected → rescan and reapproach",
+      "Misalignment or slip → realign wrist yaw then regrasp",
+      "Latch not released → retry open up to 3 attempts",
+      "Obstruction encountered → retreat slightly and reattempt"
+    ],
+    "termination": "Terminate once ContainerOpen(dishwasher) is true and the robot has retreated to standoff."
+  },
+  "frame_ranking": {
+    "order": ["frame_6","frame_5","frame_3","frame_4","frame_2","frame_7","frame_1","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.20,
+      "frame_1": 0.35,
+      "frame_2": 0.55,
+      "frame_3": 0.78,
+      "frame_4": 0.72,
+      "frame_5": 0.85,
+      "frame_6": 0.93,
+      "frame_7": 0.50,
+      "frame_8": 0.10
+    },
+    "rationale_per_frame": {
+      "frame_6": {
+        "now_evidence": "Handle appears engaged and door motion likely initiated.",
+        "predicts_next": "Verification of open state or continued opening.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pull open a dishwasher",
+  "instruction_to_ports": {
+    "force": 20,
+    "timeout_ms": 1500,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["dishwasher","dishwasher_handle","robot_arm","gripper","adjacent_cabinet","countertop_appliance","fridge_side"],
+  "objects_from_instruction": ["dishwasher"],
+  "blackboard_keys": ["dishwasher_handle_pregrasp"],
+  "node_specs": [
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"dishwasher_handle","pattern":"line","max_attempts":3,"timeout_ms":1200},"description":"Active scan to localize the dishwasher handle with a line sweep."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"dishwasher_handle","timeout_ms":800},"description":"Confirm visual detection of the handle."},
+    {"id":"MoveTo","type":"Action","ports":{"target":"dishwasher_handle_pregrasp","timeout_ms":1500},"description":"Navigate end-effector to a pre-grasp pose."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"dishwasher_handle","tolerance":0.005,"timeout_ms":1200},"description":"Refine pose and align to handle axis with tight tolerance."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Prepare gripper for handle insertion."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":90},"description":"Rotate wrist so fingers are orthogonal to the bar handle."},
+    {"id":"MoveDelta","type":"Action","ports":{"axis":"x","dist":0.05,"timeout_ms":500},"description":"Advance slightly to seat the fingers on the handle."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":800},"description":"Securely grasp the handle with moderate force."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"dishwasher","container_type":"hinged_door","timeout_ms":1500},"description":"Execute the pull to open the dishwasher door."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"dishwasher"},"description":"Verify that the dishwasher is open."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off to a safe standoff after opening."}
+  ],
+  "tree_stats": {"nodes_total": 14, "actions": 10, "conditions": 1, "depth": 4},
+  "failure_modes": [
+    "Handle not detected or misclassified",
+    "Gripper slips during pull",
+    "Insufficient pull to unlatch",
+    "Collision with adjacent cabinet or fridge panel"
+  ],
+  "recovery_strategy": [
+    "Rescan using ScanForTarget with limited retries",
+    "Re-align via ApproachAndAlign and SetTCPYaw",
+    "Retry open up to 3 attempts",
+    "Retreat slightly and reapproach if contact forces spike"
+  ],
+  "assumptions": [
+    "Appliance in frames is treated as a dishwasher with a bar handle; frames appear consistent with a hinged door that opens downward.",
+    "Library lacks an explicit Pull action; OpenContainer(hinged_door) abstracts the pull once grasped.",
+    "Symbols 'dishwasher_handle_pregrasp' and 'dishwasher' are valid targets in the episode context."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "ContainerOpen(dishwasher) becomes true",
+      "Door angle visibly increases vs. initial frame",
+      "No collisions or force threshold violations",
+      "Robot ends in retreat standoff"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"dishwasher_handle","pattern":"line","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"dishwasher_handle","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveTo","attrs":{"target":"dishwasher_handle_pregrasp","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"dishwasher_handle","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"SetTCPYaw","attrs":{"yaw_deg":90}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"dishwasher","container_type":"hinged_door","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"ContainerOpen","attrs":{"target":"dishwasher"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

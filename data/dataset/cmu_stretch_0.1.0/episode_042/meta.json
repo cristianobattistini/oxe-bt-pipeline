@@ -1,0 +1,160 @@
+{
+  "dataset_id": "cmu_stretch_0.1.0",
+  "episode_id": "episode_042",
+  "task_summary": "Detect the dishwasher handle, grasp it, pull to open the drawer-style dishwasher, then retreat and release.",
+  "task_long_description": {
+    "overview": "A mobile manipulator approaches a stainless dishwasher front with a horizontal bar handle. The goal is to pull the door/drawer open. The behavior includes perception of the handle, computing a pull-oriented grasp, aligning the end effector, closing the gripper on the handle bar, and executing an open action. After verifying that the container is open, the robot backs away slightly and releases the handle. The surrounding scene shows adjacent fridge and cabinetry; the sequence emphasizes reliable perception and stable grasping to avoid slips on the smooth metal surface.",
+    "preconditions": [
+      "Robot is positioned within reach of the dishwasher front",
+      "Dishwasher handle is unobstructed and visible",
+      "Gripper operational and initialized open"
+    ],
+    "stepwise_plan": [
+      "Open gripper and detect dishwasher handle; fallback to a short scan if not immediately visible",
+      "Compute pull-style grasp and verify pose availability",
+      "Approach and align to the handle; set end-effector yaw for bar alignment",
+      "Close gripper to grasp the handle and confirm grasp stability",
+      "Invoke open-container routine to pull the dishwasher open",
+      "Verify container is open, retreat slightly, and release the handle"
+    ],
+    "success_criteria": [
+      "Dishwasher front translates outward from closed position",
+      "Container state reported open",
+      "Robot retreats with no collision and releases handle"
+    ],
+    "failure_and_recovery": [
+      "If detection fails: execute ScanForTarget and retry",
+      "If grasp is unstable: reopen gripper, realign, and regrip",
+      "If drawer does not move: reattempt OpenContainer after slight re-approach"
+    ],
+    "termination": "End when container open state is confirmed and gripper is released after retreat."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pull open a dishwasher",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["dishwasher","dishwasher_handle","robot_gripper","fridge","cabinetry"],
+  "objects_from_instruction": ["dishwasher"],
+  "blackboard_keys": ["grasp_handle"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":"float","timeout_ms":"int"},"description":"Open or release gripper to prepare or after task."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Perceive target object (dishwasher handle)."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"string","pattern":"string","max_attempts":"int","timeout_ms":"int"},"description":"Fallback scanning motion to find the handle."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"string","strategy":"string","result_key":"string"},"description":"Compute a pull-oriented grasp on the handle and store pose."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"string"},"description":"Verify that a grasp pose was computed and stored."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"string","tolerance":"float","timeout_ms":"int"},"description":"Move to pregrasp and align precisely to handle."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":"int"},"description":"Rotate tool yaw to align with bar handle."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":"float","timeout_ms":"int"},"description":"Close gripper to grasp the handle bar."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check that the grasp is secure."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"string","container_type":"string","timeout_ms":"int"},"description":"Execute the pull-open of the dishwasher (treated as drawer)."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"string"},"description":"Verify the container has opened."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back off from the opened dishwasher."}
+  ],
+  "tree_stats": {"nodes_total": 15, "actions": 10, "conditions": 3, "depth": 3},
+  "failure_modes": [
+    "Handle not detected due to glare",
+    "Pose computation fails or is inaccurate",
+    "Gripper slips on smooth bar",
+    "Drawer friction too high or latch engaged"
+  ],
+  "recovery_strategy": [
+    "Fallback scan when detection fails",
+    "Recompute grasp and realign if pose invalid",
+    "Reopen and regrip with adjusted yaw if slip detected",
+    "Repeat open action after micro-approach nudge"
+  ],
+  "assumptions": [
+    "Frames suggest a bar-handle, drawer-style dishwasher; library lacks a dedicated 'dishwasher' container type, so 'drawer' is used.",
+    "Exact opening distance is not measured; verification relies on ContainerOpen condition."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "ContainerOpen returns success after OpenContainer",
+      "Robot retreats 0.1 m and releases handle without collision"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"dishwasher_handle","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"dishwasher_handle","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"PoseAvailable","attrs":{"key":"grasp_handle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"dishwasher","container_type":"drawer","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"dishwasher","container_type":"drawer","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":400}},
+      "active_path_ids": []
+    }
+  ]
+}

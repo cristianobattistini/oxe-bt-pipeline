@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="brown_object"/>
+      <Action ID="ScanForTarget" target="brown_object" pattern="line" max_attempts="3" timeout_ms="2000"/>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="ApproachAndAlign" target="brown_object" tolerance="0.01" timeout_ms="2000"/>
+    </RetryUntilSuccessful>
+    <Repeat num_cycles="2">
+      <Action ID="Push" target="brown_object" distance="0.10" direction_deg="0" timeout_ms="2000"/>
+    </Repeat>
+    <Condition ID="IsObjectVisible" target="brown_object"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,10 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Condition ID="PoseAvailable" key="lid_grasp"/>
+    <Action ID="ApproachAndAlign" target="green_bin_lid" tolerance="0.005" timeout_ms="1200"/>
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="Pick" grasp_key="lid_grasp" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Condition ID="IsGraspStable"/>
+  </Sequence>
+</BehaviorTree>

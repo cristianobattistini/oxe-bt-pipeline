@@ -1,0 +1,115 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_023",
+  "task_summary": "Detect, approach, grasp, and lift the maroon cube on the table.",
+  "task_long_description": {
+    "overview": "A UR-type manipulator must pick up a maroon cube from a cluttered tabletop scene. Objects include bottles, cans, a white carton, and orange rings. The robot opens the gripper, detects the cube, aligns from above, computes a top-down grasp, closes the gripper, verifies stability, and lifts the object. Movements should avoid nearby items and maintain sufficient clearance above the table.",
+    "preconditions": ["Robot homed and reachable workspace", "Gripper functional and empty", "Tabletop static; no human interference", "Camera provides view of the scene"],
+    "stepwise_plan": ["Open gripper", "Detect maroon_cube", "Approach and align to target", "Compute top grasp pose", "Move above pregrasp height", "Execute grasp at pose", "Close gripper and check stability", "Raise held object"],
+    "success_criteria": ["maroon_cube securely in gripper", "No collisions with other objects", "Object lifted at least 10 cm above table"],
+    "failure_and_recovery": ["Detection fails -> retry detection", "Misalignment -> re-approach and recompute pose", "Slippage -> reopen and retry grasp", "Timeout -> backoff and retry sequence"],
+    "termination": "Task ends when the cube is detected, grasp is stable, and the object is raised to the specified height."
+  },
+  "frame_ranking": {
+    "order": ["frame_5","frame_6","frame_7","frame_3","frame_2","frame_4","frame_1","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.25, "frame_1": 0.35, "frame_2": 0.60, "frame_3": 0.70,
+      "frame_4": 0.50, "frame_5": 0.90, "frame_6": 0.85, "frame_7": 0.80, "frame_8": 0.15
+    },
+    "rationale_per_frame": {
+      "frame_5": {
+        "now_evidence": "End-effector centered over target at grasp height; gripper lights active.",
+        "predicts_next": "Closure of gripper followed by lift.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up maroon cube",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["maroon_cube","green_bottle","red_can","white_carton","blue_can","orange_rings"],
+  "objects_from_instruction": ["maroon_cube"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":800},"description":"Pre-open the gripper to avoid collisions."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"maroon_cube","timeout_ms":2000},"description":"Vision step to localize the cube."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"maroon_cube","tolerance":0.01,"timeout_ms":3000},"description":"Cartesian approach with alignment to grasp axis."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"maroon_cube","strategy":"top","result_key":"goal_pose"},"description":"Plan a top-down grasp pose and store it on the blackboard."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"maroon_cube","offset_z":0.05,"timeout_ms":1500},"description":"Move above the object for safe descent."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"top","timeout_ms":2000},"description":"Execute the planned grasp."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":30,"timeout_ms":1500},"description":"Apply gripping force to secure the cube."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Confirm that the grasp is stable before lifting."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"maroon_cube","distance":0.10,"timeout_ms":1500},"description":"Lift the grasped cube from the table."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 8, "conditions": 1, "depth": 3},
+  "failure_modes": ["Object not detected due to lighting/contrast", "Collision with nearby objects during approach", "Pose estimation error causing missed grasp", "Insufficient grip force leading to slippage"],
+  "recovery_strategy": ["Retry detection up to 3 times", "Re-align with ApproachAndAlign and recompute pose", "Re-open gripper and repeat grasp", "Increase approach clearance then retry"],
+  "assumptions": ["The 'maroon cube' in frames appears as a red rectangular block on the left; shape is a cuboid but treated as 'cube' for the task.", "Scene contains multiple distractors (bottles, cans, carton)."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["ObjectInGripper or stable grasp confirmed", "Lifted by 0.10 m without collisions"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"maroon_cube","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"maroon_cube","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"maroon_cube","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"maroon_cube","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"maroon_cube","strategy":"top","result_key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"top","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":30,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"maroon_cube","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"maroon_cube","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "dataset_id": "columbia_cairlab_pusht_real_0.1.0",
+  "episode_id": "episode_118",
+  "task_summary": "Perceive a T-shaped block and a circular goal, align the circular end-effector, make contact, and execute repeated push primitives until the block reaches the goal, then retreat.",
+  "task_long_description": {
+    "overview": "A table-top UR-style arm with a circular tip must push a T-shaped block across a planar surface into a fixed circular goal region. The camera provides top-down observations and the execution uses non-prehensile contact via the tool tip. The behavior emphasizes robust perception, careful alignment before contact, and short repeated push actions that translate and slightly reorient the block. After reaching the goal, the arm retreats to a safe height to end the episode cleanly. Control/observation operate at 10 Hz, implying frequent re-evaluation between actions.",
+    "preconditions": ["Workspace is clear except the T block and a visible circular goal", "Robot initialized and reachable over the table surface", "Calibration aligns perception and control frames", "End-effector tip is circular and contact-safe"],
+    "stepwise_plan": ["Detect T block and goal; if not visible, scan the scene", "Move above the block and align approach pose with tight tolerance", "Lower until contact with low force, set yaw for push direction", "Execute several short pushes toward the goal with intermittent checks", "Retreat to a safe distance and verify block-in-goal condition"],
+    "success_criteria": ["Block’s footprint intersects the goal region within tolerance", "No additional motion after retreat and final verification succeeds"],
+    "failure_and_recovery": ["If perception fails, rescan; if alignment/contact fails, re-approach; if pushes undershoot, repeat push sequence with retries"],
+    "termination": "Terminate when the block is verified at the goal after retreat or when retries are exhausted."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "The task requires pushing a T-shaped block (gray) to a fixed target (green) with a circular end-effector (blue). Both observation and control frequencies are 10Hz.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["robot_arm", "circular_end_effector_blue", "T_block_red", "goal_ring_blue", "table_surface"],
+  "objects_from_instruction": ["T-shaped block (gray)", "target (green)", "circular end-effector (blue)"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"t_block","timeout_ms":800},"description":"Detect the T-shaped block in the scene."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"t_block","pattern":"raster","max_attempts":3,"timeout_ms":1200},"description":"Active scan pattern to localize the block when not immediately visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"target_circle","timeout_ms":800},"description":"Detect the circular goal region."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"target_circle","pattern":"spiral","max_attempts":3,"timeout_ms":1200},"description":"Fallback scanning to recover goal detection."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"t_block","offset_z":0.02,"timeout_ms":1200},"description":"Move to a pre-push height above the block."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"t_block","tolerance":0.005,"timeout_ms":1200},"description":"Planar approach with tight alignment before contact."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":0},"description":"Orient the tool to push along the goal direction."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"normal","max_depth":0.02,"force_threshold":10,"timeout_ms":800},"description":"Establish gentle contact with the block."},
+    {"id":"Push","type":"Action","ports":{"target":"t_block","distance":0.1,"direction_deg":0,"timeout_ms":1200},"description":"Execute a short push primitive toward the goal."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off to clear contact after the push sequence."},
+    {"id":"IsAt","type":"Condition","ports":{"target":"block_at_target"},"description":"Check if the block is within the goal region."}
+  ],
+  "tree_stats": {"nodes_total": 17, "actions": 10, "conditions": 1, "depth": 5},
+  "failure_modes": ["Block not detected due to glare/occlusion", "Goal ring misdetected or out of frame", "Contact made at poor angle causing rotation instead of translation", "Insufficient push distance causing undershoot", "Dynamic slip leading to overshoot of goal"],
+  "recovery_strategy": ["Fallback to scanning and redetection", "Re-approach and realign with tighter tolerance", "Repeat short pushes with capped distance and retry wrapper", "Retreat and re-establish contact if sliding occurs"],
+  "assumptions": ["Frames show a red T block and a blue circular goal, whereas instruction mentions gray block and green target; frames are treated as authoritative", "Push direction set to 0° (toward image right) based on goal placement in frames", "10 Hz observation/control noted but not directly mappable to library timeouts; discrete actions approximate continuous control"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Block centroid overlaps goal ring by visual threshold", "No further tool contact after retreat", "All actions return SUCCESS without exceeding retries"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"t_block","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"target_circle","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"t_block","offset_z":0.02,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"t_block","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"normal","max_depth":0.02,"force_threshold":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.1,"direction_deg":0,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.1,"direction_deg":0,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.1,"direction_deg":0,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="green_bin_lid"/>
+      <Action ID="ScanForTarget" target="green_bin_lid" pattern="arc" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <Action ID="DetectObject" target="green_bin_lid" timeout_ms="1200"/>
+    <Action ID="ComputeGraspPose" target="green_bin_lid_edge" strategy="pinch" result_key="lid_grasp"/>
+    <Condition ID="PoseAvailable" key="lid_grasp"/>
+  </Sequence>
+</BehaviorTree>

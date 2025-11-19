@@ -1,0 +1,125 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_053",
+  "task_summary": "Detect the Coke object, approach, grasp it securely, and maintain a hold.",
+  "task_long_description": {
+    "overview": "A UR-style manipulator on a white tabletop must hold the Coke item. The scene shows multiple objects: a red Coke can at the left, a blue can, a green plastic bottle, three small orange bottles, and a tall red bottle at the right. The robot should perceive the target, approach from above, compute a grasp, close the gripper, verify stability, and hold for a short duration. Movements should avoid disturbing nearby items while maintaining alignment.",
+    "preconditions": ["Workspace clear of collisions around the Coke item", "Gripper operational and centered", "Camera provides view of the table", "Target object is reachable"],
+    "stepwise_plan": [
+      "Detect the Coke object on the table.",
+      "Open gripper and move to a pre-grasp height above the target.",
+      "Approach and align precisely over the object.",
+      "Compute a top grasp pose and execute the grasp.",
+      "Close gripper and verify grasp stability.",
+      "Hold the object briefly to satisfy the task."
+    ],
+    "success_criteria": ["Object recognized and localized", "Stable grasp without slippage", "Object held continuously for the specified duration", "No collisions with neighboring objects"],
+    "failure_and_recovery": ["If detection fails, back off and re-detect.", "If grasp slips, reopen and retry with adjusted alignment.", "If path is obstructed, raise and re-approach from above."],
+    "termination": "Task ends after a stable grasp is verified and the object is held for the target duration."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "First clear approach alignment over the left red Coke can.",
+        "predicts_next": "Grasp action is imminent with gripper centered.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "hold coke bottle",
+  "instruction_to_ports": {
+    "force": 20,
+    "timeout_ms": 1500,
+    "tolerance": 0.01,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["coke_can", "blue_can", "green_bottle", "orange_bottle_1", "orange_bottle_2", "orange_bottle_3", "red_bottle_tall", "table", "robot_arm"],
+  "objects_from_instruction": ["coke bottle"],
+  "blackboard_keys": ["grasp_coke"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"coke_can","timeout_ms":1500},"description":"Find the Coke object on the table."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":1000},"description":"Prepare gripper to grasp."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"coke_can","offset_z":0.05,"timeout_ms":1500},"description":"Move to a safe pre-grasp height."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"coke_can","tolerance":0.01,"timeout_ms":2000},"description":"Center and align over the object."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"coke_can","strategy":"top","result_key":"grasp_coke"},"description":"Compute a top grasp pose."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_coke","strategy":"top","timeout_ms":1500},"description":"Execute grasp at computed pose."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":1000},"description":"Close fingers to secure the object."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check that the grasp is stable."},
+    {"id":"HoldObject","type":"Action","ports":{"target":"coke_can","duration_ms":2000},"description":"Maintain the hold for a short duration."}
+  ],
+  "tree_stats": {"nodes_total": 10, "actions": 8, "conditions": 1, "depth": 2},
+  "failure_modes": ["Object not detected", "Grasp misalignment causing slip", "Neighboring object interference", "Insufficient grip force"],
+  "recovery_strategy": ["Re-detect with slight viewpoint change", "Re-approach with smaller tolerance", "Raise and re-route above clutter", "Increase approach time and re-grasp"],
+  "assumptions": [
+    "Frames show the robot approaching the left red Coke can, while the instruction says 'coke bottle'. We resolve the conflict by targeting the Coke can (coke_can) visible in frames.",
+    "Top grasp is feasible given unobstructed top access."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Stable detection and grasp of the Coke item", "Hold maintained for 2 seconds without slip"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"coke_can","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"coke_can","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"coke_can","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"coke_can","strategy":"top","result_key":"grasp_coke"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_coke","strategy":"top","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"coke_can","duration_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"coke_can","duration_ms":2000}},
+      "active_path_ids": []
+    }
+  ]
+}

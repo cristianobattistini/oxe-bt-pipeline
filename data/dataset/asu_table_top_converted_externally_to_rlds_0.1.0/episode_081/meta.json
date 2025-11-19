@@ -1,0 +1,151 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_081",
+  "task_summary": "Detect the white box, approach, grasp securely, and hold it steadily for a short duration.",
+  "task_long_description": {
+    "overview": "A table-top arm must pick and hold a white box. The scene shows several small objects (orange blocks, a pink prism, green bottle, small can) arranged on a white table under a UR-style manipulator. The goal is not to move or place the object, but to establish a reliable grasp and maintain the hold briefly. The plan uses perception, alignment, a top grasp, and a stability check before holding for a fixed time.",
+    "preconditions": ["Robot is homed with reachable workspace over the table", "Gripper operational and empty", "White box is on the table and visible after a short scan", "No obstacles prevent a vertical top grasp"],
+    "stepwise_plan": [
+      "Scan and detect the white box.",
+      "Move to a safe pre-grasp height above the target.",
+      "Open gripper and align to the object with tight tolerance.",
+      "Compute a top grasp pose and execute the grasp motion.",
+      "Close the gripper with moderate force and verify grasp stability.",
+      "Hold the object in place for the required duration."
+    ],
+    "success_criteria": [
+      "Object is detected and reached without collisions",
+      "Gripper closes on the object and ObjectInGripper would be true (proxied by stability check)",
+      "HoldObject runs for the configured duration without slip"
+    ],
+    "failure_and_recovery": [
+      "Perception miss: re-run scan/detect and adjust view if needed",
+      "Misalignment: re-run ApproachAndAlign with fresh pose",
+      "Weak grasp: reopen, recompute grasp pose, and retry closing"
+    ],
+    "termination": "Tree succeeds after HoldObject completes the duration without errors; it fails on any unrecoverable step."
+  },
+  "frame_ranking": {
+    "order": ["frame_6","frame_7","frame_5","frame_4","frame_3","frame_2","frame_1","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.20,
+      "frame_1": 0.35,
+      "frame_2": 0.55,
+      "frame_3": 0.60,
+      "frame_4": 0.68,
+      "frame_5": 0.78,
+      "frame_6": 0.92,
+      "frame_7": 0.85,
+      "frame_8": 0.15
+    },
+    "rationale_per_frame": {
+      "frame_6": {
+        "now_evidence": "Likely moment of grasp execution; end-effector centered above target zone.",
+        "predicts_next": "Immediate gripper closure is expected, leading to stability check.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "hold white box",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["white box", "orange blocks", "pink rectangular prism", "green bottle", "small can"],
+  "objects_from_instruction": ["white box"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"white_box","pattern":"spiral","max_attempts":3,"timeout_ms":2000},"description":"Active search for the white box using a spiral pattern."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"white_box","timeout_ms":1500},"description":"Detect the white box and cache its pose."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"white_box","offset_z":0.05,"timeout_ms":2000},"description":"Move to a safe pre-grasp height above the object."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":1000},"description":"Prepare gripper for grasp."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"white_box","tolerance":0.01,"timeout_ms":2000},"description":"Approach and align to reduce lateral error before grasp."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"white_box","strategy":"top","result_key":"goal_pose"},"description":"Compute a top grasp pose and store it to blackboard."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"top","timeout_ms":2000},"description":"Execute motion to the computed grasp pose."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":1000},"description":"Close gripper with moderate force."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verify grasp stability before holding."},
+    {"id":"HoldObject","type":"Action","ports":{"target":"white_box","duration_ms":3000},"description":"Maintain the grasp for a fixed duration."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 9, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Object not detected due to occlusion or lighting",
+    "Collision or misalignment during approach",
+    "Insufficient grip force leading to slip",
+    "Planner timeout while moving to grasp pose"
+  ],
+  "recovery_strategy": [
+    "Repeat scan/detection with slight viewpoint change",
+    "Re-run alignment and recompute grasp pose",
+    "Open gripper and attempt a second grasp with the same top strategy",
+    "Abort if repeated planning timeouts occur"
+  ],
+  "assumptions": [
+    "The contact sheet suggests small tabletop items; the white box is assumed present though its appearance is low-contrast.",
+    "Top grasp is feasible; no need to relocate or place the object since the goal is only to hold."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["HoldObject completes duration without slip", "No collisions; grasp remains stable"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"white_box","pattern":"spiral","max_attempts":3,"timeout_ms":2000}},
+      "active_path_ids": ["Sequence","ScanForTarget"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"white_box","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","DetectObject"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"white_box","offset_z":0.05,"timeout_ms":2000}},
+      "active_path_ids": ["Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":1000}},
+      "active_path_ids": ["Sequence","OpenGripper"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"white_box","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"white_box","strategy":"top","result_key":"goal_pose"}},
+      "active_path_ids": ["Sequence","ComputeGraspPose"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"top","timeout_ms":2000}},
+      "active_path_ids": ["Sequence","GraspAtPose"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":1000}},
+      "active_path_ids": ["Sequence","CloseGripper"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"white_box","duration_ms":3000}},
+      "active_path_ids": ["Sequence","HoldObject"]
+    }
+  ]
+}

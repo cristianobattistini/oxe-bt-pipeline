@@ -1,0 +1,16 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="t_block"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="t_block" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="t_block" timeout_ms="800"/>
+    <Action ID="MoveAbove" target="t_block" offset_z="0.03" timeout_ms="1200"/>
+    <Action ID="SetTCPYaw" yaw_deg="90"/>
+    <Action ID="ApproachAndAlign" target="t_block" tolerance="0.01" timeout_ms="1200"/>
+    <Action ID="LowerUntilContact" speed="normal" max_depth="0.02" force_threshold="2.0" timeout_ms="800"/>
+    <Condition ID="ContactDetected" force_threshold="2.0"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,14 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="ScanForTarget" target="goal" pattern="line" max_attempts="3" timeout_ms="1000"/>
+    <Fallback>
+      <Condition ID="IsAt" target="goal"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Timeout timeout_ms="4000">
+          <Action ID="NavigateToNamed" location_id="goal" yaw_deg="0" timeout_ms="4000"/>
+        </Timeout>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Condition ID="IsAt" target="goal"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,112 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_057",
+  "task_summary": "Place the maroon cylindrical object down onto the table surface and safely retract.",
+  "task_long_description": {
+    "overview": "A 6-DOF robot arm with a parallel gripper is already holding a small maroon cylinder over a white table. The scene contains a green bottle, a blue can, orange items on the right, and a clear cup. The goal is to approach a clear spot on the table, make controlled contact with the surface, release the maroon object, and retreat without disturbing neighbors. Motions should be straight and gentle during touchdown to avoid tipping.",
+    "preconditions": ["Maroon object is currently in the gripper", "Target place area on the table is free of obstacles", "Robot has collision model for table height"],
+    "stepwise_plan": ["Verify the object is in hand", "Move above the intended place spot", "Approach and align precisely over the spot", "Lower until contact with limited force", "Open gripper to release", "Retreat vertically to a safe height"],
+    "success_criteria": ["Maroon object ends upright and stationary on the table", "No collisions with other objects", "Gripper fully releases and retreats clear"],
+    "failure_and_recovery": ["If contact is not detected within depth limit, re-approach and try again", "If release slips object, regrasp if safe or choose a new spot", "If alignment fails, repeat approach with widened tolerance"],
+    "termination": "Terminate after successful release and retreat to a safe clearance pose."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "place down maroon object",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["maroon_object","green_bottle","blue_can","orange_items","clear_cup","table","robot_arm","gripper"],
+  "objects_from_instruction": ["maroon_object"],
+  "blackboard_keys": ["place_spot"],
+  "node_specs": [
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"maroon_object"},"description":"Verify the robot is holding the maroon object before placing."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"place_spot","offset_z":0.10,"timeout_ms":2000},"description":"Move to a pre-place height above the target spot."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"place_spot","tolerance":0.01,"timeout_ms":3000},"description":"Center and align over the place location with tight tolerance."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":2000},"description":"Descend gently until surface contact is detected or depth limit reached."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":1000},"description":"Release the maroon object on the surface."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back off to a safe clearance height after placement."}
+  ],
+  "tree_stats": {"nodes_total": 7, "actions": 5, "conditions": 1, "depth": 2},
+  "failure_modes": ["Object not actually grasped at start", "Premature contact without alignment causing tip-over", "Object sticks to fingers after opening", "Collision with nearby items during approach"],
+  "recovery_strategy": ["Reconfirm grasp state and regrasp if needed", "Redo approach with smaller step and tolerance", "Nudge or slight lift-drop to detach then reopen", "Shift place spot and reattempt"],
+  "assumptions": ["Frames show the maroon cylinder already in gripper from the start; thus plan omits a pick step", "Place target is a clear area on the table near scene center", "No time or force modifiers present in instruction"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Object rests flat and upright; gripper clear", "No secondary objects displaced beyond minor tolerance"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"place_spot","offset_z":0.10,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"place_spot","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"place_spot","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"maroon_object"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <OpenGripper width="0.08" timeout_ms="800"/>
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="maroon_cube" timeout_ms="2000"/>
+    </RetryUntilSuccessful>
+    <ApproachAndAlign target="maroon_cube" tolerance="0.01" timeout_ms="3000"/>
+    <ComputeGraspPose target="maroon_cube" strategy="top" result_key="goal_pose"/>
+    <MoveAbove target="maroon_cube" offset_z="0.05" timeout_ms="1500"/>
+    <GraspAtPose pose_key="goal_pose" strategy="top" timeout_ms="2000"/>
+    <CloseGripper force="30" timeout_ms="1500"/>
+    <IsGraspStable/>
+    <RaiseHeld target="maroon_cube" distance="0.10" timeout_ms="1500"/>
+  </Sequence>
+</BehaviorTree>

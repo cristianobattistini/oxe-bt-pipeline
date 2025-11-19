@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <DetectObject target="drawer_handle" timeout_ms="1500"/>
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <ComputeGraspPose target="drawer_handle" strategy="pull" result_key="grasp_handle"/>
+    <PoseAvailable key="grasp_handle"/>
+    <ApproachAndAlign target="drawer_handle" tolerance="0.005" timeout_ms="1500"/>
+    <CloseGripper force="30" timeout_ms="800"/>
+    <IsGraspStable/>
+    <MoveDelta axis="x" dist="0.2" timeout_ms="1500"/>
+    <ContainerOpen target="drawer"/>
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

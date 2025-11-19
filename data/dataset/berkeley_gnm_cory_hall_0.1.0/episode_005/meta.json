@@ -1,0 +1,253 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_005",
+  "task_summary": "The robot navigates toward a distant goal in a straight hallway with minor course adjustments until it reaches the final target position.",
+  "task_long_description": {
+    "overview": "This episode shows a ground robot navigating along a corridor with a purple wall. The frames indicate gradual forward motion and orientation adjustment toward a goal point visible ahead on the floor. The behavior ensures repeated navigation attempts and continuous verification of arrival under limited timeout constraints.",
+    "preconditions": [
+      "Robot initialized in corridor",
+      "Goal location known or visually localized"
+    ],
+    "stepwise_plan": [
+      "Check if robot is already at the goal.",
+      "If not, initiate navigation toward the named goal.",
+      "Continuously verify progress and heading alignment.",
+      "Repeat navigation and verification cycles until success or timeout."
+    ],
+    "success_criteria": [
+      "Robot reaches the goal region within allowed timeout",
+      "No collision detected during approach"
+    ],
+    "failure_and_recovery": [
+      "If navigation fails due to transient perception issues, retry up to three times.",
+      "If timeout expires, trigger fallback to recovery or re-localization sequence."
+    ],
+    "termination": "Tree ends when condition IsAt(goal) succeeds or retries are exhausted."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "robot maintains centered heading aligned with hallway goal",
+        "predicts_next": "continued forward motion expected to close final gap",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 7000,
+    "tolerance": null,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "corridor",
+    "goal_marker"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsAt",
+      "type": "Condition",
+      "ports": {
+        "target": "goal"
+      },
+      "description": "Checks whether the robot has reached the goal."
+    },
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "goal",
+        "yaw_deg": 0,
+        "timeout_ms": 5000
+      },
+      "description": "Command robot to navigate toward the goal."
+    },
+    {
+      "id": "Wait",
+      "type": "Action",
+      "ports": {
+        "timeout_ms": 500
+      },
+      "description": "Pause briefly before rechecking location."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 10,
+    "actions": 2,
+    "conditions": 2,
+    "depth": 5
+  },
+  "failure_modes": [
+    "Localization drift",
+    "Wheel slip",
+    "Sensor occlusion"
+  ],
+  "recovery_strategy": [
+    "Retry navigation sequence",
+    "Re-evaluate goal position"
+  ],
+  "assumptions": [
+    "Frames show steady forward progress with increasing proximity to a wall, consistent with a navigation task; no obstacles visible."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "goal reached with IsAt(goal) true"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "goal unreachable",
+      "pose drift",
+      "camera blur"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "Wait",
+        "attrs": {
+          "timeout_ms": 500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "Wait",
+        "attrs": {
+          "timeout_ms": 500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Wait",
+        "attrs": {
+          "timeout_ms": 500
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

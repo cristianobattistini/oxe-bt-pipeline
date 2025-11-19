@@ -1,0 +1,143 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_026",
+  "task_summary": "Detect the maroon square block, approach and align, then push it to the right by 0.15 m, and safely retreat.",
+  "task_long_description": {
+    "overview": "A table-top robot arm must push a maroon square-like block along the table surface without picking it up. The contact sheet shows the end-effector approaching from above-left, aligning to a side face, establishing contact, performing a lateral push, and then retreating. The plan prioritizes reliable perception, precise alignment, a controlled push distance and direction, and a brief stabilize wait after motion. The environment includes bottles, cans, and cups that must not be disturbed while pushing the target.",
+    "preconditions": [
+      "Target object 'maroon_square' is visible and within reachable workspace",
+      "Table surface is clear along the intended rightward path (~0 deg)",
+      "Gripper/tcp is free of any held object and in operational state"
+    ],
+    "stepwise_plan": [
+      "Perceive and localize 'maroon_square' with retries",
+      "Move above target, then approach and align with tight tolerance",
+      "Set tool yaw for side-surface push and verify visibility",
+      "Execute push: distance 0.15 m at 0 deg direction with timeout",
+      "Retreat 0.10 m and briefly wait to settle"
+    ],
+    "success_criteria": [
+      "Maroon block translates laterally by at least 0.12–0.15 m to the right",
+      "Object remains upright and within table bounds",
+      "No collisions with neighboring bottles, cans, or cups",
+      "Robot completes retreat and wait without faults"
+    ],
+    "failure_and_recovery": [
+      "Perception failure or occlusion: retry detection up to 3 attempts",
+      "Small misalignment: re-run approach-and-align step",
+      "High friction or minor slip: push times out; system can reattempt from align step",
+      "Unexpected contact: retreat then re-approach"
+    ],
+    "termination": "Terminate after completing the retreat and wait following a successful push or after unrecoverable failure."
+  },
+  "frame_ranking": {
+    "order": ["frame_5","frame_6","frame_3","frame_2","frame_4","frame_1","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.22,
+      "frame_1": 0.40,
+      "frame_2": 0.62,
+      "frame_3": 0.78,
+      "frame_4": 0.55,
+      "frame_5": 0.92,
+      "frame_6": 0.86,
+      "frame_7": 0.33,
+      "frame_8": 0.18
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Tool is aligned at the block’s side with first clear contact, indicating pre-push readiness.",
+        "predicts_next": "Likely transition into the push primitive with motion to the right.",
+        "uncertainty_reduction": "High, because contact confirms object pose and friction conditions."
+      }
+    }
+  },
+  "task_instruction": "push maroon square",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["maroon square block", "green bottle", "blue can", "red can", "clear cup", "small orange items"],
+  "objects_from_instruction": ["maroon square"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"maroon_square","timeout_ms":2000},"description":"Detect and localize the maroon square target with a 2s timeout."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"maroon_square","offset_z":0.05,"timeout_ms":2000},"description":"Move to a pre-grasp height 5 cm above the target."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"maroon_square","tolerance":0.01,"timeout_ms":3000},"description":"Approach laterally and align tool to the target within 1 cm tolerance."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":0},"description":"Orient tool yaw to align with rightward push direction (0 deg)."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"maroon_square"},"description":"Verify target is still visible before pushing."},
+    {"id":"Push","type":"Action","ports":{"target":"maroon_square","distance":0.15,"direction_deg":0,"timeout_ms":1500},"description":"Push the target 0.15 m to the right with a 1.5 s timeout."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back away 10 cm after push."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":500},"description":"Brief settle wait after retreat."},
+    {"id":"RetryUntilSuccessful","type":"Decorator","ports":{"num_attempts":3},"description":"Retry detection up to 3 attempts if it fails."},
+    {"id":"Timeout","type":"Decorator","ports":{"timeout_ms":1500},"description":"Limit the push phase duration to 1.5 s."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 7, "conditions": 1, "depth": 3},
+  "failure_modes": ["Target occluded by adjacent objects", "Pose estimate drift between align and push", "Insufficient friction causing slip", "Collision with bottle/can during lateral motion"],
+  "recovery_strategy": ["Retry detection via decorator", "Re-run approach-and-align if verification fails", "If push times out, retreat and attempt again", "Abort if unexpected contact persists"],
+  "assumptions": ["'Maroon square' in frames appears as a tall maroon rectangular prism; treated as the target despite 'square' wording", "Push direction assumed rightward (0 deg) based on contact frames and tool alignment"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Object translates ~0.15 m to the right without tipping", "No collision with neighbors", "Robot retreats cleanly"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"maroon_square","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"maroon_square","offset_z":0.05,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"maroon_square","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"maroon_square"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"SetTCPYaw","attrs":{"yaw_deg":0}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"maroon_square","distance":0.15,"direction_deg":0,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"maroon_square","distance":0.15,"direction_deg":0,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":500}},
+      "active_path_ids": []
+    }
+  ]
+}

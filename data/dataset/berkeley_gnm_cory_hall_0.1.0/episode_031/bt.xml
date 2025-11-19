@@ -1,0 +1,14 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="goal_beacons"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="goal_beacons" pattern="arc" max_attempts="3" timeout_ms="3000"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="goal_beacons" timeout_ms="3000"/>
+    <Action ID="ApproachAndAlign" target="goal_beacons" tolerance="0.02" timeout_ms="3000"/>
+    <Action ID="NavigateToNamed" location_id="goal" yaw_deg="90" timeout_ms="5000"/>
+    <Condition ID="IsAt" target="goal"/>
+  </Sequence>
+</BehaviorTree>

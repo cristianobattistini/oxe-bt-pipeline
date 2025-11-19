@@ -1,0 +1,152 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_024",
+  "task_summary": "Detect, align to, and push the red Coca-Cola bottle laterally across the tabletop, then retreat.",
+  "task_long_description": {
+    "overview": "A fixed UR-style manipulator must push the Coca-Cola bottle on a white tabletop among several other objects (green bottle, blue can/bottle, colored cups/blocks). The robot first ensures the target is perceived, then approaches and aligns its tool to a neutral yaw. Without grasping, it performs a lateral push motion on the bottle for a short distance, after which it retreats and pauses. The scene is cluttered but static; pushing should avoid tipping or colliding with nearby items.",
+    "preconditions": [
+      "Workspace is clear of unexpected obstacles around push path",
+      "Coca-Cola bottle is standing and visible",
+      "Robot reachable workspace includes target and push path",
+      "Gripper is open"
+    ],
+    "stepwise_plan": [
+      "Detect or scan for the Coca-Cola bottle.",
+      "Verify visibility and approach while aligning end-effector.",
+      "Set tool yaw and ensure gripper is open.",
+      "Execute a lateral push on the bottle.",
+      "Retreat and briefly wait to stabilize."
+    ],
+    "success_criteria": [
+      "Bottle is displaced along intended lateral direction by ~0.15 m",
+      "No toppling of the target or collisions with other objects",
+      "Robot ends in a safe, retracted pose"
+    ],
+    "failure_and_recovery": [
+      "If detection fails, scan in a spiral pattern and retry.",
+      "If alignment drifts, re-run ApproachAndAlign and reset yaw.",
+      "If push stalls due to friction, attempt a second push with adjusted approach (not encoded here)."
+    ],
+    "termination": "Terminate after retreating and waiting briefly following a successful push."
+  },
+  "frame_ranking": {
+    "order": ["frame_5","frame_6","frame_4","frame_3","frame_2","frame_7","frame_1","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.20, "frame_1": 0.35, "frame_2": 0.60, "frame_3": 0.72,
+      "frame_4": 0.80, "frame_5": 0.93, "frame_6": 0.88, "frame_7": 0.50, "frame_8": 0.10
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Arm is aligned close to the bottle with clear contact-ready pose.",
+        "predicts_next": "Push actuation expected; orientation suggests lateral motion.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "push cocacola bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["cocacola_bottle", "green_bottle", "blue_bottle_or_can", "orange_cup", "yellow_cup", "clear_cup"],
+  "objects_from_instruction": ["cocacola_bottle"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"cocacola_bottle","timeout_ms":1500},"description":"Perceive the Coca-Cola bottle using a quick detection step."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"cocacola_bottle","pattern":"spiral","max_attempts":3,"timeout_ms":3000},"description":"Active scan to find the bottle when initial detection fails."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"cocacola_bottle"},"description":"Gate that confirms the bottle is visible before approach."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"cocacola_bottle","tolerance":0.01,"timeout_ms":3000},"description":"Move and align end-effector near the bottle with tight tolerance."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":0},"description":"Orient the tool for a straight lateral push."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Ensure the gripper is open to avoid grasping while pushing."},
+    {"id":"Push","type":"Action","ports":{"target":"cocacola_bottle","distance":0.15,"direction_deg":90,"timeout_ms":1500},"description":"Perform the lateral push (to robot-right) on the bottle."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back away to a safe distance after the push."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":500},"description":"Brief pause to allow scene stabilization."}
+  ],
+  "tree_stats": {"nodes_total": 12, "actions": 8, "conditions": 1, "depth": 4},
+  "failure_modes": [
+    "Target not detected due to occlusion or lighting",
+    "Misalignment causing grazing instead of a firm push",
+    "Bottle tips over during push",
+    "Collision with neighboring objects during lateral motion"
+  ],
+  "recovery_strategy": [
+    "Fallback to spiral scan with retry on detection",
+    "Re-run ApproachAndAlign if contact not established",
+    "Reduce push distance or adjust direction on repeated failure",
+    "Abort and retreat if unexpected contact forces occur"
+  ],
+  "assumptions": [
+    "The red bottle is the Coca-Cola target; color/label inferred from frames.",
+    "Push direction assumed to the robot’s right (90°) based on layout; exact goal not annotated.",
+    "No explicit force limits were provided by the instruction; default bins used."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Bottle laterally displaced ~0.15 m without toppling",
+      "Robot maintains clearance from other objects",
+      "Sequence completes with retreat and wait"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"cocacola_bottle","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"cocacola_bottle","pattern":"spiral","max_attempts":3,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"cocacola_bottle","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"cocacola_bottle","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"cocacola_bottle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"cocacola_bottle","distance":0.15,"direction_deg":90,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"cocacola_bottle","distance":0.15,"direction_deg":90,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":500}},
+      "active_path_ids": []
+    }
+  ]
+}

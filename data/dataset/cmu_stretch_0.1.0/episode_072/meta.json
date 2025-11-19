@@ -1,0 +1,139 @@
+{
+  "dataset_id": "cmu_stretch_0.1.0",
+  "episode_id": "episode_072",
+  "task_summary": "Approach the cabinet, grasp the right hinged door handle, open the door, release, and retreat.",
+  "task_long_description": {
+    "overview": "The robot operates at a countertop-facing cabinet. The goal is to open a small right-side hinged door using its handle. The plan first perceives the handle, approaches the cabinet, prepares the gripper, computes a pull-style grasp, verifies the pose, aligns, grasps, actuates an open motion for the hinged door, then releases and retreats to a safe pose. Timeouts and small tolerances are used to keep motions reliable in a confined workspace near the table edge and other objects.",
+    "preconditions": ["Robot in front of cabinet within reachable workspace", "Hinged door handle is visible to sensors", "No obstacles blocking door swing", "Gripper operational and empty"],
+    "stepwise_plan": [
+      "Detect the cabinet door handle and move to the cabinet face.",
+      "Open gripper and compute a pull grasp on the handle; verify pose availability.",
+      "Align to the handle and execute a grasp.",
+      "Command an open operation on the hinged door.",
+      "Release the handle and retreat to clear the door swing."
+    ],
+    "success_criteria": ["Door angle increases visibly from closed to open state", "Handle is released safely", "No collisions with cabinet or table", "Robot ends in a safe, stable pose"],
+    "failure_and_recovery": [
+      "If detection fails, re-detect and re-approach the cabinet.",
+      "If grasp is unstable, reopen gripper, realign, and recompute grasp pose.",
+      "If door resists opening, retry open with a fresh alignment after a small retreat."
+    ],
+    "termination": "Terminate when the door is confirmed open and the robot has released the handle and retreated."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "open door",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["cabinet", "cabinet_door", "cabinet_door_handle", "countertop", "robot_base", "robot_arm"],
+  "objects_from_instruction": ["door"],
+  "blackboard_keys": ["door_grasp"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"cabinet_door_handle","timeout_ms":1500},"description":"Perceive the door handle on the cabinet."},
+    {"id":"MoveTo","type":"Action","ports":{"target":"cabinet_door","timeout_ms":1500},"description":"Move the end-effector to the cabinet face region."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":400},"description":"Prepare the gripper for grasping the handle."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"cabinet_door_handle","strategy":"pull","result_key":"door_grasp"},"description":"Compute a pull-style grasp on the handle and store it."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"door_grasp"},"description":"Verify that the grasp pose key is available."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"cabinet_door_handle","tolerance":0.01,"timeout_ms":1500},"description":"Precisely align to the handle before grasping."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"door_grasp","timeout_ms":1200},"description":"Close the gripper to grasp the handle using the computed pose."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"cabinet_door","container_type":"hinged_door","timeout_ms":1500},"description":"Open the hinged cabinet door."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":400},"description":"Release the handle after opening."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back away to a safe distance."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 9, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Handle not detected due to glare or pose",
+    "Misalignment causes failed grasp",
+    "Door binds or catches during opening",
+    "Premature release before door clears latch"
+  ],
+  "recovery_strategy": [
+    "Repeat detection and slight viewpoint change",
+    "Re-align with tighter tolerance and retry grasp",
+    "Perform small retreat then re-open container",
+    "After release, re-grasp if door did not open sufficiently"
+  ],
+  "assumptions": [
+    "Frames show a small right-side hinged door of a toy/cabinet being opened using its handle.",
+    "Instruction 'open door' is mapped to a hinged cabinet door; direction of opening assumed to be pull then swing."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Door opened beyond initial closed state", "Robot releases handle and retreats safely"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"cabinet_door_handle","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveTo","attrs":{"target":"cabinet_door","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.09,"timeout_ms":400}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"cabinet_door_handle","strategy":"pull","result_key":"door_grasp"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"door_grasp","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"cabinet_door","container_type":"hinged_door","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"cabinet_door","container_type":"hinged_door","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":400}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

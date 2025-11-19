@@ -1,0 +1,133 @@
+{
+  "dataset_id": "austin_buds_dataset_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_049",
+  "task_summary": "Open the pot (remove lid), move the pot onto the plate, then grasp the spatula tool and push the pot toward the front edge of the table.",
+  "task_long_description": {
+    "overview": "A tabletop scene shows a small pot with a lid, a round plate, and a spatula-like tool. The robot must first remove the pot’s lid, then grasp the pot and place it onto the plate. After releasing the pot, the robot switches to tool use: it grasps the spatula and performs a controlled push on the pot to translate it toward the table’s front. The plan emphasizes reliable perception, stable grasps, and short, safe motions with binned parameters.",
+    "preconditions": ["Workspace clear of obstacles on the pushing path", "Pot, lid, plate, and spatula visible on the table", "Gripper calibrated and operational", "Table surface suitable for sliding"],
+    "stepwise_plan": [
+      "Perceive the pot and open it by removing the lid.",
+      "Compute and execute a top grasp on the pot.",
+      "Place the pot onto the plate and release.",
+      "Perceive and grasp the spatula tool.",
+      "Push the pot toward the front with the spatula, then set the tool down."
+    ],
+    "success_criteria": [
+      "Lid is off the pot",
+      "Pot rests stably on the plate",
+      "Pot translated toward the table front by the specified push"
+    ],
+    "failure_and_recovery": [
+      "Perception failure: re-run DetectObject and re-approach",
+      "Unstable grasp: reopen gripper, recompute grasp pose, retry",
+      "Push misalignment: re-detect pot and adjust approach before pushing"
+    ],
+    "termination": "End when the push completes and the tool is placed down with gripper opened."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Take the lid off the pot, put the pot on the plate, and use the tool to push to pot to the front of the table.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 1500,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["pot", "lid", "plate", "spatula", "table"],
+  "objects_from_instruction": ["lid", "pot", "plate", "tool"],
+  "blackboard_keys": ["pot_grasp", "tool_grasp"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Perceive named target within time budget."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"string","container_type":"string","timeout_ms":"int"},"description":"Open the specified container; here, removing the pot lid."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"string","strategy":"string","result_key":"string"},"description":"Plan a grasp and store its pose under a blackboard key."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"string","strategy":"string","timeout_ms":"int"},"description":"Execute a grasp at a stored pose."},
+    {"id":"PlaceOnSurface","type":"Action","ports":{"target":"string","area_id":"string","yaw_deg":"int","press_force":"float","timeout_ms":"int"},"description":"Place object on a named surface/area."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":"float","timeout_ms":"int"},"description":"Release held object."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back off to clear the object."},
+    {"id":"PushWithTool","type":"Action","ports":{"target":"string","distance":"float","direction_deg":"int","tool_id":"string","timeout_ms":"int"},"description":"Use a grasped tool to push a target."},
+    {"id":"PlaceDown","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Put the named object down on the table."}
+  ],
+  "tree_stats": {"nodes_total": 14, "actions": 13, "conditions": 0, "depth": 2},
+  "failure_modes": ["Object not detected", "Lid not released", "Grasp slip", "Tool grasp fails", "Push moves pot off plate"],
+  "recovery_strategy": ["Re-run DetectObject and adjust viewpoint", "Retry ComputeGraspPose with alternate strategy", "Open/Close gripper and reattempt", "Reduce push distance and re-align"],
+  "assumptions": [
+    "OpenContainer('pot','pot') corresponds to removing the lid as seen in frames.",
+    "Push direction_deg=180 is assumed to be toward the table front in this setup.",
+    "Plate is the round beige disk; spatula is the small slotted tool on the left."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Lid removed", "Pot placed centered on plate", "Pot translated toward front after push", "Tool released safely"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"pot","timeout_ms":1000}},
+      "active_path_ids": ["Sequence","DetectObject"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "verify",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"pot","container_type":"pot","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","OpenContainer"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"pot_grasp","strategy":"pinch","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","GraspAtPose"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "transfer",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"plate","area_id":"plate","yaw_deg":0,"press_force":10,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","PlaceOnSurface"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"plate","area_id":"plate","yaw_deg":0,"press_force":10,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","PlaceOnSurface"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":800}},
+      "active_path_ids": ["Sequence","OpenGripper"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {"id":"PushWithTool","attrs":{"target":"pot","distance":0.20,"direction_deg":180,"tool_id":"spatula","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","PushWithTool"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"PushWithTool","attrs":{"target":"pot","distance":0.20,"direction_deg":180,"tool_id":"spatula","timeout_ms":1500}},
+      "active_path_ids": ["Sequence","PushWithTool"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"PlaceDown","attrs":{"target":"spatula","timeout_ms":1000}},
+      "active_path_ids": ["Sequence","PlaceDown"]
+    }
+  ]
+}

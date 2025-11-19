@@ -1,0 +1,320 @@
+{
+  "dataset_id": "dlr_sara_grid_clamp_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_006",
+  "task_summary": "The robot, already holding a grid clamp, approaches a precise placement location on the workboard, gently lowers until contact, aligns by yaw, places with light force, releases, and retreats safely. [image:1]",
+  "task_long_description": {
+    "overview": "A UR-style collaborative arm with a parallel gripper operates over a wooden work surface with a line of small clamps visible, executing the final placement of a single grid clamp onto a designated spot near a guide rail. The sequence emphasizes approach, fine alignment, controlled vertical contact, compliant placement, release, and clean retreat without disturbing neighboring pieces. [image:1]",
+    "preconditions": [
+      "Grid clamp is already secured in the gripper at the start of the shown segment. [image:1]",
+      "A valid placement pose on the board exists and is referenced as 'place_on_table'. [image:1]",
+      "Workspace around the target area is clear of obstacles that would block vertical approach. [image:1]"
+    ],
+    "stepwise_plan": [
+      "Verify the clamp is in the gripper, move above the target, and set the end-effector yaw to match the lineup. [image:1]",
+      "Approach and align in-plane to refine lateral error before descent. [image:1]",
+      "Lower slowly until contact, then place to the keyed pose with low press force, open the gripper, and retreat vertically. [image:1]"
+    ],
+    "success_criteria": [
+      "Clamp rests stably at the target pose with correct yaw and no displacement of adjacent clamps. [image:1]",
+      "Gripper releases fully and the arm clears the area by a safe margin. [image:1]"
+    ],
+    "failure_and_recovery": [
+      "If contact is detected early or misalignment occurs, retreat slightly, realign using ApproachAndAlign, and retry the descent. [image:1]",
+      "If the clamp slips during release, re-grasp if possible, re-approach, and repeat placement with lower press force. [image:1]"
+    ],
+    "termination": "Terminate after successful release and a confirmed retreat distance that clears the placement zone. [image:1]"
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "First clear low-height approach with the tool centered over the target, indicating onset of contact phase. [image:1]",
+        "predicts_next": "Release action likely follows after compliant placement, matching a place-then-open sequence. [image:1]",
+        "uncertainty_reduction": "Confirms the task is placement (not pick) and clarifies approach vector as vertical. [image:1]"
+      }
+    }
+  },
+  "task_instruction": "Place grid clamp",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "robot_arm [image:1]",
+    "grid_clamp [image:1]",
+    "workboard/rail area [image:1]",
+    "table [image:1]",
+    "monitor (background) [image:1]"
+  ],
+  "objects_from_instruction": [
+    "grid_clamp [image:1]"
+  ],
+  "blackboard_keys": [
+    "place_on_table"
+  ],
+  "node_specs": [
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {
+        "target": "grid_clamp"
+      },
+      "description": "Confirms the clamp is currently held before attempting placement. [image:1]"
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {
+        "target": "place_on_table",
+        "offset_z": "0.05",
+        "timeout_ms": "2000"
+      },
+      "description": "Moves to a safe pre-place height above the target area. [image:1]"
+    },
+    {
+      "id": "SetTCPYaw",
+      "type": "Action",
+      "ports": {
+        "yaw_deg": "90"
+      },
+      "description": "Orients the end-effector to match the row alignment of clamps. [image:1]"
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {
+        "target": "place_on_table",
+        "tolerance": "0.005",
+        "timeout_ms": "2000"
+      },
+      "description": "In-plane approach and fine alignment to reduce lateral error. [image:1]"
+    },
+    {
+      "id": "LowerUntilContact",
+      "type": "Action",
+      "ports": {
+        "speed": "slow",
+        "max_depth": "0.05",
+        "force_threshold": "5",
+        "timeout_ms": "2000"
+      },
+      "description": "Controlled vertical descent until gentle contact is detected. [image:1]"
+    },
+    {
+      "id": "PlaceAtTol",
+      "type": "Action",
+      "ports": {
+        "pose_key": "place_on_table",
+        "yaw_deg": "90",
+        "press_force": "10",
+        "tolerance": "0.005",
+        "timeout_ms": "2000"
+      },
+      "description": "Constrained placement at the target pose with light press force. [image:1]"
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {
+        "width": "0.04",
+        "timeout_ms": "800"
+      },
+      "description": "Releases the clamp once seated. [image:1]"
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {
+        "distance": "0.10",
+        "timeout_ms": "1000"
+      },
+      "description": "Backs away to clear the cluttered zone safely. [image:1]"
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 9,
+    "actions": 7,
+    "conditions": 1,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Early contact due to residual lateral misalignment causing tip-over or bounce. [image:1]",
+    "Insufficient opening during release causing the part to lift with the gripper. [image:1]",
+    "Neighbor interference if approach yaw is incorrect. [image:1]"
+  ],
+  "recovery_strategy": [
+    "Retreat slightly, re-run ApproachAndAlign, and retry LowerUntilContact with the same press force. [image:1]",
+    "If part sticks after opening, close to re-grasp, lift a bit, re-align, and place again. [image:1]",
+    "Adjust SetTCPYaw by small increments and repeat alignment if visual cues indicate skew. [image:1]"
+  ],
+  "assumptions": [
+    "The episode segment depicts a placement (object already grasped) rather than a pick. [image:1]",
+    "The target region corresponds to a row/rail on the left side of the workspace, represented as 'place_on_table'. [image:1]"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Final pose matches target within 5 mm lateral tolerance and correct yaw, with no disturbance to adjacent items. [image:1]"
+    ],
+    "test_scenarios": [
+      "happy path [image:1]",
+      "object_missing [image:1]",
+      "grasp_fail (simulated even though start expects held) [image:1]",
+      "perception_noise affecting alignment [image:1]"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ObjectInGripper",
+        "attrs": {
+          "target": "grid_clamp"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {
+          "target": "place_on_table",
+          "offset_z": 0.05,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {
+          "target": "place_on_table",
+          "tolerance": 0.005,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "place",
+      "active_leaf": {
+        "id": "LowerUntilContact",
+        "attrs": {
+          "speed": "slow",
+          "max_depth": 0.05,
+          "force_threshold": 5,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "place",
+      "active_leaf": {
+        "id": "PlaceAtTol",
+        "attrs": {
+          "pose_key": "place_on_table",
+          "yaw_deg": 90,
+          "press_force": 10,
+          "tolerance": 0.005,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {
+          "width": 0.04,
+          "timeout_ms": 800
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.1,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.1,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.1,
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

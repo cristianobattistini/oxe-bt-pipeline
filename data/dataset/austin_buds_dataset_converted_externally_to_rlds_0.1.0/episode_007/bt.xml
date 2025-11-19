@@ -1,0 +1,29 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <DetectObject target="pot" timeout_ms="1500"/>
+    <DetectObject target="lid" timeout_ms="1500"/>
+    <DetectObject target="plate" timeout_ms="1500"/>
+    <DetectObject target="spatula" timeout_ms="1500"/>
+
+    <MoveAbove target="pot" offset_z="0.05" timeout_ms="2000"/>
+    <OpenContainer target="pot" container_type="lid" timeout_ms="2000"/>
+    <ContainerOpen target="pot"/>
+
+    <ComputeGraspPose target="pot" strategy="side" result_key="goal_pose"/>
+    <GraspAtPose pose_key="goal_pose" strategy="pinch" timeout_ms="2000"/>
+    <IsGraspStable/>
+    <RaiseHeld target="pot" distance="0.10" timeout_ms="1500"/>
+    <MoveAbove target="plate" offset_z="0.05" timeout_ms="2000"/>
+    <PlaceOnSurface target="pot" area_id="plate" yaw_deg="0" press_force="10" timeout_ms="2000"/>
+    <OpenGripper width="0.08" timeout_ms="1000"/>
+    <Retreat distance="0.05" timeout_ms="1000"/>
+
+    <ComputeGraspPose target="spatula" strategy="side" result_key="goal_pose"/>
+    <GraspAtPose pose_key="goal_pose" strategy="pinch" timeout_ms="2000"/>
+    <IsGraspStable/>
+    <MoveAbove target="pot" offset_z="0.05" timeout_ms="2000"/>
+    <PushWithTool target="pot" distance="0.20" direction_deg="180" tool_id="spatula" timeout_ms="2000"/>
+    <OpenGripper width="0.08" timeout_ms="1000"/>
+    <Retreat distance="0.05" timeout_ms="1000"/>
+  </Sequence>
+</BehaviorTree>

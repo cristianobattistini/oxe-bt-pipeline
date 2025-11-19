@@ -1,0 +1,14 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="DetectObject" target="red_square" timeout_ms="3000"/>
+    <Action ID="OpenGripper" width="0.10" timeout_ms="1000"/>
+    <Action ID="MoveAbove" target="red_square" offset_z="0.08" timeout_ms="2000"/>
+    <Action ID="ComputeGraspPose" target="red_square" strategy="top" result_key="grasp_red_square"/>
+    <Action ID="GraspAtPose" pose_key="grasp_red_square" strategy="pinch" timeout_ms="3000"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="RaiseHeld" target="red_square" distance="0.10" timeout_ms="1500"/>
+    <Action ID="PlaceOnSurface" target="red_square" area_id="table" yaw_deg="0" press_force="5" timeout_ms="3000"/>
+    <Action ID="OpenGripper" width="0.12" timeout_ms="1000"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1500"/>
+  </Sequence>
+</BehaviorTree>

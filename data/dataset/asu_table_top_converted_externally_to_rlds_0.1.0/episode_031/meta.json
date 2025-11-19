@@ -1,0 +1,154 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_031",
+  "task_summary": "Detect the Coca-Cola bottle, plan a side grasp, approach, grasp, lift, and retreat while verifying the object is held.",
+  "task_long_description": {
+    "overview": "A tabletop scene contains multiple items (green bottle, cans, blocks). The robot must pick the Coca-Cola bottle visible on the table. The behavior first ensures visibility (scan if needed), detects the object, opens the gripper, computes a grasp pose, aligns, grasps with a pinch strategy, verifies the grasp, lifts the bottle slightly, and retreats away from the workspace. Parameters favor precise alignment and moderate force suitable for a glass bottle.",
+    "preconditions": [
+      "Robot arm is homed and reachable workspace includes the bottle",
+      "Table is static; no humans in the workspace",
+      "Perception pipeline running and gripper operational"
+    ],
+    "stepwise_plan": [
+      "Check if bottle is visible; scan if not.",
+      "Detect object to refine pose.",
+      "Open gripper and compute grasp pose (side).",
+      "Align to target and attempt grasp (retry up to 3).",
+      "Close gripper and verify object is held.",
+      "Raise the held bottle and retreat from table."
+    ],
+    "success_criteria": [
+      "Object detected and a valid grasp pose computed",
+      "Object securely in gripper (verification passes)",
+      "Bottle lifted from surface and arm retreats safely"
+    ],
+    "failure_and_recovery": [
+      "If not visible, scan in a spiral pattern",
+      "If grasp fails, retry up to 3 times",
+      "If verification fails, reopen gripper, re-detect, and reattempt"
+    ],
+    "termination": "Terminate after successful retreat with ObjectInGripper true, or after retries/timeouts are exhausted."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick cocacola bottle",
+  "instruction_to_ports": {
+    "force": 20,
+    "timeout_ms": 1500,
+    "tolerance": 0.01,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["cocacola_bottle", "green_bottle", "red_can", "blue_can", "red_block", "grey_cup"],
+  "objects_from_instruction": ["cocacola_bottle"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"cocacola_bottle"},"description":"Check if target is currently visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"cocacola_bottle","pattern":"spiral","max_attempts":3,"timeout_ms":2000},"description":"Active scan to acquire the target if not visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"cocacola_bottle","timeout_ms":1500},"description":"Run detector to obtain pose estimates."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Prepare gripper for grasp."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"cocacola_bottle","strategy":"side","result_key":"goal_pose"},"description":"Compute grasp pose and store on blackboard."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"goal_pose"},"description":"Verify the computed pose exists."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"cocacola_bottle","tolerance":0.01,"timeout_ms":2000},"description":"Approach target and align within tolerance."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"pinch","timeout_ms":1500},"description":"Execute grasp at the stored pose."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":800},"description":"Close gripper with moderate force."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"cocacola_bottle"},"description":"Confirm the object is held."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"cocacola_bottle","distance":0.10,"timeout_ms":1000},"description":"Lift the grasped object from the surface."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Retreat to create clearance after lift."}
+  ],
+  "tree_stats": {"nodes_total": 15, "actions": 9, "conditions": 3, "depth": 4},
+  "failure_modes": [
+    "Object not detected due to occlusion or glare",
+    "Grasp fails or slips during lift",
+    "Timeout while aligning or scanning",
+    "Incorrect object selected"
+  ],
+  "recovery_strategy": [
+    "Fallback scan if not visible",
+    "Retry grasp up to 3 times",
+    "Re-detect and recompute pose after failure",
+    "Open gripper and back off before reattempt"
+  ],
+  "assumptions": [
+    "The Coca-Cola bottle in the frames is the green glass bottle; if frames differ, the symbolic target still refers to the bottle object.",
+    "Workspace is uncluttered enough for a side pinch grasp."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Successful detection and pose computation",
+      "ObjectInGripper condition true after CloseGripper",
+      "Bottle elevated and arm retreated safely"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"cocacola_bottle","pattern":"spiral","max_attempts":3,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"cocacola_bottle","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"cocacola_bottle","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"PoseAvailable","attrs":{"key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"pinch","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"cocacola_bottle","distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"cocacola_bottle","distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

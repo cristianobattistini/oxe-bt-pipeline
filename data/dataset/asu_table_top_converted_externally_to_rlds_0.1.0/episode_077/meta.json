@@ -1,0 +1,113 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_077",
+  "task_summary": "Detect the red Coke can and push it left along the table surface, then retreat.",
+  "task_long_description": {
+    "overview": "A UR-style manipulator must push the red Coke can across a tabletop cluttered with other items (green bottle, blue can, orange stack, red bottle, gray cup). The gripper is used as a pusher: open, align to the can, set yaw to face the intended push direction, and execute a short linear push while avoiding collisions. The behavior emphasizes reliable perception, alignment, and controlled surface interaction rather than grasping.",
+    "preconditions": ["Workspace clear of major obstacles near the push path", "Camera view of the Coke can available", "Robot within its reachable workspace", "Table surface flat and non-slippery enough for controlled push"],
+    "stepwise_plan": ["Detect Coke can", "Move above pre-push pose", "Open gripper to use as pusher", "Approach and align to can within 1 cm tolerance", "Set tool yaw to 270° for leftward push", "Push can 0.15 m toward left", "Retreat 0.10 m to clear"],
+    "success_criteria": ["Coke can displaced roughly 15 cm in intended leftward direction", "No toppling of non-target objects", "Robot ends safely clear of objects"],
+    "failure_and_recovery": ["If detection fails, reattempt perception or small scan", "If alignment drifts, re-approach and realign", "If collision occurs, stop, retreat slightly, and retry with smaller distance"],
+    "termination": "Terminate after the push completes and the robot retreats to a safe clearance."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "push coke bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["coke_can_red", "sprite_bottle_green", "pepsi_can_blue", "orange_stack", "red_bottle", "gray_cup"],
+  "objects_from_instruction": ["coke_bottle"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"coke_can","timeout_ms":1500},"description":"Vision detection of target can."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"coke_can","offset_z":0.05,"timeout_ms":1500},"description":"Pre-push overhead positioning."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.10,"timeout_ms":1000},"description":"Prepare gripper as flat pusher."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"coke_can","tolerance":0.01,"timeout_ms":2000},"description":"Close-in and align to can."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":270},"description":"Orient tool for leftward push."},
+    {"id":"Push","type":"Action","ports":{"target":"coke_can","distance":0.15,"direction_deg":180,"timeout_ms":2000},"description":"Execute surface push."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back off to safe clearance."}
+  ],
+  "tree_stats": {"nodes_total": 8, "actions": 7, "conditions": 0, "depth": 2},
+  "failure_modes": ["Target not detected", "Misalignment causing slip or collision", "Insufficient yaw alignment leading to diagonal motion", "Push distance excessive causing object to fall off table"],
+  "recovery_strategy": ["Re-detect and re-approach", "Realign with tighter tolerance", "Reduce push distance and retry", "Abort and retreat if collision forces spike"],
+  "assumptions": ["Frames show a red Coke CAN being pushed on the left cluster; instruction says 'coke bottle'. We prioritize frames and treat the target as 'coke_can'. Direction assumed leftward (~180°)."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Can translates ~0.15 m left without tipping other items", "Robot ends clear with retreat"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"coke_can","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"coke_can","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"coke_can","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"SetTCPYaw","attrs":{"yaw_deg":270}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"coke_can","distance":0.15,"direction_deg":180,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"coke_can","distance":0.15,"direction_deg":180,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"coke_can","distance":0.15,"direction_deg":180,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

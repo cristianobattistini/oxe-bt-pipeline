@@ -1,0 +1,20 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="t_block" timeout_ms="800"/>
+    </RetryUntilSuccessful>
+    <RetryUntilSuccessful num_attempts="3">
+      <DetectObject target="target_outline" timeout_ms="800"/>
+    </RetryUntilSuccessful>
+    <MoveAbove target="t_block" offset_z="0.02" timeout_ms="1200"/>
+    <ApproachAndAlign target="t_block" tolerance="0.01" timeout_ms="1200"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <Repeat num_cycles="3">
+      <Sequence>
+        <Push target="t_block" distance="0.1" direction_deg="180" timeout_ms="500"/>
+      </Sequence>
+    </Repeat>
+    <ApproachAndAlign target="target_outline" tolerance="0.02" timeout_ms="1200"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

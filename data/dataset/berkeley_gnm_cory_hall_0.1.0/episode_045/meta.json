@@ -1,0 +1,298 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_045",
+  "task_summary": "Mobile platform detects the goal marker and navigates to the named goal location, then verifies arrival.",
+  "task_long_description": {
+    "overview": "The contact-sheet shows a fisheye corridor view with a bright floor marker that becomes larger and nearer across frames, suggesting forward motion toward a goal. The robot must first ensure the goal marker is detectable, then navigate toward a named waypoint 'goal'. After motion, it verifies arrival and pauses briefly. No manipulation is required; the focus is robust perception and waypoint navigation with retries.",
+    "preconditions": [
+      "Robot initialized and localized on the map",
+      "Waypoint 'goal' available in map",
+      "Front camera provides images for detecting 'goal_marker'",
+      "Free space ahead with no dynamic obstacles"
+    ],
+    "stepwise_plan": [
+      "Check if the goal marker is visible; if not, actively scan for it",
+      "Navigate to the named location 'goal' with retry",
+      "Verify arrival at 'goal'",
+      "Pause briefly to stabilize and allow logging"
+    ],
+    "success_criteria": [
+      "Robot reaches 'goal' within timeout",
+      "Final pose near the marker as indicated in frames",
+      "IsAt('goal') returns success"
+    ],
+    "failure_and_recovery": [
+      "If marker not visible, perform spiral scan",
+      "If navigation fails, retry up to 3 times",
+      "If verification fails, re-enter navigation"
+    ],
+    "termination": "Terminate after successful verification and a brief wait."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_5",
+      "frame_3",
+      "frame_6",
+      "frame_2",
+      "frame_4",
+      "frame_1",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.18,
+      "frame_1": 0.32,
+      "frame_2": 0.58,
+      "frame_3": 0.86,
+      "frame_4": 0.4,
+      "frame_5": 0.93,
+      "frame_6": 0.62,
+      "frame_7": 0.35,
+      "frame_8": 0.08
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Clear forward progress with marker still centered, indicating reliable heading.",
+        "predicts_next": "Approach continues; robot should keep navigating toward the bright marker.",
+        "uncertainty_reduction": "high"
+      },
+      "frame_5": {
+        "now_evidence": "Marker appears brighter and larger, strongly indicating proximity to goal.",
+        "predicts_next": "Arrival verification imminent.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 5000,
+    "tolerance": null,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "goal_marker",
+    "corridor_wall",
+    "floor"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {
+        "target": "string"
+      },
+      "description": "Checks visibility of the goal marker in the camera view."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {
+        "target": "string",
+        "pattern": "string",
+        "max_attempts": "int",
+        "timeout_ms": "int"
+      },
+      "description": "Actively scans in a spiral to acquire the goal marker if not immediately visible."
+    },
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "string",
+        "yaw_deg": "int",
+        "timeout_ms": "int"
+      },
+      "description": "Drives the base to a named map waypoint."
+    },
+    {
+      "id": "IsAt",
+      "type": "Condition",
+      "ports": {
+        "target": "string"
+      },
+      "description": "Verifies the robot is at the specified named location."
+    },
+    {
+      "id": "Wait",
+      "type": "Action",
+      "ports": {
+        "timeout_ms": "int"
+      },
+      "description": "Short stabilization pause after arrival."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 8,
+    "actions": 3,
+    "conditions": 2,
+    "depth": 3
+  },
+  "failure_modes": [
+    "Goal marker not detected",
+    "Planner failure or local minima",
+    "Pose drift causing IsAt check to fail"
+  ],
+  "recovery_strategy": [
+    "Spiral scan to detect marker",
+    "Retry navigation up to 3 times",
+    "Loop back to navigation if verification fails"
+  ],
+  "assumptions": [
+    "The bright floor spot is the task goal marker; frames depict forward motion toward it",
+    "No obstacles requiring re-planning beyond basic navigation",
+    "Frame_8 close-up suggests near-wall proximity but task ends at verification"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "IsAt('goal') true",
+      "Marker appears close and centered in final frames",
+      "No retries beyond 3 needed"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {
+          "target": "goal_marker",
+          "pattern": "spiral",
+          "max_attempts": 3,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {
+          "target": "goal_marker",
+          "pattern": "spiral",
+          "max_attempts": 3,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {
+          "target": "goal_marker",
+          "pattern": "spiral",
+          "max_attempts": 3,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "Wait",
+        "attrs": {
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

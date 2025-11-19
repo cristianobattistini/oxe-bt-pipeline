@@ -1,0 +1,168 @@
+{
+  "dataset_id": "columbia_cairlab_pusht_real_0.1.0",
+  "episode_id": "episode_059",
+  "task_summary": "Detect the T-block and goal outline, approach and align for a face-contact push, yaw the TCP to a straight-on heading, execute a single long push toward the goal, verify final alignment at the goal outline, settle briefly, and retreat.",
+  "task_long_description": {
+    "overview": "A tabletop manipulator with a circular end-effector must push a T-shaped block into a marked target outline. The robot first perceives the red T and the blue outline, then approaches to a safe height, aligns precisely to establish a straight push, and yaw-orients the tool. A single long push translates the T toward the outline. After motion, the robot verifies alignment near the target, briefly waits for settling at 10 Hz operation, and retreats to a safe distance. No grasping is used; the interaction is pure pushing with planar contact.",
+    "preconditions": [
+      "Workspace clear; block and target outline present on the table",
+      "Robot homed with reachable workspace over the block",
+      "End-effector calibrated; vision detects block and target",
+      "Control and observation running at 10 Hz"
+    ],
+    "stepwise_plan": [
+      "Detect T-block and goal outline",
+      "Move above block with small vertical offset",
+      "Approach and align precisely to push face",
+      "Yaw TCP to push heading",
+      "Push block toward goal along straight direction",
+      "Verify near goal; fine align to outline",
+      "Wait briefly to settle",
+      "Retreat to safe height"
+    ],
+    "success_criteria": [
+      "T-block fully within target outline after push",
+      "No collisions except intended face contact",
+      "Robot retreats to safe pose"
+    ],
+    "failure_and_recovery": [
+      "Perception drop: rescan area for block/goal then retry approach",
+      "Misalignment or slip: re-run precise ApproachAndAlign before pushing",
+      "Insufficient push distance: perform a second Push with shorter distance",
+      "Obstacle detected: abort and retreat"
+    ],
+    "termination": "Tree terminates once the retreat completes after a successful push and verification."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_4","frame_2","frame_6","frame_1","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.22,
+      "frame_1": 0.44,
+      "frame_2": 0.63,
+      "frame_3": 0.95,
+      "frame_4": 0.79,
+      "frame_5": 0.87,
+      "frame_6": 0.58,
+      "frame_7": 0.30,
+      "frame_8": 0.12
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "First confident face contact with alignment to the T’s stem visible.",
+        "predicts_next": "Push actuation should follow directly along the current heading.",
+        "uncertainty_reduction": "high"
+      },
+      "frame_5": {
+        "now_evidence": "Mid-push, block translating with tool maintaining contact.",
+        "predicts_next": "Approach to goal and settling steps.",
+        "uncertainty_reduction": "medium"
+      }
+    }
+  },
+  "task_instruction": "The task requires pushing a T-shaped block (gray) to a fixed target (green) with a circular end-effector (blue). Both observation and control frequencies are 10Hz.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["robot_arm", "circular_end_effector", "red_T_block", "blue_target_outline", "table"],
+  "objects_from_instruction": ["T_block_gray", "target_green", "end_effector_blue_circle"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"t_block","timeout_ms":800},"description":"Vision detects the T-block."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"goal_target","timeout_ms":800},"description":"Vision detects the goal outline."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"t_block","offset_z":0.02,"timeout_ms":1200},"description":"Move to a safe pre-push height over the block."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"t_block","tolerance":0.005,"timeout_ms":1200},"description":"Refine planar alignment to push face."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":180},"description":"Orient TCP for leftward push."},
+    {"id":"Push","type":"Action","ports":{"target":"t_block","distance":0.2,"direction_deg":180,"timeout_ms":1500},"description":"Execute the main push toward the goal."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"goal_target","tolerance":0.01,"timeout_ms":1200},"description":"Fine placement relative to the outline."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":400},"description":"Allow object to settle."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off to a safe pose."}
+  ],
+  "tree_stats": {"nodes_total": 10, "actions": 9, "conditions": 0, "depth": 2},
+  "failure_modes": [
+    "Object not detected or occluded",
+    "Poor alignment causing rotation of T during push",
+    "Insufficient push distance",
+    "Tool snagging the T’s head or stem"
+  ],
+  "recovery_strategy": [
+    "Re-run DetectObject / widen search region",
+    "Repeat ApproachAndAlign with tighter tolerance",
+    "Issue a second Push with distance 0.1",
+    "Abort and Retreat if unexpected contact spikes"
+  ],
+  "assumptions": [
+    "Frames show a red T and blue outline, while instruction mentions gray T and green target; frames were trusted.",
+    "Push heading assumed left (direction_deg=180) based on contact geometry; exact table frame unknown.",
+    "10 Hz rate noted but not directly parameterized by library ports."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "T-block lies within or overlapping the outline after motion",
+      "No excessive rotation of block during push",
+      "Robot safely retreats"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"t_block","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"t_block","offset_z":0.02,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"t_block","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"t_block","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.2,"direction_deg":180,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"t_block","distance":0.2,"direction_deg":180,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"goal_target","tolerance":0.01,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":400}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

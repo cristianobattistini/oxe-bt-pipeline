@@ -1,0 +1,19 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <RetryUntilSuccessful num_attempts="2">
+      <Action ID="DetectObject" target="green_bin_lid" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Action ID="ApproachAndAlign" target="green_bin_lid" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="MoveAbove" target="green_bin_lid" offset_z="0.05" timeout_ms="1200"/>
+    <Fallback>
+      <Condition ID="ContainerOpen" target="green_bin"/>
+      <Sequence>
+        <Action ID="SetTCPYaw" yaw_deg="90"/>
+        <Action ID="OpenContainer" target="green_bin" container_type="bin_lid" timeout_ms="1500"/>
+        <Action ID="Wait" timeout_ms="500"/>
+        <Condition ID="ContainerOpen" target="green_bin"/>
+      </Sequence>
+    </Fallback>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,115 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_091",
+  "task_summary": "Pick up the yellow object on the tabletop with a top grasp and lift it clear of the surface.",
+  "task_long_description": {
+    "overview": "A fixed-base manipulator above a white table must locate and pick up a small yellow container among several distractors (green bottle, orange container, cans, and a red block). The contact sheet shows approach from above, alignment near the object, closure, and a short lift. The behavior prioritizes perception first, then cautious vertical approach, stable grasp with moderate force, and a brief lift to confirm acquisition while avoiding collisions with neighboring items.",
+    "preconditions": ["Robot is homed above the workspace", "Table area is reachable", "Gripper operational and empty", "Yellow object is on the table and visible or discoverable by scanning"],
+    "stepwise_plan": ["Open the gripper", "Detect or scan for the yellow object", "Move to a pregrasp height above the target", "Approach and align precisely over the target", "Close the gripper to grasp", "Verify grasp stability", "Lift the object slightly and hold briefly"],
+    "success_criteria": ["Yellow object is in the gripper", "Lifted at least 0.10 m from table", "No collisions with other objects", "Grasp stability confirmed"],
+    "failure_and_recovery": ["If detection fails, perform a spiral scan", "If alignment fails, re-approach above target", "If grasp is unstable, reopen and retry from pregrasp", "If lift meets resistance, retreat slightly and re-align"],
+    "termination": "Terminate after a stable grasp has been lifted and held for the specified duration."
+  },
+  "frame_ranking": {
+    "order": ["frame_6","frame_7","frame_8","frame_5","frame_4","frame_3","frame_2","frame_1","frame_0"],
+    "scores": {
+      "frame_0": 0.20, "frame_1": 0.32, "frame_2": 0.44, "frame_3": 0.55,
+      "frame_4": 0.68, "frame_5": 0.74, "frame_6": 0.95, "frame_7": 0.88, "frame_8": 0.76
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Arm is descending toward the yellow container with end-effector centered, indicating start of precise approach.",
+        "predicts_next": "Alignment tightening and imminent gripper closure are expected.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up yellow object",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["yellow_object", "green_bottle", "orange_container", "can_left", "can_right", "red_block"],
+  "objects_from_instruction": ["yellow_object"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":800},"description":"Open gripper to a moderate width before approaching the object."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"yellow_object","timeout_ms":1500},"description":"Perceive the yellow object using onboard detection."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"yellow_object","pattern":"spiral","max_attempts":3,"timeout_ms":3000},"description":"Fallback scan if initial detection fails."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"yellow_object","offset_z":0.05,"timeout_ms":2000},"description":"Move to a pregrasp pose directly above the yellow object."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"yellow_object","tolerance":0.01,"timeout_ms":2000},"description":"Descend and align with tight positional tolerance."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":1000},"description":"Close the gripper to grasp the object with moderate force."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check that the grasp is secure before lifting."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"yellow_object","distance":0.10,"timeout_ms":1500},"description":"Lift the grasped object to confirm pickup."},
+    {"id":"HoldObject","type":"Action","ports":{"target":"yellow_object","duration_ms":500},"description":"Hold briefly to ensure stability before ending."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 8, "conditions": 1, "depth": 3},
+  "failure_modes": ["Object not detected", "Collision during approach", "Slippage after grasp", "Insufficient lift height"],
+  "recovery_strategy": ["Use spiral scan to reacquire target", "Retreat and re-approach from above", "Reopen and retry grasp with re-alignment", "Extend lift distance or pause to dampen motion"],
+  "assumptions": ["The yellow object in frames is the small yellow/orange container near center-left; no container opening is required", "Workspace is static and reachable throughout the episode"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Object detected, grasped, and lifted while maintaining stability"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"yellow_object","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"yellow_object","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"yellow_object","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"yellow_object","offset_z":0.05,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"yellow_object","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"yellow_object","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"yellow_object","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"yellow_object","duration_ms":500}},
+      "active_path_ids": []
+    }
+  ]
+}

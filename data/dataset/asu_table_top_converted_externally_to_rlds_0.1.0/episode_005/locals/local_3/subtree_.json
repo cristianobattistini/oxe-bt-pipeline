@@ -1,0 +1,15 @@
+{
+  "frame_index": 2,
+  "local_intent": "Detect and compute top grasp for red_bottle, approach/align, then grasp at goal_pose with retries until stable.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["goal_pose"],
+  "bb_write": ["goal_pose"],
+  "assumptions": ["Object not already in gripper", "Approach to red_bottle within 0.01 m tolerance is feasible"],
+  "coherence_with_global": "Implements the grasp phase of the global plan: detect -> compute grasp (top) -> approach/align -> grasp -> verify stability, reattempting up to 3 times as per recovery guidance.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

@@ -1,0 +1,329 @@
+{
+  "dataset_id": "dlr_sara_grid_clamp_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_001",
+  "task_summary": "Place the held grid clamp onto the designated plate area and retreat safely.",
+  "task_long_description": {
+    "overview": "A fixed UR-type manipulator with a parallel gripper starts already holding a small grid clamp above a workboard with stacks of clamps and a metal plate area used as the placement site. The goal is to approach the plate, align precisely, descend until gentle contact, place the clamp, release it, and then retreat to a safe height. Movements should be deliberate with tight in-plane alignment and low contact force during touchdown to avoid toppling nearby stacks.",
+    "preconditions": [
+      "Robot has the grid_clamp firmly grasped",
+      "Plate area on table is clear enough for placement",
+      "Workspace calibration and TCP are valid",
+      "Gripper operational and object pose stable"
+    ],
+    "stepwise_plan": [
+      "Verify the clamp is in the gripper",
+      "Move above the plate at safe height",
+      "Align horizontally over target",
+      "Lower slowly until contact is detected",
+      "Execute place-down on the plate",
+      "Open gripper to release",
+      "Retreat vertically to a safe distance",
+      "Pause briefly for stability"
+    ],
+    "success_criteria": [
+      "Clamp rests flat on the plate without sliding",
+      "No collision with nearby stacks or fixtures",
+      "Gripper fully opens and is empty after release",
+      "End-effector retreats to safe clearance"
+    ],
+    "failure_and_recovery": [
+      "If alignment fails, re-approach and realign",
+      "If contact not detected within depth, abort and retry from above",
+      "If object slips, stop and regrasp before placing",
+      "If obstruction detected, choose an alternate nearby spot on plate"
+    ],
+    "termination": "Terminate after successful release and retreat wait completes or upon unrecoverable failure."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "gripper is centered and lowered near the target indicating start of the place-down motion",
+        "predicts_next": "release or further settling is expected immediately after",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Place grid clamp",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 2000,
+    "tolerance": 0.01,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "grid_clamp",
+    "plate",
+    "table",
+    "robot_arm",
+    "stacks_of_clamps",
+    "sara_base"
+  ],
+  "objects_from_instruction": [
+    "grid_clamp"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {
+        "target": "grid_clamp"
+      },
+      "description": "Checks that the robot is holding the grid clamp before placing."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {
+        "target": "plate",
+        "offset_z": "0.06",
+        "timeout_ms": 2000
+      },
+      "description": "Move to a safe height above the plate placement area."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {
+        "target": "plate",
+        "tolerance": 0.01,
+        "timeout_ms": 2000
+      },
+      "description": "Align end-effector over the precise placement spot with tight tolerance."
+    },
+    {
+      "id": "LowerUntilContact",
+      "type": "Action",
+      "ports": {
+        "speed": "slow",
+        "max_depth": 0.05,
+        "force_threshold": 5,
+        "timeout_ms": 2000
+      },
+      "description": "Descend slowly until gentle contact is sensed to avoid impacts."
+    },
+    {
+      "id": "PlaceDown",
+      "type": "Action",
+      "ports": {
+        "target": "plate",
+        "timeout_ms": 1500
+      },
+      "description": "Perform the placing motion to rest the clamp on the plate."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {
+        "width": 0.04,
+        "timeout_ms": 800
+      },
+      "description": "Release the clamp by opening the gripper."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {
+        "distance": 0.1,
+        "timeout_ms": 1200
+      },
+      "description": "Back off vertically to a safe clearance after release."
+    },
+    {
+      "id": "Wait",
+      "type": "Action",
+      "ports": {
+        "timeout_ms": 500
+      },
+      "description": "Short pause to ensure stability before ending."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 9,
+    "actions": 7,
+    "conditions": 1,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Misalignment over plate leading to topple",
+    "No contact detected within max depth",
+    "Clamp slips before release",
+    "Collision with stacks during approach"
+  ],
+  "recovery_strategy": [
+    "Re-run align and re-approach from above",
+    "Raise and try a new approach path",
+    "Verify grasp; if lost, abort to pick routine",
+    "Slow down and increase clearance"
+  ],
+  "assumptions": [
+    "The clamp is already in the gripper at episode start",
+    "The placement target is the visible plate area near the stacks",
+    "Orientation required is vertical approach; no rotation changes needed",
+    "If instruction implied picking first, frames show only the placing phase and were prioritized"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Clamp rests flat and remains stationary on plate",
+      "Gripper empty after open",
+      "End-effector at safe height at end"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {
+          "target": "plate",
+          "offset_z": "0.06",
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {
+          "target": "plate",
+          "tolerance": 0.01,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "LowerUntilContact",
+        "attrs": {
+          "speed": "slow",
+          "max_depth": 0.05,
+          "force_threshold": 5,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "place",
+      "active_leaf": {
+        "id": "PlaceDown",
+        "attrs": {
+          "target": "plate",
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "place",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {
+          "width": 0.04,
+          "timeout_ms": 800
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {
+        "id": "PlaceDown",
+        "attrs": {
+          "target": "plate",
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.1,
+          "timeout_ms": 1200
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.1,
+          "timeout_ms": 1200
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Wait",
+        "attrs": {
+          "timeout_ms": 500
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

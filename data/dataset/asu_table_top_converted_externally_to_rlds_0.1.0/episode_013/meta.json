@@ -1,0 +1,125 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_013",
+  "task_summary": "Pick up the white carton from its current spot and place it onto a safe area on the table.",
+  "task_long_description": {
+    "overview": "A stationary robotic arm interacts with several small tabletop items, including bottles, cans, and a small white carton. The goal is to locate the white carton, grasp it reliably, lift it clear of nearby objects, and place it onto a designated safe area on the same table. The behavior prioritizes reliable perception, a side grasp suited to the carton’s shape, and gentle placement. The sequence is linear and conservative, using a verification step for grasp stability and a tolerance-bounded placement with minimal press force.",
+    "preconditions": ["Robot is homed and reachable workspace includes the white carton", "Table surface is stable and free of large obstacles at the target place area", "Gripper operational and calibrated width settings available", "Perception pipeline can detect 'white_carton' symbolically"],
+    "stepwise_plan": ["Scan and detect the white carton on the table", "Approach and align to a side grasp, opening the gripper in advance", "Compute a grasp pose and execute the grasp", "Close gripper and verify grasp stability", "Raise the held carton to avoid collisions", "Place the carton on the table using a low-press placement with tolerance", "Release the object and retreat"],
+    "success_criteria": ["White carton ends resting on the table target area and is not in the gripper", "No collisions with other objects or the table during motion", "Grasp is achieved without dropping during transfer"],
+    "failure_and_recovery": ["If detection fails, rescan the area and retry alignment", "If grasp is unstable, reopen, recompute grasp, and attempt again", "If place area is occupied, choose a nearby free spot on the table and re-place"],
+    "termination": "Terminate after successful place and retreat or after exceeding internal retries/timeouts."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "move white carton",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["white_carton","green_bottle","red_block","orange_pill_bottle","blue_can","table"],
+  "objects_from_instruction": ["white_carton"],
+  "blackboard_keys": ["goal_pose","place_on_table"],
+  "node_specs": [
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"white_carton","pattern":"raster","max_attempts":3,"timeout_ms":5000},"description":"Search the workspace using a raster scan to localize the white carton."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"white_carton","timeout_ms":3000},"description":"Trigger perception to detect the white carton and populate pose estimates."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"white_carton","tolerance":0.02,"timeout_ms":3000},"description":"Move the end effector to a pregrasp pose aligned within tolerance for grasping."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":1000},"description":"Prepare the gripper opening for a side grasp on the carton."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"white_carton","strategy":"side","result_key":"goal_pose"},"description":"Compute a side grasp pose and store it as a blackboard key."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"side","timeout_ms":3000},"description":"Execute the grasp at the computed pose."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":20,"timeout_ms":1000},"description":"Close the gripper with moderate force to secure the carton."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verify that the grasp is stable before lifting."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"white_carton","distance":0.10,"timeout_ms":1500},"description":"Lift the grasped carton to clear nearby obstacles."},
+    {"id":"PlaceAtTol","type":"Action","ports":{"pose_key":"place_on_table","yaw_deg":0,"press_force":5,"tolerance":0.02,"timeout_ms":3000},"description":"Place the carton at a designated table pose with gentle press and tolerance."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":1000},"description":"Release the carton onto the table."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back away to a safe distance after placement."}
+  ],
+  "tree_stats": {"nodes_total": 13, "actions": 11, "conditions": 1, "depth": 2},
+  "failure_modes": ["Object not detected due to occlusion or lighting", "Collision risk during approach due to clutter", "Grasp slip from insufficient force or poor contact", "Place pose obstructed by nearby objects"],
+  "recovery_strategy": ["Repeat scan and detection, then realign", "Adjust approach and recompute grasp", "Reopen, recompute, and retry grasp with adjusted pose", "Select an alternate nearby table pose for placement"],
+  "assumptions": ["The 'white carton' refers to the small white opaque bottle-shaped item near the center-right cluster in the frames; if the carton differs visually, the symbolic target still denotes that white item.", "Frames suggest interaction near the right-side objects; if exact pick-and-place endpoints are ambiguous, the plan uses a generic table place pose."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Carton is placed on the table target area and gripper is empty", "No collisions or drops observed during transfer"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"white_carton","pattern":"raster","max_attempts":3,"timeout_ms":5000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"white_carton","timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"white_carton","tolerance":0.02,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"white_carton","strategy":"side","result_key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"side","timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"white_carton","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceAtTol","attrs":{"pose_key":"place_on_table","yaw_deg":0,"press_force":5,"tolerance":0.02,"timeout_ms":3000}},
+      "active_path_ids": []
+    }
+  ]
+}

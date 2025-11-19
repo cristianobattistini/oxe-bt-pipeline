@@ -1,0 +1,246 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_089",
+  "task_summary": "Navigate through a hallway with large pods to a designated goal location.",
+  "task_long_description": {
+    "overview": "The robot starts in a hallway in what appears to be Cory Hall, characterized by large, beige, pod-like structures. The objective is to navigate from the starting position, move past these pods, and proceed down the corridor to a predefined 'goal' location. This is a pure mobility task.",
+    "preconditions": [
+      "Robot is localized in the map.",
+      "A path to the 'goal' location is known or can be planned by the navigation system."
+    ],
+    "stepwise_plan": [
+      "Execute the navigation plan to the 'goal' location."
+    ],
+    "success_criteria": [
+      "Robot successfully reaches the 'goal' location within the system's tolerance."
+    ],
+    "failure_and_recovery": [
+      "Navigation failure (e.g., persistent obstacle, localization lost) will cause the action to fail. Recovery is not handled by this tree and would require a higher-level planner to replan."
+    ],
+    "termination": "The task terminates upon reaching the goal (Success) or if navigation times out or fails (Failure)."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_7",
+      "frame_6",
+      "frame_3",
+      "frame_4",
+      "frame_1",
+      "frame_2",
+      "frame_0",
+      "frame_5",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.2,
+      "frame_1": 0.5,
+      "frame_2": 0.4,
+      "frame_3": 0.7,
+      "frame_4": 0.6,
+      "frame_5": 0.1,
+      "frame_6": 0.8,
+      "frame_7": 0.9,
+      "frame_8": 0.3
+    },
+    "rationale_per_frame": {
+      "frame_7": {
+        "now_evidence": "Clear view of the final corridor segment after passing the pods.",
+        "predicts_next": "Approaching the goal area.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "corridor_pods",
+    "goal_location"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "string",
+        "yaw_deg": "int",
+        "timeout_ms": "int"
+      },
+      "description": "Executes a long-horizon navigation plan to a predefined symbolic location."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 3,
+    "actions": 1,
+    "conditions": 0,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Obstacle blocking the path.",
+    "Localization failure.",
+    "Path planner fails to find a route."
+  ],
+  "recovery_strategy": [
+    "The BT itself has no recovery. A higher-level planner would need to intervene and replan."
+  ],
+  "assumptions": [
+    "The robot is localized within a known map.",
+    "The 'goal' location is predefined and reachable.",
+    "The `MapsToNamed` action encapsulates all necessary local planning and obstacle avoidance.",
+    "The entire 9-frame sequence depicts a single, ongoing navigation action."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Robot stops at the 'goal' location."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "temporary_obstacle",
+      "permanent_obstacle",
+      "localization_lost"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 10000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 10000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 10000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 10000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 10000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 10000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 10000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 10000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 10000
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

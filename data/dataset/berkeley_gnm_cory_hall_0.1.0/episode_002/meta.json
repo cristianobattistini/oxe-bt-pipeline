@@ -1,0 +1,259 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_002",
+  "task_summary": "Autonomous navigation along a hallway toward a goal position.",
+  "task_long_description": {
+    "overview": "The mobile robot moves along a straight indoor corridor with visible doors and trash bins on the sides. Across nine sequential frames, it progresses from a distant start position toward a blue bin area at the end of the hall, aligning itself to approach the goal zone safely. The behavior tree manages the navigation and checks goal reach conditions.",
+    "preconditions": [
+      "Robot initialized and localized",
+      "Goal location 'goal' defined in map"
+    ],
+    "stepwise_plan": [
+      "Verify current pose",
+      "Navigate toward the goal using waypoint tracking",
+      "Continuously check goal proximity during motion",
+      "Stop when reaching the target area"
+    ],
+    "success_criteria": [
+      "Robot reaches goal position",
+      "No collisions or deviations detected"
+    ],
+    "failure_and_recovery": [
+      "If navigation fails, retry sequence up to 3 times",
+      "Reattempt if localization or path planning error occurs"
+    ],
+    "termination": "Execution ends once the condition IsAt(goal) is satisfied."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable view of goal bins at corridor end",
+        "predicts_next": "approach continues with finer alignment",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 5000,
+    "tolerance": null,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "hallway",
+    "door",
+    "trash_bins",
+    "goal_area"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "goal",
+        "yaw_deg": 0,
+        "timeout_ms": 5000
+      },
+      "description": "Drives the robot toward the designated goal location."
+    },
+    {
+      "id": "IsAt",
+      "type": "Condition",
+      "ports": {
+        "target": "goal"
+      },
+      "description": "Checks whether the robot has reached the goal."
+    },
+    {
+      "id": "Wait",
+      "type": "Action",
+      "ports": {
+        "timeout_ms": 500
+      },
+      "description": "Pause briefly to allow status update."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 9,
+    "actions": 2,
+    "conditions": 1,
+    "depth": 4
+  },
+  "failure_modes": [
+    "Localization drift",
+    "Obstacle blocking path",
+    "Timeout before goal reached"
+  ],
+  "recovery_strategy": [
+    "Retry motion",
+    "Recalculate trajectory",
+    "Extend timeout"
+  ],
+  "assumptions": [
+    "Instruction matches observed motion toward bins area; goal likely corresponds to blue bin cluster."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Robot stops near goal bins",
+      "No collisions"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "goal occluded",
+      "path blocked",
+      "camera noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 5000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

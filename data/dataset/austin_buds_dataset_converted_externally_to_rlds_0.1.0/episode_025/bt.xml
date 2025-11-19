@@ -1,0 +1,32 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="DetectObject" target="pot_lid" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="800"/>
+    <Action ID="ApproachAndAlign" target="pot_lid" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="pot_lid" strategy="top" result_key="goal_pose"/>
+    <Action ID="GraspAtPose" pose_key="goal_pose" strategy="pinch" timeout_ms="1500"/>
+    <Action ID="CloseGripper" force="10" timeout_ms="1500"/>
+    <Action ID="RaiseHeld" target="pot_lid" distance="0.10" timeout_ms="1000"/>
+    <Action ID="PlaceOnSurface" target="pot_lid" area_id="board" yaw_deg="0" press_force="5" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.10" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.05" timeout_ms="1000"/>
+
+    <Action ID="DetectObject" target="pot" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="pot" tolerance="0.02" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="pot" strategy="side" result_key="goal_pose"/>
+    <Action ID="GraspAtPose" pose_key="goal_pose" strategy="pinch" timeout_ms="1500"/>
+    <Action ID="CloseGripper" force="20" timeout_ms="1500"/>
+    <Action ID="RaiseHeld" target="pot" distance="0.10" timeout_ms="1000"/>
+    <Action ID="PlaceOnSurface" target="pot" area_id="plate" yaw_deg="0" press_force="10" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.10" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.05" timeout_ms="1000"/>
+
+    <Action ID="DetectObject" target="spatula" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="spatula" tolerance="0.02" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="spatula" strategy="top" result_key="goal_pose"/>
+    <Action ID="GraspAtPose" pose_key="goal_pose" strategy="pinch" timeout_ms="1500"/>
+    <Action ID="CloseGripper" force="15" timeout_ms="1500"/>
+    <Action ID="PushWithTool" target="pot" distance="0.30" direction_deg="180" tool_id="spatula" timeout_ms="2000"/>
+    <Action ID="Retreat" distance="0.05" timeout_ms="1000"/>
+  </Sequence>
+</BehaviorTree>

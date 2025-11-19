@@ -1,0 +1,19 @@
+{
+  "frame_index": 2,
+  "local_intent": "Detect the brown_object, compute a top grasp pose, align, execute pinch grasp at goal_pose, and verify stability",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["goal_pose"],
+  "bb_write": ["goal_pose"],
+  "assumptions": [
+    "brown_object is detectable within timeout",
+    "Alignment within 0.01 tolerance is feasible",
+    "Pinch grasp can securely hold the object"
+  ],
+  "coherence_with_global": "Implements the grasp phase of the GLOBAL_BT fallback: DetectObject -> ComputeGraspPose(goal_pose, top) -> GraspAtPose(goal_pose, pinch) -> CloseGripper -> IsGraspStable.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

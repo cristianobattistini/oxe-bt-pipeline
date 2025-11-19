@@ -1,0 +1,262 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_022",
+  "task_summary": "The robot navigates through an indoor corridor to reach a designated goal location.",
+  "task_long_description": {
+    "overview": "This task involves autonomous navigation in an indoor hallway with smooth, continuous motion. The environment is a dimly lit corridor with doors and walls as reference features. The robot starts from one end of the hall and proceeds steadily toward a goal located further down the corridor, maintaining orientation and stability as lighting decreases.",
+    "preconditions": [
+      "Robot localization initialized",
+      "Map of hallway known",
+      "Goal coordinates available"
+    ],
+    "stepwise_plan": [
+      "Orient toward the hallway axis",
+      "Move forward along the corridor maintaining center alignment",
+      "Approach the goal region until arrival confirmation"
+    ],
+    "success_criteria": [
+      "Robot reaches the goal location",
+      "No collision with walls",
+      "Stable trajectory maintained"
+    ],
+    "failure_and_recovery": [
+      "If localization drift occurs, re-align using corridor features",
+      "If obstacle detected, perform minor path adjustment before continuing"
+    ],
+    "termination": "Terminate when goal location is reached or navigation timeout occurs"
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "robot clearly advancing in corridor midsection with consistent alignment",
+        "predicts_next": "continued forward motion toward darker terminal zone",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 2000,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "corridor",
+    "goal_point",
+    "walls"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "waypoint_1",
+        "yaw_deg": 0,
+        "timeout_ms": 2000
+      },
+      "description": "Robot moves toward an intermediate waypoint along the corridor."
+    },
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "goal",
+        "yaw_deg": 0,
+        "timeout_ms": 2000
+      },
+      "description": "Robot continues straight to the final goal location."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 3,
+    "actions": 2,
+    "conditions": 0,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Localization drift",
+    "Obstacle detection failure",
+    "Goal unreachable within timeout"
+  ],
+  "recovery_strategy": [
+    "Retry navigation with re-alignment",
+    "Replan local path segment"
+  ],
+  "assumptions": [
+    "Frames suggest straightforward corridor navigation without complex branching or obstacles"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Reaches goal",
+      "Path stable and collision-free"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "localization drift",
+      "blocked passage",
+      "sensor noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "waypoint_1",
+          "yaw_deg": 0,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "waypoint_1",
+          "yaw_deg": 0,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "waypoint_1",
+          "yaw_deg": 0,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "waypoint_1",
+          "yaw_deg": 0,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 2000
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

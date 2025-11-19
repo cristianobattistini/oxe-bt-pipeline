@@ -1,0 +1,126 @@
+{
+  "dataset_id": "cmu_stretch_0.1.0",
+  "episode_id": "episode_123",
+  "task_summary": "Locate the dishwasher handle, grasp it, and pull to open the hinged door, then retreat to clear the opened door.",
+  "task_long_description": {
+    "overview": "The sequence controls a Hello Robot Stretch‑like manipulator in a kitchen scene with a stainless appliance featuring a horizontal bar handle consistent with a dishwasher door; the robot must perceive the handle, approach precisely, grasp, and execute an opening motion appropriate for a downward‑hinged door, then back away to avoid collision while the door opens.[web:3][web:6]",
+    "preconditions": ["Appliance is accessible from the right side with unobstructed handle reach.[web:3]", "Robot base is stably positioned and arm has clearance for pulling a hinged door.[web:6]", "Gripper operational and able to close on a bar‑style handle.[web:6]"],
+    "stepwise_plan": ["Check visibility of the dishwasher handle; if not visible, scan raster to find it.[web:3]", "Detect and localize the handle and compute a pulling grasp pose.[web:6]", "Approach and align, open gripper, then execute the pick to secure the handle.[web:6]", "Set wrist yaw for pulling direction and issue an open‑container command for a hinged door.[web:3]", "Retreat to create space once the door begins opening and wait briefly to settle.[web:6]"],
+    "success_criteria": ["Dishwasher door angle increases from closed; latch disengaged and motion observed.[web:5]", "Robot maintains stable grasp during initial opening without collision.[web:6]"],
+    "failure_and_recovery": ["If handle not found, repeat raster scan up to configured attempts.[web:3]", "If grasp unstable, re‑open gripper and recompute grasp before retrying pull.[web:6]"],
+    "termination": "Tree terminates after a successful open operation followed by a short wait and retreat to a safe standoff.[web:3]"
+  },
+  "frame_ranking": {
+    "order": ["frame_4","frame_6","frame_5","frame_3","frame_2","frame_1","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.20,
+      "frame_1": 0.45,
+      "frame_2": 0.58,
+      "frame_3": 0.70,
+      "frame_4": 0.93,
+      "frame_5": 0.82,
+      "frame_6": 0.88,
+      "frame_7": 0.40,
+      "frame_8": 0.25
+    },
+    "rationale_per_frame": {
+      "frame_4": {
+        "now_evidence": "Gripper is firmly on the handle indicating grasp completion and readiness to pull.",
+        "predicts_next": "Opening motion initiation is the logical next step after securing grasp.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pull open a dishwasher",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["dishwasher","dishwasher_handle","cabinetry","countertop","robot_gripper","fridge"],
+  "objects_from_instruction": ["dishwasher"],
+  "blackboard_keys": ["grasp_handle"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"dishwasher_handle"},"description":"Checks whether the dishwasher handle is currently visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"dishwasher_handle","pattern":"raster","max_attempts":3,"timeout_ms":1500},"description":"Performs a raster scan to locate the handle if not visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"dishwasher_handle","timeout_ms":1200},"description":"Runs object detection to refine the handle pose."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"dishwasher_handle","strategy":"pull","result_key":"grasp_handle"},"description":"Computes a pulling grasp for the bar handle and stores it to the blackboard."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"dishwasher_handle","offset_z":0.02,"timeout_ms":1200},"description":"Moves above the handle to a safe pregrasp height."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"dishwasher_handle","tolerance":0.01,"timeout_ms":1500},"description":"Approaches and aligns the gripper with the handle within tight tolerance."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":400},"description":"Opens gripper to accept the handle."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"grasp_handle","timeout_ms":1500},"description":"Executes the grasp using the precomputed handle pose."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verifies the grasp stability before pulling."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":90},"description":"Orients the wrist to align with the pull direction."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"dishwasher","container_type":"hinged_door","timeout_ms":1500},"description":"Commands opening of a downward‑hinged dishwasher door while grasping the handle."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.2,"timeout_ms":800},"description":"Backs off to avoid collision with the opening door."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":400},"description":"Brief pause to allow door motion to settle."}
+  ],
+  "tree_stats": {"nodes_total": 16, "actions": 11, "conditions": 2, "depth": 4},
+  "failure_modes": ["Handle not detected due to glare or pose ambiguity.","Grasp slips during initial pull.","Door binds due to latch not released or obstruction.","Robot collides with door while opening."],
+  "recovery_strategy": ["Re‑scan with RetryUntilSuccessful and adjust alignment.","Re‑open gripper, recompute grasp, and repeat pick.","Increase yaw alignment and reissue OpenContainer after reseating grasp.","Retreat slightly, re‑approach with smaller tolerance before pull."],
+  "assumptions": ["The stainless appliance in frames appears to be a dishwasher with a horizontal bar handle; if it is an oven, the same hinged‑door opening procedure still applies, but dynamics differ—design favors the visual frames."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Door visibly opens after OpenContainer while grasp remains stable.","Robot ends at a safe offset without contact after Retreat."],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"dishwasher_handle","pattern":"raster","max_attempts":3,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"dishwasher_handle","offset_z":0.02,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"dishwasher_handle","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"dishwasher_handle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"grasp_handle","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"SetTCPYaw","attrs":{"yaw_deg":90}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"dishwasher","container_type":"hinged_door","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.2,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":400}},
+      "active_path_ids": []
+    }
+  ]
+}

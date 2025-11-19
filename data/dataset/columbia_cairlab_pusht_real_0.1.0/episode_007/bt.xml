@@ -1,0 +1,25 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="block_T"/>
+      <Action ID="ScanForTarget" target="block_T" pattern="line" max_attempts="3" timeout_ms="800"/>
+    </Fallback>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="target_slot"/>
+      <Action ID="ScanForTarget" target="target_slot" pattern="line" max_attempts="3" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="block_T" offset_z="0.03" timeout_ms="1200"/>
+    <Action ID="ApproachAndAlign" target="block_T" tolerance="0.005" timeout_ms="1200"/>
+    <Action ID="SetTCPYaw" yaw_deg="45"/>
+    <Action ID="Push" target="block_T" distance="0.2" direction_deg="135" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="target_slot" tolerance="0.005" timeout_ms="1200"/>
+    <Fallback>
+      <Condition ID="IsAt" target="target_slot"/>
+      <Sequence>
+        <Action ID="Push" target="block_T" distance="0.1" direction_deg="135" timeout_ms="1200"/>
+        <Action ID="ApproachAndAlign" target="target_slot" tolerance="0.005" timeout_ms="1200"/>
+      </Sequence>
+    </Fallback>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,10 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="DetectObject" target="red_cube" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="red_cube" tolerance="0.02" timeout_ms="2000"/>
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="ComputeGraspPose" target="red_cube" strategy="top" result_key="goal_pose"/>
+    </RetryUntilSuccessful>
+    <Condition ID="PoseAvailable" key="goal_pose"/>
+  </Sequence>
+</BehaviorTree>

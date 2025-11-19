@@ -1,0 +1,124 @@
+{
+  "dataset_id": "cmu_stretch_0.1.0",
+  "episode_id": "episode_040",
+  "task_summary": "Detect the drawer handle, grasp it, and pull to open the drawer, verifying it is open and then retreating.",
+  "task_long_description": {
+    "overview": "The robot operates at a kitchen cabinet with a bar-style drawer handle. It must visually detect the handle, precisely align its end-effector, form a grasp suitable for a pulling motion, and actuate the opening of the drawer. Visual evidence shows approach from the right, contact with the handle, and the drawer moving outward across later frames. The tree incorporates perception retry, precise alignment, a pull-grasp strategy, container opening, verification, and a short retreat to clear the drawer.",
+    "preconditions": ["Robot in front of the cabinet", "Drawer handle unobstructed", "Gripper operational", "Scene lighting sufficient for detection"],
+    "stepwise_plan": ["Detect drawer_handle", "Approach and align to handle", "Open gripper and compute pull grasp", "Pick using computed grasp", "Command container open (drawer)", "Verify drawer state is open", "Retreat slightly to avoid collision"],
+    "success_criteria": ["Drawer is visibly opened", "ContainerOpen condition returns success", "Robot ends in a safe, non-contact pose"],
+    "failure_and_recovery": ["Perception failure → retry detection", "Misalignment → re-approach", "Grasp slip → re-compute grasp and pick", "Drawer stuck → re-attempt open with renewed alignment"],
+    "termination": "Terminate when the drawer is confirmed open and the robot has retreated."
+  },
+  "frame_ranking": {
+    "order": ["frame_7","frame_8","frame_5","frame_6","frame_4","frame_3","frame_2","frame_1","frame_0"],
+    "scores": {
+      "frame_0": 0.10, "frame_1": 0.30, "frame_2": 0.48, "frame_3": 0.70,
+      "frame_4": 0.72, "frame_5": 0.85, "frame_6": 0.78, "frame_7": 0.95, "frame_8": 0.90
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Initial firm contact at handle; alignment looks correct.",
+        "predicts_next": "Expect grasp completion and pull/open action to follow.",
+        "uncertainty_reduction": "high"
+      },
+      "frame_7": {
+        "now_evidence": "Drawer clearly extended; opening motion near completion.",
+        "predicts_next": "Verification of open state and retreat.",
+        "uncertainty_reduction": "high"
+      },
+      "frame_1": {
+        "now_evidence": "Approach underway; gripper moving toward handle.",
+        "predicts_next": "Fine alignment prior to grasp.",
+        "uncertainty_reduction": "medium"
+      }
+    }
+  },
+  "task_instruction": "open drawer",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 1500,
+    "tolerance": 0.01,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["drawer", "drawer_handle", "cabinet", "countertop", "robot_gripper", "tissue_box", "red_container", "fridge_side"],
+  "objects_from_instruction": ["drawer"],
+  "blackboard_keys": ["drawer_handle_grasp"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"drawer_handle","timeout_ms":1200},"description":"Find the drawer handle in the scene."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"drawer_handle","tolerance":0.01,"timeout_ms":1500},"description":"Move to and align with the handle within tight tolerance."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.09,"timeout_ms":500},"description":"Prepare gripper to envelop the handle."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"drawer_handle","strategy":"pull","result_key":"drawer_handle_grasp"},"description":"Compute a pull-oriented grasp for the handle."},
+    {"id":"Pick","type":"Action","ports":{"grasp_key":"drawer_handle_grasp","timeout_ms":1500},"description":"Execute the grasp on the handle."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"drawer","container_type":"drawer","timeout_ms":1500},"description":"Command an opening motion for the drawer while grasping the handle."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"drawer"},"description":"Verify the drawer is open."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":800},"description":"Back off slightly to yield space after opening."}
+  ],
+  "tree_stats": {"nodes_total": 10, "actions": 7, "conditions": 1, "depth": 3},
+  "failure_modes": ["Handle not detected", "Misalignment prevents grasp", "Gripper slips off handle", "Drawer jammed or high friction"],
+  "recovery_strategy": ["Retry detection up to 3 times", "Re-approach with same tolerance", "Recompute grasp and re-pick", "Re-attempt open after slight re-alignment"],
+  "assumptions": ["Bar-style handle suitable for pull grasp as seen in frames", "OpenContainer encapsulates the pull motion needed to open the drawer", "Camera viewpoint and base frame make forward pull feasible"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["ContainerOpen succeeds", "Drawer visually extended in frames similar to 7–8", "No collision with cabinet or drawer face"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"drawer_handle","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"drawer_handle","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"drawer_handle","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"Pick","attrs":{"grasp_key":"drawer_handle_grasp","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"drawer","container_type":"drawer","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"drawer","container_type":"drawer","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id":"ContainerOpen","attrs":{"target":"drawer"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

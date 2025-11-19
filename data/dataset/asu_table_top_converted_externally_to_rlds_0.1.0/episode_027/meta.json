@@ -1,0 +1,138 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_027",
+  "task_summary": "Detect the red object and push it to a new position on the table, then retreat.",
+  "task_long_description": {
+    "overview": "A UR-style manipulator operates over a small white table containing several items: a blue can, an orange bottle, a red rectangular block (the target), a purple can, a translucent cup, and a green bottle. The instruction is to move the red object without grasping it. The robot should perceive the target, approach and align its end-effector, verify visibility/alignment, execute a controlled push to translate the block toward a new location, briefly stabilize, and retreat to a safe height. The action is constrained to table-top contact and must avoid disturbing nearby objects.",
+    "preconditions": [
+      "Camera view provides the red object in scene",
+      "Table surface is clear for a short push path",
+      "End-effector free and gripper opened"
+    ],
+    "stepwise_plan": [
+      "Detect the red object with retries.",
+      "Open gripper and approach/align to push face.",
+      "Move above with a small offset and verify visibility.",
+      "Push the red object along a shallow diagonal.",
+      "Pause briefly to settle and then retreat."
+    ],
+    "success_criteria": [
+      "Red object position changes noticeably from its start pose",
+      "No grasp required; motion achieved via push",
+      "No collisions with non-target objects",
+      "Robot returns to a safe, non-contact pose"
+    ],
+    "failure_and_recovery": [
+      "Perception failure: retry detection",
+      "Misalignment: re-approach and re-verify",
+      "Object slips or blocked: attempt a shorter or repeated push",
+      "Unexpected contact: retreat and re-approach"
+    ],
+    "termination": "Tree succeeds once push is executed and retreat completes without faults."
+  },
+  "frame_ranking": {
+    "order": ["frame_7","frame_6","frame_5","frame_8","frame_3","frame_4","frame_2","frame_1","frame_0"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.22, "frame_2": 0.40, "frame_3": 0.55,
+      "frame_4": 0.60, "frame_5": 0.78, "frame_6": 0.86, "frame_7": 0.92, "frame_8": 0.70
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "End-effector aligned above target; pre-push pose visible.",
+        "predicts_next": "Confirms that a push actuation should follow.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "move red object",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 2000,
+    "tolerance": 0.01,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["red_object","blue_can","orange_bottle","purple_can","translucent_cup","green_bottle"],
+  "objects_from_instruction": ["red_object"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"red_object","timeout_ms":2000},"description":"Detect red object with retry wrapper."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.10,"timeout_ms":800},"description":"Open gripper to make a pushing contact safe."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"red_object","tolerance":0.01,"timeout_ms":1500},"description":"Approach to align pushing direction."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"red_object","offset_z":0.03,"timeout_ms":1000},"description":"Move to a small height above the target."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"red_object"},"description":"Verify the red object is visible/aligned."},
+    {"id":"Push","type":"Action","ports":{"target":"red_object","distance":0.20,"direction_deg":120,"timeout_ms":2000},"description":"Execute the push to translate the object."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":500},"description":"Allow settling time after the push."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back off to a safe pose."}
+  ],
+  "tree_stats": {"nodes_total": 10, "actions": 7, "conditions": 1, "depth": 3},
+  "failure_modes": ["Target not detected", "Misalignment causes collision", "Push direction obstructed", "Object slips unpredictably"],
+  "recovery_strategy": ["Retry detection up to 3 times", "Re-approach and re-verify visibility", "Shorten push distance and retry", "Retreat and re-plan approach"],
+  "assumptions": [
+    "“Red object” refers to the red rectangular block visible in the frames.",
+    "Movement is achieved via pushing (no grasp).",
+    "Push direction approximated as 120° in the table frame; exact dataset frame is not provided."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Block final pose differs from initial by >5 cm", "Robot completes retreat without contact faults"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_object","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_object","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"red_object","offset_z":0.03,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"red_object"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"red_object","distance":0.20,"direction_deg":120,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"red_object","distance":0.20,"direction_deg":120,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

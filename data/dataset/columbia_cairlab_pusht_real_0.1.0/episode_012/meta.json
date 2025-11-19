@@ -1,0 +1,157 @@
+{
+  "dataset_id": "columbia_cairlab_pusht_real_0.1.0",
+  "episode_id": "episode_012",
+  "task_summary": "Detect the T-shaped block and the goal region, align the circular end-effector, make gentle contact, then push the block toward the goal with two short pushes, verify goal attainment, and retreat.",
+  "task_long_description": {
+    "overview": "A robotic arm with a circular end-effector must push a T-shaped block across a tabletop into a marked goal region. The BT first perceives the block and the goal, orients the tool for a leftward push, approaches to a safe height, and establishes contact. It then executes repeated push segments to overcome friction while maintaining alignment. Success is assessed by the block’s presence at the goal. The sequence uses modest timeouts consistent with 10 Hz control/observation and ends with a retreat to clear the scene.",
+    "preconditions": [
+      "Workspace is clear; block and goal region are within the camera’s field of view.",
+      "Robot is homed and reachable to the block and goal.",
+      "Table height known; pushing on a flat surface."
+    ],
+    "stepwise_plan": [
+      "Scan and detect the T block.",
+      "Scan and detect the goal region.",
+      "Set yaw for push direction and compute a push pose.",
+      "Move above approach pose and align to the block.",
+      "Lower until contact is detected at the surface.",
+      "Execute two short pushes with brief pause.",
+      "Verify the block is at the goal and retreat."
+    ],
+    "success_criteria": [
+      "Block rests within the goal region boundary.",
+      "No collisions or tipping; end-effector clear after completion."
+    ],
+    "failure_and_recovery": [
+      "Perception failure: rescan using ScanForTarget and retry detection.",
+      "Insufficient motion: repeat small push segments.",
+      "Loss of alignment: re-run ApproachAndAlign before pushing."
+    ],
+    "termination": "Terminate when the goal condition is satisfied (IsAt goal_region) or when any action times out/fails irrecoverably."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "The task requires pushing a T-shaped block (gray) to a fixed target (green) with a circular end-effector (blue). Both observation and control frequencies are 10Hz.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["robot arm", "circular end-effector", "T-shaped block (visually red in frames)", "goal region (rectangular outline, blue in frames)", "tabletop"],
+  "objects_from_instruction": ["T-shaped block (gray)", "fixed target (green)", "circular end-effector (blue)"],
+  "blackboard_keys": ["push_pose"],
+  "node_specs": [
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"string","pattern":"raster|line","max_attempts":"int","timeout_ms":"int"},"description":"Raster/line scan to localize an entity."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Detect specific object and publish pose."},
+    {"id":"SetTCPYaw","type":"Action","ports":{"yaw_deg":"int"},"description":"Orient the tool yaw for push direction."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"string","strategy":"push","result_key":"string"},"description":"Compute approach pose for pushing (stored to blackboard)."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"string","offset_z":"float","timeout_ms":"int"},"description":"Move above a stored pose with vertical offset."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"string","tolerance":"float","timeout_ms":"int"},"description":"Lateral alignment to block before contact."},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow|normal|fast","max_depth":"float","force_threshold":"float","timeout_ms":"int"},"description":"Descend gently until contact is sensed."},
+    {"id":"Push","type":"Action","ports":{"target":"string","distance":"float","direction_deg":"int","timeout_ms":"int"},"description":"Execute a straight push of the object."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":"int"},"description":"Brief pause between push segments."},
+    {"id":"IsAt","type":"Condition","ports":{"target":"string"},"description":"Goal satisfaction check (object at region)."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"float","timeout_ms":"int"},"description":"Back away from the workspace."}
+  ],
+  "tree_stats": {"nodes_total": 15, "actions": 11, "conditions": 1, "depth": 5},
+  "failure_modes": [
+    "Object not detected or occluded",
+    "Push direction misaligned causing block rotation",
+    "Insufficient distance due to friction/stiction",
+    "Contact not achieved due to wrong height"
+  ],
+  "recovery_strategy": [
+    "Rescan and redetect targets",
+    "Re-run alignment then repeat short pushes",
+    "Increase number of push cycles if still short",
+    "Retry lowering with small depth and slow speed"
+  ],
+  "assumptions": [
+    "Frames show a RED T-block and a BLUE goal outline, whereas the instruction mentions gray block and green target; we follow the frames and treat them as 'T_block' and 'goal_region'.",
+    "Push direction set to 180° (leftward) based on arm position in mid-sequence frames.",
+    "IsAt(goal_region) is treated as the object-at-goal condition."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": ["T-block inside the goal region; no collisions; robot retreats cleanly"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"T_block","pattern":"raster","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"T_block","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"goal_region","pattern":"line","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"push_pose","offset_z":0.03,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"T_block","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.02,"force_threshold":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"T_block","distance":0.1,"direction_deg":180,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"IsAt","attrs":{"target":"goal_region"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

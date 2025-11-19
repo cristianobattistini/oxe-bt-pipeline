@@ -1,0 +1,18 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="drawer_handle"/>
+      <Action ID="ScanForTarget" target="drawer_handle" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <Action ID="DetectObject" target="drawer_handle" timeout_ms="1200"/>
+    <Action ID="ApproachAndAlign" target="drawer_handle" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="SetTCPYaw" yaw_deg="0"/>
+    <Condition ID="AtOrientation" yaw_deg="0"/>
+    <Action ID="CloseGripper" force="30" timeout_ms="1200"/>
+    <Action ID="MoveDelta" axis="x" dist="0.2" timeout_ms="1500"/>
+    <Condition ID="ContainerOpen" target="drawer"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="800"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

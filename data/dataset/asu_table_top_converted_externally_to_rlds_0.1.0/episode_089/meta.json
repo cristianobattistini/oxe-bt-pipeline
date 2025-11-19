@@ -1,0 +1,114 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_089",
+  "task_summary": "Detect the green bottle on the right side of the table, approach and align the end-effector, then push it laterally and retreat.",
+  "task_long_description": {
+    "overview": "A stationary manipulator must push a green bottle resting on a tabletop among several other objects (red cylinder, blue can, orange items, small cubes). The arm begins near the table center and moves toward the right side where the green bottle sits close to the edge. The behavior emphasizes reliable perception, safe approach above the surface, alignment before contact, and a controlled push followed by a short retreat to clear the object.",
+    "preconditions": ["Robot is homed and within workspace limits", "Table surface is clear around the push path", "Green bottle is present and visible or discoverable by scan", "Gripper is open for non-grasp contact"],
+    "stepwise_plan": ["Open gripper", "Verify visibility of the green bottle or scan to locate it", "Move to a safe height above the target", "Approach and align to a side-contact pose", "Execute a lateral push of fixed distance", "Retreat to a safe clearance pose", "Brief wait to stabilize"],
+    "success_criteria": ["Bottle exhibits displacement in commanded direction", "No collisions with non-target objects beyond incidental contact", "Robot retreats to a safe distance after push"],
+    "failure_and_recovery": ["If target not visible, scan again (retry)", "If approach/align times out, re-perceive and re-approach", "If push stalls, re-align then push once more (future enhancement)"],
+    "termination": "Terminate after a single successful push and retreat sequence."
+  },
+  "frame_ranking": {
+    "order": ["frame_5","frame_6","frame_4","frame_3","frame_2","frame_7","frame_1","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.20, "frame_1": 0.32, "frame_2": 0.55, "frame_3": 0.68,
+      "frame_4": 0.74, "frame_5": 0.93, "frame_6": 0.88, "frame_7": 0.47, "frame_8": 0.15
+    },
+    "rationale_per_frame": {
+      "frame_5": {
+        "now_evidence": "Contact with the bottle and lateral motion are most apparent.",
+        "predicts_next": "Continued push or start of retreat is expected.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "push green bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["green bottle","red cylinder","blue can","orange items","small gray cubes","table","robot gripper"],
+  "objects_from_instruction": ["green bottle"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":"0.10","timeout_ms":"1000"},"description":"Ensure open gripper for side pushing contact."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"green_bottle"},"description":"Checks if the green bottle is currently visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"green_bottle","pattern":"spiral","max_attempts":"3","timeout_ms":"2000"},"description":"Active search when the bottle is not immediately visible."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"green_bottle","offset_z":"0.06","timeout_ms":"1500"},"description":"Moves to a safe height above the bottle."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"green_bottle","tolerance":"0.02","timeout_ms":"2000"},"description":"Side alignment for a stable push path."},
+    {"id":"Push","type":"Action","ports":{"target":"green_bottle","distance":"0.20","direction_deg":"90","timeout_ms":"2000"},"description":"Execute lateral push along tabletop."},
+    {"id":"Retreat","type":"Action","ports":{"distance":"0.10","timeout_ms":"1000"},"description":"Back off to clear the object after pushing."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":"500"},"description":"Short dwell to stabilize."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 7, "conditions": 1, "depth": 4},
+  "failure_modes": ["Target not detected", "Misalignment causing glancing contact", "Insufficient push distance due to friction", "Collision with neighboring objects"],
+  "recovery_strategy": ["Retry scan up to 3 times", "Re-approach with alignment if contact fails", "Reduce speed and reattempt push after slight reposition (future extension)"],
+  "assumptions": ["Push direction is to robot's right (~90°) based on frames showing motion toward table edge", "Object category is a bottle; no grasp is required"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Bottle translates laterally by at least the commanded distance", "No unsafe collisions", "Robot returns to a safe pose"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"green_bottle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"green_bottle","pattern":"spiral","max_attempts":3,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"green_bottle","offset_z":0.06,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"green_bottle","tolerance":0.02,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"green_bottle","tolerance":0.02,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"green_bottle","distance":0.20,"direction_deg":90,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"green_bottle","distance":0.20,"direction_deg":90,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"green_bottle","distance":0.20,"direction_deg":90,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

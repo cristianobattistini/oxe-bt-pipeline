@@ -1,0 +1,18 @@
+{
+  "frame_index": 3,
+  "local_intent": "Compute a top grasp pose for the red cube after approach/alignment and verify the pose is available, retrying planning if needed.",
+  "plugs_into": { "path_from_root": ["MainTree"], "mode": "replace-only" },
+  "bb_read": ["goal_pose"],
+  "bb_write": ["goal_pose"],
+  "assumptions": [
+    "Red cube is detectable and within reachable workspace",
+    "Top-down approach is feasible with tolerance 0.02"
+  ],
+  "coherence_with_global": "Implements the perceive→align→compute→verify slice around ComputeGraspPose from the GLOBAL_BT, writing goal_pose and confirming availability before subsequent grasp actions.",
+  "format_checks": {
+    "single_root_composite": true,
+    "decorators_single_child": true,
+    "only_known_nodes": true,
+    "only_binned_values": true
+  }
+}

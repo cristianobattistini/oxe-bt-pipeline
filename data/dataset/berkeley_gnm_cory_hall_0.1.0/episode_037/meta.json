@@ -1,0 +1,284 @@
+{
+  "dataset_id": "berkeley_gnm_cory_hall_0.1.0",
+  "episode_id": "episode_037",
+  "task_summary": "The robot drives through an indoor hallway and reaches a designated goal location.",
+  "task_long_description": {
+    "overview": "A mobile platform appears to be navigating down a carpeted corridor with beige walls. The instruction is to reach a goal location, presumably somewhere further along the hallway. The Behavior Tree executes a navigation primitive toward the symbolic target 'goal', aligns yaw to 0°, and then verifies arrival. The environment looks mostly static and uncluttered, so the policy can be simple: move forward toward the goal and confirm final pose without additional manipulation steps.",
+    "preconditions": [
+      "Robot has a known map or waypoint labeled 'goal'.",
+      "Hallway ahead is traversable (no major obstacles blocking the path).",
+      "Localization is available to evaluate IsAt(target='goal')."
+    ],
+    "stepwise_plan": [
+      "Drive toward the named waypoint 'goal' with heading 0°.",
+      "Check that the robot is now located at 'goal'."
+    ],
+    "success_criteria": [
+      "Robot reports IsAt(target='goal') == true.",
+      "Robot ends aligned generally forward (yaw ~0°) without collision."
+    ],
+    "failure_and_recovery": [
+      "If NavigateToNamed fails due to transient blockage, higher-level retry or alternate route selection would be required (not modeled here).",
+      "If IsAt returns false, navigation would need to continue refining position."
+    ],
+    "termination": "Terminate once IsAt(target='goal') succeeds."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.8,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Forward corridor view appears stable and centered, suggesting steady mid-trajectory navigation toward the goal.",
+        "predicts_next": "Indicates continued hallway following; supports that the robot will keep moving along the same bearing to reach the goal.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Navigate to the goal.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "hallway_wall",
+    "carpeted_floor",
+    "corridor_goal_region"
+  ],
+  "objects_from_instruction": [
+    "goal"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "NavigateToNamed",
+      "type": "Action",
+      "ports": {
+        "location_id": "goal",
+        "yaw_deg": 0,
+        "timeout_ms": 3000
+      },
+      "description": "Drive the mobile robot toward the symbolic location 'goal' while maintaining yaw 0° and respecting a 3000 ms timeout bin."
+    },
+    {
+      "id": "IsAt",
+      "type": "Condition",
+      "ports": {
+        "target": "goal"
+      },
+      "description": "Check if the robot is currently at the named target 'goal'."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 3,
+    "actions": 1,
+    "conditions": 1,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Blocked hallway prevents reaching 'goal'.",
+    "Localization drift causes IsAt('goal') to fail even when physically nearby.",
+    "Timeout_ms=3000 expires before arrival."
+  ],
+  "recovery_strategy": [
+    "Replan an alternate path around obstacles.",
+    "Re-run NavigateToNamed with updated localization.",
+    "Escalate to human/operator if repeatedly timing out."
+  ],
+  "assumptions": [
+    "All frames show essentially the same corridor with no visible obstacles, so we assume straight-line hallway navigation suffices.",
+    "The visual frames do not explicitly reveal any landmark labeled 'goal'; we assume 'goal' lies further along the corridor in the forward direction.",
+    "No dynamic agents (people) are modeled; crowd avoidance is out of scope."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "The robot reaches the designated goal location in the hallway and remains stationary.",
+      "IsAt('goal') evaluates true without further correction."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "NavigateToNamed"
+      ]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "NavigateToNamed"
+      ]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "NavigateToNamed"
+      ]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "NavigateToNamed"
+      ]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "NavigateToNamed"
+      ]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "NavigateToNamed"
+      ]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "NavigateToNamed",
+        "attrs": {
+          "location_id": "goal",
+          "yaw_deg": 0,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "NavigateToNamed"
+      ]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "IsAt"
+      ]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "IsAt",
+        "attrs": {
+          "target": "goal"
+        }
+      },
+      "active_path_ids": [
+        "Sequence",
+        "IsAt"
+      ]
+    }
+  ]
+}

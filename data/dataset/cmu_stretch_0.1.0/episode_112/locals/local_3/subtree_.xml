@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <IsObjectVisible target="drawer_handle"/>
+      <Sequence>
+        <ScanForTarget target="drawer_handle" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+        <DetectObject target="drawer_handle" timeout_ms="1200"/>
+      </Sequence>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="2">
+      <ApproachAndAlign target="drawer_handle" tolerance="0.01" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <IsAt target="drawer_handle"/>
+  </Sequence>
+</BehaviorTree>

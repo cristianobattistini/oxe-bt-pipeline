@@ -1,0 +1,16 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <DetectObject target="pot" timeout_ms="1500"/>
+    <DetectObject target="pot_lid" timeout_ms="1500"/>
+    <DetectObject target="plate" timeout_ms="1500"/>
+    <DetectObject target="spatula" timeout_ms="1500"/>
+    <OpenContainer target="pot_lid" container_type="lid" timeout_ms="2000"/>
+    <ComputeGraspPose target="pot" strategy="side" result_key="pot_grasp"/>
+    <GraspAtPose pose_key="pot_grasp" strategy="pinch" timeout_ms="2000"/>
+    <HoldObject target="pot" duration_ms="1000"/>
+    <PlaceOnSurface target="plate" area_id="plate" yaw_deg="0" press_force="5" timeout_ms="2000"/>
+    <PushWithTool target="pot" distance="0.20" direction_deg="180" tool_id="spatula" timeout_ms="1500"/>
+    <Retreat distance="0.10" timeout_ms="1000"/>
+    <Wait timeout_ms="500"/>
+  </Sequence>
+</BehaviorTree>

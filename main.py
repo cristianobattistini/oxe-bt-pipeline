@@ -6,9 +6,9 @@ import os
 import re
 import json
 from datetime import datetime
-import config as CFG
-from loader import iterate_episodes, dump_attributes, dump_episode_rlds, parse_action_fields
-from episode_phases import build_all_episode_phases
+import utils.config as CFG
+from utils.loader import iterate_episodes, dump_attributes, dump_episode_rlds, parse_action_fields
+from utils.episode_phases import build_all_episode_phases
 
 
 def _sanitize(s: str) -> str:

@@ -1,0 +1,150 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_041",
+  "task_summary": "Perceive the milk box, align to it, and move it on the tabletop via a short push, then retreat.",
+  "task_long_description": {
+    "overview": "A UR-style arm operates over a white tabletop with several small items. The target is a white rectangular milk box placed near the center-right among bottles and cans. The behavior first detects the carton, aligns the end-effector, opens the gripper to avoid grasping, and executes a controlled surface push to translate the box laterally. After the motion, the robot pauses briefly and retreats to clear the scene. The frames suggest a push-based translation rather than a lift-and-place.",
+    "preconditions": [
+      "Workspace is free of obstacles along the planned push path",
+      "Milk box is on a flat, pushable surface",
+      "Vision system provides detections for 'milk_box'",
+      "Gripper operational and can open to non-contact width"
+    ],
+    "stepwise_plan": [
+      "Detect the milk box on the table",
+      "Approach and align with a small Cartesian tolerance",
+      "Open gripper to avoid grasping contact",
+      "Push the milk box a short distance along the table",
+      "Wait briefly for stabilization",
+      "Retreat the end-effector from the object"
+    ],
+    "success_criteria": [
+      "Milk box translated by roughly the commanded push distance",
+      "No topple or collision with neighboring objects",
+      "End-effector cleared from object and returned to a safe offset"
+    ],
+    "failure_and_recovery": [
+      "Object not detected -> re-detect or scan the scene",
+      "Poor alignment causes slip -> re-align with tighter tolerance",
+      "Unexpected contact -> stop, retreat, and re-approach"
+    ],
+    "termination": "Terminate once the retreat completes after a successful push or after a recoverable failure times out."
+  },
+  "frame_ranking": {
+    "order": ["frame_4","frame_5","frame_6","frame_3","frame_2","frame_7","frame_1","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.22, "frame_1": 0.44, "frame_2": 0.58, "frame_3": 0.76,
+      "frame_4": 0.93, "frame_5": 0.89, "frame_6": 0.72, "frame_7": 0.40, "frame_8": 0.18
+    },
+    "rationale_per_frame": {
+      "frame_4": {
+        "now_evidence": "Clear start of the push with tool contacting the milk box and lateral motion visible.",
+        "predicts_next": "Continued translation of the carton across the surface is expected.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "move milk box",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 2000,
+    "tolerance": 0.01,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["milk_box","red_can","green_bottle","purple_can","orange_caps_stack"],
+  "objects_from_instruction": ["milk_box"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"milk_box","timeout_ms":2000},"description":"Detect the milk box on the table."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"milk_box","tolerance":0.01,"timeout_ms":3000},"description":"Approach and align to the carton with small tolerance."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.10,"timeout_ms":1000},"description":"Open gripper to avoid grasping during push."},
+    {"id":"Push","type":"Action","ports":{"target":"milk_box","distance":0.15,"direction_deg":0,"timeout_ms":2000},"description":"Push the milk box along the surface by a short distance."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":500},"description":"Brief settle time after push."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Back away to a safe distance."}
+  ],
+  "tree_stats": {"nodes_total": 7, "actions": 6, "conditions": 0, "depth": 2},
+  "failure_modes": [
+    "Object not detected due to occlusion or glare",
+    "Misalignment causing side slip or rotation of the box",
+    "Push collides with adjacent items",
+    "Insufficient push distance due to friction"
+  ],
+  "recovery_strategy": [
+    "Reattempt detection or scan pattern",
+    "Re-approach with smaller tolerance",
+    "Adjust push direction and retry",
+    "Reduce speed (via larger timeout) and repeat push"
+  ],
+  "assumptions": [
+    "The 'milk box' corresponds to the white rectangular carton near center-right in the frames.",
+    "Direction of motion is lateral to the right, inferred from arm motion; instruction did not specify direction.",
+    "Task interpreted as surface push (move) rather than pick-and-place, matching the frames."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Carton displaced laterally without tipping",
+      "No interference with neighboring bottles/cans",
+      "Tool safely retreats after motion"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"milk_box","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"milk_box","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"milk_box","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"milk_box","distance":0.15,"direction_deg":0,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"milk_box","distance":0.15,"direction_deg":0,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"milk_box","distance":0.15,"direction_deg":0,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

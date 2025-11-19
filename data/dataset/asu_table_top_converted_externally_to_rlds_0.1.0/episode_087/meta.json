@@ -1,0 +1,155 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_087",
+  "task_summary": "Detect the red can, approach, grasp it securely, and lift it from the tabletop.",
+  "task_long_description": {
+    "overview": "A tabletop manipulation scene shows several small bottles/cans and a robot arm over a white table. The goal is to pick up the red can. The robot must first localize the can, open its gripper, align to a safe grasp pose, close the gripper to secure contact, and lift the can clear of the surface. Visual detection may require a short scan if the can is not initially visible. The plan prioritizes stable grasp verification before lifting and a brief hold after the lift to confirm success.",
+    "preconditions": [
+      "Robot is homed and reachable workspace includes the red can",
+      "Gripper operational and free of objects",
+      "Table surface clear enough to approach the can"
+    ],
+    "stepwise_plan": [
+      "Perceive the red can; if not visible, scan then detect.",
+      "Open gripper to the required width.",
+      "Approach and align to the can with tight positional tolerance.",
+      "Compute a grasp pose and verify it is available.",
+      "Execute the grasp at the computed pose and close the gripper.",
+      "Verify grasp stability, then lift the can.",
+      "Confirm the object is in the gripper and hold briefly."
+    ],
+    "success_criteria": [
+      "Red can is securely held by the gripper",
+      "Can is lifted at least 0.10 m above the table",
+      "No collisions with nearby objects"
+    ],
+    "failure_and_recovery": [
+      "If detection fails: perform scan and re-detect",
+      "If grasp pose is unavailable: recompute pose",
+      "If grasp unstable: reopen, realign, and retry detection + grasp"
+    ],
+    "termination": "Terminate when the red can is confirmed in the gripper after a successful lift and short hold."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "clear approach posture over the can with hand alignment visible",
+        "predicts_next": "finger closure and subsequent lifting will follow",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up red can",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["red_can","green_bottle","green_can","blue_bottle","pink_can","orange_cup"],
+  "objects_from_instruction": ["red_can"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"string","pattern":"string","max_attempts":"int","timeout_ms":"int"},"description":"Active scan to localize the target if not initially visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"string","timeout_ms":"int"},"description":"Detect and estimate the pose of the target object."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":"float","timeout_ms":"int"},"description":"Open the gripper to the commanded width."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"string","tolerance":"float","timeout_ms":"int"},"description":"Approach the target and align the end effector within tolerance."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"string","strategy":"string","result_key":"string"},"description":"Compute a feasible grasp pose and store it on the blackboard."},
+    {"id":"PoseAvailable","type":"Condition","ports":{"key":"string"},"description":"Check that a pose with the given key exists on the blackboard."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"string","strategy":"string","timeout_ms":"int"},"description":"Execute the grasp motion at the stored pose."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":"float","timeout_ms":"int"},"description":"Close the gripper to apply the specified force."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verify that the grasp is mechanically stable."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"string","distance":"float","timeout_ms":"int"},"description":"Lift the held object vertically to clear the table."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"string"},"description":"Confirm the specified object is currently grasped."},
+    {"id":"HoldObject","type":"Action","ports":{"target":"string","duration_ms":"int"},"description":"Hold the object steady for a short duration."}
+  ],
+  "tree_stats": {"nodes_total": 16, "actions": 9, "conditions": 4, "depth": 4},
+  "failure_modes": [
+    "Target not detected due to occlusion or glare",
+    "Approach collision with neighboring objects",
+    "Gripper closes on table/air (missed grasp)",
+    "Object slips during lift"
+  ],
+  "recovery_strategy": [
+    "Fallback to scan then re-detect",
+    "Recompute grasp pose and realign",
+    "Reopen gripper and retry sequence",
+    "Abort if repeated failures after safety timeout"
+  ],
+  "assumptions": [
+    "The red can is the red cylindrical object visible on the table.",
+    "Side grasp is feasible; if top grasp were required, strategy would change.",
+    "Lighting and camera calibration are adequate for detection."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Red can lifted ≥0.10 m and remains in gripper",
+      "No collisions; stable grasp verified"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_can","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"red_can","pattern":"spiral","max_attempts":3,"timeout_ms":4000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_can","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_can","tolerance":0.01,"timeout_ms":3000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"PoseAvailable","attrs":{"key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"pinch","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"red_can","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"HoldObject","attrs":{"target":"red_can","duration_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

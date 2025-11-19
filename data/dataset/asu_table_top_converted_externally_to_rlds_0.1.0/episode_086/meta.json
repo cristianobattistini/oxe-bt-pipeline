@@ -1,0 +1,151 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_086",
+  "task_summary": "Push the brown/orange object on the table to a new position (rightward) using the end-effector.",
+  "task_long_description": {
+    "overview": "A stationary manipulator must push a small brown/orange object resting on a white tabletop. Multiple distractors are present (blue can, central fixture, grey cup, red cup, green bottle). The robot should perceive the target, approach with the gripper open, align parallel to the desired push direction, execute a short planar push to the right, and then retreat to clear the scene. The push should translate the object without toppling it or colliding with neighbors.",
+    "preconditions": [
+      "Brown object visible on the table",
+      "Free space along the push direction toward the right",
+      "Gripper available and open",
+      "Table height known for safe approach"
+    ],
+    "stepwise_plan": [
+      "Verify visibility of the brown object; scan if needed.",
+      "Open the gripper.",
+      "Move above the object at a safe height.",
+      "Approach and align with tight tolerance.",
+      "Push the object about 10 cm to the right.",
+      "Retreat to a safe position."
+    ],
+    "success_criteria": [
+      "Object translated laterally by ~0.10 m to the right",
+      "No collision or toppling of objects",
+      "End-effector retreats clear of clutter"
+    ],
+    "failure_and_recovery": [
+      "If not visible, scan in a line pattern up to 3 attempts",
+      "If misaligned, re-run ApproachAndAlign before pushing",
+      "If push stalls due to friction, perform an additional short push"
+    ],
+    "termination": "Terminate after retreating once the push distance is achieved and the object is stable."
+  },
+  "frame_ranking": {
+    "order": ["frame_7","frame_8","frame_5","frame_4","frame_3","frame_2","frame_6","frame_1","frame_0"],
+    "scores": {
+      "frame_0": 0.20, "frame_1": 0.32, "frame_2": 0.55, "frame_3": 0.78,
+      "frame_4": 0.82, "frame_5": 0.86, "frame_6": 0.58, "frame_7": 0.92, "frame_8": 0.88
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "Tool aligned near the brown object; pre-push pose clear.",
+        "predicts_next": "Push actuation expected; confirms rightward clearance.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "push brown object",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 2000,
+    "tolerance": 0.01,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["brown_object","blue_can","central_fixture","gray_cup","red_cup","green_bottle"],
+  "objects_from_instruction": ["brown_object"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"brown_object"},"description":"Checks whether the brown object is currently visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"brown_object","pattern":"line","max_attempts":3,"timeout_ms":2000},"description":"Perception recovery by scanning in a line pattern."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.10,"timeout_ms":800},"description":"Ensure gripper is open for safe pushing."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"brown_object","offset_z":0.08,"timeout_ms":1500},"description":"Move above the object at a safe clearance."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"brown_object","tolerance":0.01,"timeout_ms":2000},"description":"Approach and align the TCP for an in-plane push."},
+    {"id":"Push","type":"Action","ports":{"target":"brown_object","distance":0.10,"direction_deg":0,"timeout_ms":2000},"description":"Execute the planar push to the right by 10 cm."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.05,"timeout_ms":1500},"description":"Back off to a safe distance after pushing."}
+  ],
+  "tree_stats": {"nodes_total": 9, "actions": 6, "conditions": 1, "depth": 3},
+  "failure_modes": [
+    "Target not detected due to occlusion or lighting",
+    "Misalignment causes object to rotate or tip",
+    "Push direction wrong due to frame convention mismatch",
+    "Collision with nearby cup or fixture"
+  ],
+  "recovery_strategy": [
+    "Fallback to scanning if not visible",
+    "Re-run alignment before retrying the push",
+    "Use shorter repeated pushes if friction is high",
+    "Retreat and re-approach if collision detected"
+  ],
+  "assumptions": [
+    "The ‘brown object’ is the orange/brown stack near table center-left.",
+    "direction_deg=0 corresponds to the rightward push seen in frames.",
+    "A ~0.10 m push matches the visual displacement without toppling."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Final object pose visibly shifted right of its start by ~10 cm",
+      "No topple; neighbors remain unmoved beyond minor jitter",
+      "Robot ends in a clear, safe pose"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"brown_object"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"brown_object"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"brown_object","offset_z":0.08,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"brown_object","tolerance":0.01,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"brown_object","distance":0.10,"direction_deg":0,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"brown_object","distance":0.10,"direction_deg":0,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"brown_object","distance":0.10,"direction_deg":0,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"brown_object","distance":0.10,"direction_deg":0,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    }
+  ]
+}

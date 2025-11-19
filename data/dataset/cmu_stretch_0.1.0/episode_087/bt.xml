@@ -1,0 +1,17 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <OpenGripper width="0.09" timeout_ms="500"/>
+    <Fallback>
+      <DetectObject target="cabinet_left_door" timeout_ms="1200"/>
+      <ScanForTarget target="cabinet_left_door" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+    </Fallback>
+    <MoveTo target="cabinet_left_door" timeout_ms="1500"/>
+    <ApproachAndAlign target="cabinet_left_door" tolerance="0.01" timeout_ms="1500"/>
+    <IsAt target="cabinet_left_door"/>
+    <SetTCPYaw yaw_deg="90"/>
+    <CloseGripper force="20" timeout_ms="800"/>
+    <OpenContainer target="cabinet_left_door" container_type="hinged_door" timeout_ms="1500"/>
+    <ContainerOpen target="cabinet_left_door"/>
+    <Retreat distance="0.1" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,120 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_067",
+  "task_summary": "Detect, approach, grasp, and lift the small red object from the tabletop.",
+  "task_long_description": {
+    "overview": "A UR-style manipulator with a parallel gripper must pick a red object from a cluttered tabletop containing cans, bottles, a white carton, and other items. The contact sheet shows the arm moving from a central home pose toward the right side where a small red block sits next to a taller red bottle. The behavior emphasizes reliable perception, precise alignment, and a top/pinch grasp followed by a short lift to confirm acquisition.",
+    "preconditions": ["Robot and camera are calibrated to the table frame", "Workspace is free of obstacles beyond the shown items", "Gripper is functional and empty", "Red object is visible on the table"],
+    "stepwise_plan": ["Detect the red object", "Move to a safe pre-grasp height above it", "Approach and align precisely", "Open gripper to planned width", "Compute a pinch grasp pose", "Execute the grasp at the computed pose", "Close gripper with moderate force", "Verify object is in gripper", "Lift the object slightly to secure"],
+    "success_criteria": ["Object detected as red_object", "Object securely held (no slip) after closing", "Lifted by ~10 cm without collision"],
+    "failure_and_recovery": ["If detection fails, re-detect or scan", "If alignment times out, retreat and re-approach", "If grasp unstable, reopen and retry with adjusted pose"],
+    "termination": "Terminate once the object is detected in the gripper and lifted to the target distance."
+  },
+  "frame_ranking": {
+    "order": ["frame_7","frame_8","frame_6","frame_5","frame_3","frame_4","frame_2","frame_1","frame_0"],
+    "scores": {
+      "frame_0": 0.15, "frame_1": 0.25, "frame_2": 0.40, "frame_3": 0.60,
+      "frame_4": 0.55, "frame_5": 0.75, "frame_6": 0.82, "frame_7": 0.95, "frame_8": 0.90
+    },
+    "rationale_per_frame": {
+      "frame_7": {
+        "now_evidence": "Gripper encloses the small red block; clear grasp event.",
+        "predicts_next": "Immediate lift expected, indicating successful pick.",
+        "uncertainty_reduction": "high"
+      },
+      "frame_8": {
+        "now_evidence": "Object appears lifted from the surface.",
+        "predicts_next": "Hold/transfer or retreat actions likely.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick red object",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["blue_can","green_bottle","white_carton","orange_stack","small_red_block","tall_red_bottle"],
+  "objects_from_instruction": ["red_object"],
+  "blackboard_keys": ["grasp_red"],
+  "node_specs": [
+    {"id":"DetectObject","type":"Action","ports":{"target":"red_object","timeout_ms":2000},"description":"Detect the red object on the table."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"red_object","offset_z":0.08,"timeout_ms":2000},"description":"Move to a safe pre-grasp height above the target."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"red_object","tolerance":0.01,"timeout_ms":1500},"description":"Approach the object and align within tight tolerance."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":800},"description":"Open the gripper to accept the object."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"red_object","strategy":"pinch","result_key":"grasp_red"},"description":"Plan a pinch grasp and store it on the blackboard."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_red","strategy":"pinch","timeout_ms":1500},"description":"Execute the planned grasp."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":30,"timeout_ms":800},"description":"Close with moderate force to secure the object."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"red_object"},"description":"Verify the object is held."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"red_object","distance":0.10,"timeout_ms":1000},"description":"Lift the grasped object off the table."}
+  ],
+  "tree_stats": {"nodes_total": 10, "actions": 8, "conditions": 1, "depth": 2},
+  "failure_modes": ["Object not detected due to occlusion/lighting", "Collision during approach", "Grasp slip after closure", "Timeout while aligning"],
+  "recovery_strategy": ["Retry detection or perform a scan", "Retreat and re-approach from higher offset", "Reopen, recompute grasp, and regrasp", "Increase timeout or relax tolerance slightly"],
+  "assumptions": ["Frames show the robot grasping the small red block near the right side, not the taller red bottle; the symbol 'red_object' refers to the small red block if multiple red items are present."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Secure grasp confirmed by condition", "Lifted by 0.10 m without slip"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_object","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"red_object","offset_z":0.08,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_object","tolerance":0.01,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"red_object","strategy":"pinch","result_key":"grasp_red"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_red","strategy":"pinch","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":30,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"red_object"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"red_object","distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

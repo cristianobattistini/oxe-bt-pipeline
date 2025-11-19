@@ -1,0 +1,16 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <IsObjectVisible target="dishwasher_handle"/>
+      <DetectObject target="dishwasher_handle" timeout_ms="1200"/>
+    </Fallback>
+    <ApproachAndAlign target="dishwasher_handle" tolerance="0.005" timeout_ms="1500"/>
+    <RetryUntilSuccessful num_attempts="2">
+      <CloseGripper force="20" timeout_ms="1200"/>
+    </RetryUntilSuccessful>
+    <Fallback>
+      <IsGraspStable/>
+      <ObjectInGripper target="dishwasher_handle"/>
+    </Fallback>
+  </Sequence>
+</BehaviorTree>

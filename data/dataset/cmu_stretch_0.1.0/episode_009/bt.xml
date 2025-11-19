@@ -1,0 +1,13 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Action ID="DetectObject" target="drawer_handle" timeout_ms="1200"/>
+    <Action ID="ApproachAndAlign" target="drawer_handle" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="SetTCPYaw" yaw_deg="90"/>
+    <Action ID="OpenGripper" width="0.09" timeout_ms="500"/>
+    <Action ID="ComputeGraspPose" target="drawer_handle" strategy="pull" result_key="grasp_handle"/>
+    <Action ID="Pick" grasp_key="grasp_handle" timeout_ms="1500"/>
+    <Action ID="MoveDelta" axis="x" dist="0.1" timeout_ms="1200"/>
+    <Action ID="Retreat" distance="0.05" timeout_ms="800"/>
+    <Condition ID="ContainerOpen" target="drawer"/>
+  </Sequence>
+</BehaviorTree>

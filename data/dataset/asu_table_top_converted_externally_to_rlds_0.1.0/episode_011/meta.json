@@ -1,0 +1,140 @@
+{
+  "dataset_id": "asu_table_top_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_011",
+  "task_summary": "Pick up the blue bottle from the tabletop using a side pinch grasp and lift it safely.",
+  "task_long_description": {
+    "overview": "A fixed-base manipulator with a parallel gripper must pick the blue bottle from a cluttered tabletop containing multiple colored bottles/cups. The behavior first perceives and localizes the blue bottle, computes a feasible grasp, approaches from above with small tolerance, executes a pinch grasp, verifies the grasp, and lifts the object to a safe height. Timeouts and forces are conservatively chosen to avoid collisions with nearby objects.",
+    "preconditions": [
+      "Blue bottle is on the table and visible within workspace",
+      "Robot is homed and gripper operational",
+      "No human in the workspace",
+      "Tabletop is static during execution"
+    ],
+    "stepwise_plan": [
+      "Open gripper to a safe width.",
+      "Detect and localize the blue bottle.",
+      "Compute a grasp pose and store it as goal_pose.",
+      "Move above the target with a small vertical offset.",
+      "Approach and align precisely to the bottle.",
+      "Execute grasp at goal_pose with pinch strategy.",
+      "Close gripper with moderate force.",
+      "Verify the object is in the gripper.",
+      "Lift the object vertically to clear surrounding items.",
+      "Check grasp stability."
+    ],
+    "success_criteria": [
+      "ObjectInGripper condition becomes true",
+      "Lifted at least 0.10 m without collision",
+      "IsGraspStable evaluates true after lift"
+    ],
+    "failure_and_recovery": [
+      "If detection fails, re-run detection.",
+      "If approach times out, retreat slightly and re-approach.",
+      "If ObjectInGripper is false, reopen, re-align, and retry grasp."
+    ],
+    "termination": "Terminate after a stable grasp is confirmed and the bottle is raised to a safe height."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick blue bottle",
+  "instruction_to_ports": {
+    "force": 20,
+    "timeout_ms": 2000,
+    "tolerance": 0.02,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["blue bottle","green bottle","red cup","clear cup","orange jars","table","robot arm"],
+  "objects_from_instruction": ["blue bottle"],
+  "blackboard_keys": ["goal_pose"],
+  "node_specs": [
+    {"id":"OpenGripper","type":"Action","ports":{"width":"0.08","timeout_ms":"1000"},"description":"Prepare gripper for grasp."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"blue_bottle","timeout_ms":"2000"},"description":"Perceive and localize the target."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"blue_bottle","strategy":"side","result_key":"goal_pose"},"description":"Plan grasp and store as goal_pose."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"blue_bottle","offset_z":"0.05","timeout_ms":"1500"},"description":"Move to pregrasp height above object."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"blue_bottle","tolerance":"0.02","timeout_ms":"2000"},"description":"Close in and align with small tolerance."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"goal_pose","strategy":"pinch","timeout_ms":"1500"},"description":"Execute grasp at the computed pose."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":"20","timeout_ms":"1000"},"description":"Close fingers to secure the bottle."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"blue_bottle"},"description":"Verify object is held."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"blue_bottle","distance":"0.10","timeout_ms":"1500"},"description":"Lift object to safe height."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check grasp stability after lift."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 8, "conditions": 2, "depth": 2},
+  "failure_modes": ["Object not detected", "Collision during approach", "Slippage after closing gripper", "Timeout while aligning"],
+  "recovery_strategy": ["Re-detect and re-plan grasp", "Retreat and retry approach with increased timeout", "Open, reposition, and re-grasp", "Reduce tolerance or adjust approach path"],
+  "assumptions": ["The blue bottle is the rightmost blue-colored cylindrical container on the table; lighting and view allow detection."],
+  "evaluation_notes": {
+    "expected_success_criteria": ["Blue bottle lifted 0.10 m, ObjectInGripper true, grasp stable"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"blue_bottle","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"blue_bottle","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"blue_bottle","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"blue_bottle","tolerance":0.02,"timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"blue_bottle","strategy":"side","result_key":"goal_pose"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"goal_pose","strategy":"pinch","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":20,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"blue_bottle","distance":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"blue_bottle"}},
+      "active_path_ids": []
+    }
+  ]
+}
