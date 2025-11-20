@@ -2,6 +2,7 @@
 import os
 import json
 import random
+from pathlib import Path
 from typing import Dict, Any, List
 import torch
 from torch.utils.data import Dataset
@@ -10,6 +11,7 @@ from transformers import AutoProcessor
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 class VLMJsonlDataset(Dataset):
     """
@@ -27,7 +29,8 @@ class VLMJsonlDataset(Dataset):
     def __init__(self, jsonl_path: str):
         super().__init__()
         self.samples: List[Dict[str, Any]] = []
-        base_dir = os.path.dirname(os.path.abspath(jsonl_path))
+        jsonl_path = Path(jsonl_path)
+        base_dir = jsonl_path.parent
         
         with open(jsonl_path, "r", encoding="utf-8") as f:
             for line in f:
@@ -43,7 +46,7 @@ class VLMJsonlDataset(Dataset):
                         msgs[1].get("role") == "assistant"):
                     continue
                 
-                # Resolve media paths
+                # Resolve media paths (PLATFORM-AGNOSTIC)
                 for c in msgs[0].get("content", []):
                     media_type = c.get("type")
                     if isinstance(c, dict) and media_type in ("video", "image"):
@@ -51,14 +54,16 @@ class VLMJsonlDataset(Dataset):
                         if not p:
                             continue
                         
-                        abs_p = os.path.abspath(os.path.join(base_dir, p))
+                        # Convert to Path and handle both / and \
+                        p_normalized = Path(p.replace("\\", "/"))
+                        
+                        # Try relative to base_dir
+                        abs_p = (base_dir / p_normalized).resolve()
                         
                         # Fallback path resolution
-                        if not os.path.exists(abs_p):
-                            alt_p = os.path.abspath(
-                                os.path.join(os.path.dirname(base_dir), "train", p)
-                            )
-                            if os.path.exists(alt_p):
+                        if not abs_p.exists():
+                            alt_p = (base_dir.parent / "train" / p_normalized).resolve()
+                            if alt_p.exists():
                                 abs_p = alt_p
                             else:
                                 logger.warning(f"{media_type.upper()} not found: {abs_p}")
@@ -67,7 +72,8 @@ class VLMJsonlDataset(Dataset):
                                 c["text"] = f"[{media_type.upper()}_MISSING]"
                                 continue
                         
-                        c["path"] = abs_p
+                        # Store as POSIX path string (always uses /)
+                        c["path"] = abs_p.as_posix()
                 
                 self.samples.append({"messages": msgs})
         
@@ -102,21 +108,20 @@ def make_collate_fn(processor: AutoProcessor, dropout_ratio: float = 0.0):
     
     pad_id = processor.tokenizer.pad_token_id
     
-    # Get <image> token ID for label masking
     # Get <image> token ID for label masking (with fallback)
     image_tok_id = None
     possible_tokens = ["<image>", "<img>", "<IMAGE>"]
-
+    
     for token in possible_tokens:
         if token in processor.tokenizer.additional_special_tokens:
             idx = processor.tokenizer.additional_special_tokens.index(token)
             image_tok_id = processor.tokenizer.additional_special_tokens_ids[idx]
             logger.info(f"Using image token: '{token}' (ID: {image_tok_id})")
             break
-
+    
     if image_tok_id is None:
         logger.warning("No image token found in tokenizer. Image tokens will not be masked in labels.")
-
+    
     def collate(examples: List[Dict[str, Any]]):
         items = []
         

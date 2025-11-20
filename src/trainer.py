@@ -6,9 +6,11 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import wandb
 import os
+from pathlib import Path
 import logging
 
-from .utils import move_to_device, save_checkpoint, rotate_checkpoints
+# FIXED: Absolute imports instead of relative
+from utils import move_to_device, save_checkpoint, rotate_checkpoints
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +36,8 @@ def evaluate(model, val_loader, device, writer=None, log_step=None, log_key="los
     
     model.eval()
     total_loss, total_steps = 0.0, 0
-    
     pbar_val = tqdm(val_loader, desc="Validating", dynamic_ncols=True, leave=False)
+    
     for batch in pbar_val:
         batch = move_to_device(batch, device)
         
@@ -48,7 +50,7 @@ def evaluate(model, val_loader, device, writer=None, log_step=None, log_key="los
         total_loss += loss.item()
         total_steps += 1
         
-        pbar_val.set_postfix({"val_loss": f"{loss.item():.4f}"})
+        pbar_val.set_postfix(val_loss=f"{loss.item():.4f}")
     
     val_loss = total_loss / max(1, total_steps)
     
@@ -56,6 +58,7 @@ def evaluate(model, val_loader, device, writer=None, log_step=None, log_key="los
     if log_step is not None:
         if writer is not None:
             writer.add_scalar(log_key, val_loss, log_step)
+        
         wandb_step_key = "epoch" if "epoch" in log_key else "step"
         wandb.log({log_key: val_loss, wandb_step_key: log_step})
     
@@ -68,22 +71,13 @@ class VLMTrainer:
     Custom trainer for vision-language models with comprehensive features:
     - Gradient accumulation
     - Learning rate scheduling with warmup
-    - Validation (per epoch or per optimizer step)
+    - Validation per epoch or per optimizer step
     - Early stopping
     - Checkpoint rotation
-    - TensorBoard + W&B logging
+    - TensorBoard & W&B logging
     """
     
-    def __init__(
-        self,
-        model,
-        processor,
-        train_loader,
-        val_loader,
-        train_config,
-        lora_config,
-        device="cuda"
-    ):
+    def __init__(self, model, processor, train_loader, val_loader, train_config, lora_config, device="cuda"):
         self.model = model
         self.processor = processor
         self.train_loader = train_loader
@@ -92,11 +86,11 @@ class VLMTrainer:
         self.lora_config = lora_config
         self.device = device
         
-        # Setup directories
-        self.ckpt_dir = train_config.checkpoint_dir or os.path.join(train_config.output_dir, "ckpts")
-        self.best_dir = os.path.join(train_config.output_dir, "best")
-        os.makedirs(self.ckpt_dir, exist_ok=True)
-        os.makedirs(self.best_dir, exist_ok=True)
+        # Setup directories (PLATFORM-AGNOSTIC)
+        self.ckpt_dir = Path(train_config.checkpoint_dir or Path(train_config.output_dir) / "ckpts")
+        self.best_dir = Path(train_config.output_dir) / "best"
+        self.ckpt_dir.mkdir(parents=True, exist_ok=True)
+        self.best_dir.mkdir(parents=True, exist_ok=True)
         
         # Setup optimizer and scheduler
         self.optimizer = AdamW(model.parameters(), lr=train_config.lr)
@@ -108,9 +102,9 @@ class VLMTrainer:
         )
         
         # Setup logging
-        log_dir = train_config.log_dir or os.path.join(train_config.output_dir, "tblogs")
-        os.makedirs(log_dir, exist_ok=True)
-        self.writer = SummaryWriter(log_dir=log_dir)
+        log_dir = Path(train_config.log_dir or Path(train_config.output_dir) / "tblogs")
+        log_dir.mkdir(parents=True, exist_ok=True)
+        self.writer = SummaryWriter(log_dir=str(log_dir))
         
         # Training state
         self.global_step = 0
@@ -119,15 +113,10 @@ class VLMTrainer:
         self.best_val = float("inf")
         self.bad_validations = 0
         self.use_lora = bool(lora_config.use_lora or lora_config.use_qlora)
-
-        self.best_val = float("inf")
-        self.bad_validations = 0
-        self.use_lora = bool(lora_config.use_lora or lora_config.use_qlora)
-
+        
         # Resume from checkpoint if specified
         if train_config.resume_from:
-            self._resume_from_checkpoint(train_config.resume_from)
-
+            self.resume_from_checkpoint(train_config.resume_from)
     
     def train_one_epoch(self, epoch: int):
         """
@@ -173,13 +162,10 @@ class VLMTrainer:
             
             # Update progress bar
             if self.global_step % 10 == 0:
-                pbar.set_postfix({
-                    "loss": f"{actual_loss:.4f}",
-                    "opt_step": self.optimizer_step
-                })
+                pbar.set_postfix(loss=f"{actual_loss:.4f}", opt_step=self.optimizer_step)
             
             # Optimizer step with gradient accumulation
-            do_step = ((self.global_step + 1) % self.config.gradient_accumulation_steps == 0)
+            do_step = (self.global_step + 1) % self.config.gradient_accumulation_steps == 0
             if do_step:
                 # Gradient clipping and optimizer update
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
@@ -194,14 +180,14 @@ class VLMTrainer:
                 wandb.log({"lr": current_lr, "step": self.optimizer_step})
                 
                 # Checkpoint per optimizer steps
-                if self.config.save_every_steps > 0 and (self.optimizer_step % self.config.save_every_steps == 0):
-                    self._save_checkpoint(f"step_{self.optimizer_step:08d}", epoch)
+                if self.config.save_every_steps > 0 and self.optimizer_step % self.config.save_every_steps == 0:
+                    self.save_checkpoint(f"step{self.optimizer_step:08d}", epoch)
                 
                 # Validation per optimizer steps (if configured)
-                if self._should_validate_on_step():
-                    stop_training = self._validate_and_check_early_stop(
+                if self.should_validate_on_step():
+                    stop_training = self.validate_and_check_early_stop(
                         log_step=self.optimizer_step,
-                        log_key="loss/val_optstep",
+                        log_key="loss/val_opt_step",
                         epoch=epoch
                     )
                     if stop_training:
@@ -210,7 +196,7 @@ class VLMTrainer:
             self.global_step += 1
         
         # Flush any remaining gradients (incomplete accumulation at end of epoch)
-        if (self.global_step % self.config.gradient_accumulation_steps) != 0:
+        if self.global_step % self.config.gradient_accumulation_steps != 0:
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
             self.optimizer.step()
             self.scheduler.step()
@@ -220,7 +206,6 @@ class VLMTrainer:
         
         # Calculate epoch metrics
         epoch_loss = epoch_loss_sum / max(1, epoch_steps)
-        
         return epoch_loss, stop_training
     
     def validate_one_epoch(self, epoch: int):
@@ -236,8 +221,7 @@ class VLMTrainer:
         if self.val_loader is None:
             return None
         
-        logger.info(f"[VAL] Running validation at epoch {epoch+1}")
-        
+        logger.info(f"VAL: Running validation at epoch {epoch+1}")
         val_loss = evaluate(
             self.model,
             self.val_loader,
@@ -246,9 +230,7 @@ class VLMTrainer:
             log_step=epoch + 1,
             log_key="loss/val_epoch"
         )
-        
-        logger.info(f"[VAL] Epoch {epoch+1}: val_loss={val_loss:.4f}")
-        
+        logger.info(f"VAL: Epoch {epoch+1} | val_loss={val_loss:.4f}")
         return val_loss
     
     def fit(self):
@@ -279,9 +261,9 @@ class VLMTrainer:
         
         # Main training loop
         for epoch in range(self.start_epoch, self.config.epochs):
-            logger.info(f"\n{'='*60}")
+            logger.info("=" * 60)
             logger.info(f"Epoch {epoch+1}/{self.config.epochs}")
-            logger.info(f"{'='*60}")
+            logger.info("=" * 60)
             
             # Train for one epoch
             epoch_loss, should_stop = self.train_one_epoch(epoch)
@@ -289,7 +271,7 @@ class VLMTrainer:
             # Log epoch metrics
             self.writer.add_scalar("loss/train_epoch", epoch_loss, epoch)
             wandb.log({"loss/train_epoch": epoch_loss, "epoch": epoch})
-            logger.info(f"Epoch {epoch+1} complete: avg_loss={epoch_loss:.4f}")
+            logger.info(f"Epoch {epoch+1} complete | avg_loss={epoch_loss:.4f}")
             
             # Early stop triggered during training (from step-level validation)
             if should_stop:
@@ -297,75 +279,61 @@ class VLMTrainer:
                 break
             
             # Epoch-level validation (if configured)
-            if self._should_validate_on_epoch(epoch):
+            if self.should_validate_on_epoch(epoch):
                 val_loss = self.validate_one_epoch(epoch)
-                
                 if val_loss is not None:
-                    should_stop = self._check_early_stopping(val_loss, epoch)
-                    
+                    should_stop = self.check_early_stopping(val_loss, epoch)
                     if should_stop:
                         logger.info(f"Early stopping triggered after epoch {epoch+1}")
-                        tag = f"epoch_{epoch+1:03d}_earlystop"
-                        self._save_checkpoint(tag, epoch + 1)
+                        tag = f"epoch{epoch+1:03d}_early_stop"
+                        self.save_checkpoint(tag, epoch + 1)
                         break
             
             # Checkpoint per epoch (if configured)
-            if self._should_checkpoint_on_epoch(epoch):
-                self._save_checkpoint(f"epoch_{epoch+1:03d}", epoch + 1)
+            if self.should_checkpoint_on_epoch(epoch):
+                self.save_checkpoint(f"epoch{epoch+1:03d}", epoch + 1)
         
         # Final save
-        logger.info("\nTraining complete. Saving final model...")
-        self.model.save_pretrained(self.config.output_dir)
-        self.processor.save_pretrained(self.config.output_dir)
+        logger.info("Training complete. Saving final model...")
+        self.model.save_pretrained(str(self.config.output_dir))
+        self.processor.save_pretrained(str(self.config.output_dir))
         
         # Cleanup
         self.writer.close()
         wandb.finish()
-        
         logger.info(f"✓ Final model saved to {self.config.output_dir}")
-        logger.info(f"✓ Best model saved to {self.best_dir} (val_loss={self.best_val:.4f})")
+        logger.info(f"✓ Best model saved to {self.best_dir} | val_loss={self.best_val:.4f}")
     
-    # ============================================================================
-    # Helper methods (validation scheduling, early stopping, checkpointing)
-    # ============================================================================
-    
-    def _should_validate_on_step(self) -> bool:
+    def should_validate_on_step(self) -> bool:
         """Check if validation should run at this optimizer step."""
-        return (
-            self.val_loader is not None and
-            self.config.val_every_opt_steps > 0 and
-            (self.optimizer_step % self.config.val_every_opt_steps == 0)
-        )
+        return (self.val_loader is not None and
+                self.config.val_every_opt_steps > 0 and
+                self.optimizer_step % self.config.val_every_opt_steps == 0)
     
-    def _should_validate_on_epoch(self, epoch: int) -> bool:
+    def should_validate_on_epoch(self, epoch: int) -> bool:
         """Check if validation should run at this epoch."""
-        return (
-            self.val_loader is not None and
-            self.config.val_every_opt_steps <= 0 and  # Only if step-level validation is disabled
-            ((epoch + 1) % self.config.val_every == 0)
-        )
+        return (self.val_loader is not None and
+                self.config.val_every_opt_steps == 0 and  # Only if step-level validation is disabled
+                (epoch + 1) % self.config.val_every == 0)
     
-    def _should_checkpoint_on_epoch(self, epoch: int) -> bool:
+    def should_checkpoint_on_epoch(self, epoch: int) -> bool:
         """Check if checkpoint should be saved at this epoch."""
-        return (
-            self.config.save_every_epochs > 0 and
-            ((epoch + 1) % self.config.save_every_epochs == 0)
-        )
+        return (self.config.save_every_epochs > 0 and
+                (epoch + 1) % self.config.save_every_epochs == 0)
     
-    def _validate_and_check_early_stop(self, log_step: int, log_key: str, epoch: int) -> bool:
+    def validate_and_check_early_stop(self, log_step: int, log_key: str, epoch: int) -> bool:
         """
         Run validation and check early stopping condition.
         
         Args:
             log_step: Step number for logging
-            log_key: Logging key (e.g., "loss/val_optstep")
+            log_key: Logging key (e.g., "loss/val_opt_step")
             epoch: Current epoch number
         
         Returns:
             bool: True if training should stop, False otherwise
         """
-        logger.info(f"[VAL] Running validation at {log_key.split('_')[-1]} {log_step}")
-        
+        logger.info(f"VAL: Running validation at {log_key.split('/')[-1]} {log_step}")
         val_loss = evaluate(
             self.model,
             self.val_loader,
@@ -374,12 +342,10 @@ class VLMTrainer:
             log_step,
             log_key
         )
-        
-        logger.info(f"[VAL] {log_key.split('_')[-1]} {log_step}: val_loss={val_loss:.4f}")
-        
-        return self._check_early_stopping(val_loss, epoch)
+        logger.info(f"VAL: {log_key.split('/')[-1]} {log_step} | val_loss={val_loss:.4f}")
+        return self.check_early_stopping(val_loss, epoch)
     
-    def _check_early_stopping(self, val_loss: float, epoch: int) -> bool:
+    def check_early_stopping(self, val_loss: float, epoch: int) -> bool:
         """
         Check early stopping condition and save best model if improved.
         
@@ -396,11 +362,9 @@ class VLMTrainer:
             self.bad_validations = 0
             
             # Save best model
-            self.model.save_pretrained(self.best_dir)
-            self.processor.save_pretrained(self.best_dir)
-            
-            logger.info(f"✓ New best model saved (val_loss={self.best_val:.4f})")
-            
+            self.model.save_pretrained(str(self.best_dir))
+            self.processor.save_pretrained(str(self.best_dir))
+            logger.info(f"✓ New best model saved | val_loss={self.best_val:.4f}")
             return False  # Continue training
         else:
             # No improvement
@@ -414,7 +378,7 @@ class VLMTrainer:
             
             return False  # Continue training
     
-    def _save_checkpoint(self, tag: str, epoch: int):
+    def save_checkpoint(self, tag: str, epoch: int):
         """
         Save checkpoint and rotate old ones.
         
@@ -430,38 +394,35 @@ class VLMTrainer:
             self.scheduler,
             self.global_step,
             epoch,
-            self.ckpt_dir,
+            str(self.ckpt_dir),
             self.use_lora
         )
-        rotate_checkpoints(self.ckpt_dir, self.config.keep_last_k)
-
-
-    def _resume_from_checkpoint(self, resume_path: str):
+        rotate_checkpoints(str(self.ckpt_dir), self.config.keep_last_k)
+    
+    def resume_from_checkpoint(self, resume_path: str):
         """
         Load training state from checkpoint to resume training.
         
         Args:
             resume_path: Path to checkpoint directory
         """
-        from .utils import load_checkpoint_if_any
+        from utils import load_checkpoint_if_any
         
         logger.info(f"Attempting to resume from: {resume_path}")
         
         # Load model, optimizer, scheduler states
-        _, self.optimizer, self.scheduler, loaded_step, loaded_epoch = \
-            load_checkpoint_if_any(
-                self.model,
-                resume_path,
-                self.optimizer,
-                self.scheduler,
-                self.device,
-                self.use_lora
-            )
+        _, self.optimizer, self.scheduler, loaded_step, loaded_epoch = load_checkpoint_if_any(
+            self.model,
+            resume_path,
+            self.optimizer,
+            self.scheduler,
+            self.device,
+            self.use_lora
+        )
         
         # Update training state
         self.optimizer_step = loaded_step
         self.start_epoch = loaded_epoch
         self.global_step = loaded_step * self.config.gradient_accumulation_steps
         
-        logger.info(f"✓ Resumed: epoch={loaded_epoch}, optimizer_step={loaded_step}, global_step={self.global_step}")
-
+        logger.info(f"✓ Resumed | epoch={loaded_epoch}, optimizer_step={loaded_step}, global_step={self.global_step}")
