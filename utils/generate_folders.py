@@ -628,11 +628,42 @@ def videos_mode(project_root: Path, out_root: Path, dest_root: Path,
     print(f"\nVideos done. Episodes processed: {created + skipped} | created: {created} | skipped(existing): {skipped}")
 
 
+def copy_sampled_frames(outroot: Path, destroot: Path, overwrite: bool, dryrun: bool):
+    """
+    Copia la cartella sampled_frames da out/dataset/episodio/final_selected a dataset/dataset/episodio.
+    Se overwrite è True, sovrascrive i frame già esistenti.
+    """
+    print("ENTRY copy_sampled_frames")
+    for dsdir in sorted([p for p in outroot.iterdir() if p.is_dir()]):
+        datasetid = dsdir.name
+        for epdir in sorted([p for p in dsdir.iterdir() if p.is_dir() and p.name.startswith("episode")]):
+            episodeid = epdir.name
+            src_frames = epdir / "final_selected" / "sampled_frames"
+            dest_frames = destroot / datasetid / episodeid / "sampled_frames"
+            if not src_frames.exists():
+                print(f"WARN sampled_frames non trovati per {datasetid}/{episodeid}")
+                continue
+            if dryrun:
+                print(f"DRY would copy {src_frames} to {dest_frames}")
+                continue
+            # Crea la cartella destinazione se non esiste
+            dest_frames.mkdir(parents=True, exist_ok=True)
+            for frame_file in src_frames.iterdir():
+                if frame_file.is_file():
+                    dst = dest_frames / frame_file.name
+                    if dst.exists() and not overwrite:
+                        print(f"SKIP {dst} esiste già; usa --overwrite per sovrascrivere.")
+                        continue
+                    shutil.copy2(frame_file, dst)
+                    print(f"OK copied {frame_file} -> {dst}")
+    print("done.")
+
+
 # -------------------- Main --------------------
 
 def main():
     ap = argparse.ArgumentParser(description="Generate per-episode structure, local prompts, and 9-frame videos.")
-    ap.add_argument("--mode", choices=["init", "locals", "videos", "refresh_images"], default="init",
+    ap.add_argument("--mode", choices=["init", "locals", "videos", "refresh_images", "copyframes"], default="init",
                     help="init: crea struttura episodio; locals: genera prompt locali; videos: genera MP4 da 9 frame accanto a contact_sheet.")
     ap.add_argument("--out-root", default="out", help="[init/videos] sorgente datasets/episodes (default: out)")
     ap.add_argument("--dest-root", default="dataset", help="[init/locals/videos] destinazione (default: dataset)")
@@ -670,6 +701,8 @@ def main():
     elif args.mode == "refresh_images":
         out_root = project_root / args.out_root
         refresh_images_mode(project_root, out_root, dest_root, args.overwrite, args.dry_run, k=3)
+    elif args.mode == "copyframes":
+        copy_sampled_frames(Path(args.out_root), Path(args.dest_root), args.overwrite, args.dry_run)
 
 
 # --- [NUOVO] helper di utilità per pulire vecchie immagini nel local_i ---
