@@ -1,111 +1,167 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import os
 import json
-import shutil
 import random
-from pathlib import Path
-from typing import List
-
 import argparse
+import shutil
+from pathlib import Path
 
-def build_full_user_text(system_msg, instruction, actions=None):
-    parts = []
-    if system_msg.strip():
-        parts.append(system_msg.strip())
+def augment_instruction_with_actions(instruction: str, actions_line: str) -> str:
+    """Append actions to instruction if not already present"""
+    if not actions_line or "actions=[" in instruction:
+        return instruction
     if instruction.strip():
-        parts.append(instruction.strip())
-    if actions and actions.strip():
-        parts.append(actions.strip())
-    return "\n".join(parts)
+        return instruction.rstrip() + "\n" + actions_line
+    return actions_line
 
-def find_episodes(dataset_root: Path) -> List[Path]:
-    # Supporta più dataset nella root (come austin_buds_dataset_converted_externally_xxx)
-    return sorted(ep for ep in dataset_root.rglob("episode_*") if ep.is_dir())
+def process_episode(ep_dir: Path, args, split_dir: Path, episodes_root: Path) -> list:
+    samples = []
+
+    # Load metadata
+    meta_path = ep_dir / args.meta_filename
+    if not meta_path.exists():
+        return samples
+
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except Exception:
+        return samples
+
+    # Load BT XML
+    xml_path = ep_dir / args.xml_filename
+    if not xml_path.exists():
+        return samples
+
+    bt_xml = xml_path.read_text(encoding="utf-8").strip()
+
+    # Get instruction from meta
+    instruction = meta.get("task_instruction", "")
+
+    # Apply instruction dropout (optional, for data augmentation)
+    if args.dropout_ratio > 0 and random.random() < args.dropout_ratio:
+        instruction = ""
+
+    # Load and append actions (if exists)
+    actions_path = ep_dir / args.actions_filename
+    actions_line = actions_path.read_text(encoding="utf-8").strip() if actions_path.exists() else ""
+    if actions_line:
+        instruction = augment_instruction_with_actions(instruction, actions_line)
+
+    # System message (identical for all episodes)
+    system_msg = (
+        "You are a BehaviorTree.CPP code generator.\n"
+        "CONSTRAINTS:\n"
+        "- Always ground your decisions in the PROVIDED MEDIA (video frames or images).\n"
+        "- Output ONLY one valid BehaviorTree.CPP XML tree.\n"
+        "- Do NOT add explanations, comments, or markdown."
+    )
+
+    # Process all frames in sampled_frames/
+    frames_dir = ep_dir / args.frames_dirname
+    if not frames_dir.exists() or not frames_dir.is_dir():
+        return samples
+
+    for frame_path in sorted(frames_dir.glob(args.frames_glob)):
+        # Calculate output image path: images/rel_episode/frame_xxxx.jpg
+        rel_episode = ep_dir.relative_to(episodes_root)
+        rel_img_path = rel_episode / frame_path.name
+        dest_img_path = split_dir / "images" / rel_img_path
+        dest_img_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(frame_path, dest_img_path)
+        image_field = f"images/{rel_img_path.as_posix()}"
+
+        # Build single "text" block: always system_msg, then instruction (if), then actions (if)
+        parts = [system_msg]
+        if instruction.strip():
+            parts.append(f"INSTRUCTION: {instruction.strip()}")
+        user_text = "\n".join(parts)
+
+        sample = {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_text},
+                        {"type": "image", "image": image_field}
+                    ]
+                },
+                {
+                    "role": "assistant",
+                    "content": [
+                        {"type": "text", "text": bt_xml}
+                    ]
+                }
+            ]
+        }
+        samples.append(sample)
+    return samples
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset-root", required=True, help="Cartella root dei dataset (es: data/dataset)")
-    parser.add_argument("--output-root", required=True, help="Cartella di destinazione finale (es: output/)")
-    parser.add_argument("--frames-dirname", default="sampled_frames", help="Sottocartella dei frame")
-    parser.add_argument("--frames-glob", default="frame_*.jpg", help="Pattern per i frame")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed")
-    parser.add_argument("--val-ratio", type=float, default=0.1, help="Proporzione validation [0-1]")
-    parser.add_argument("--actions-filename", default="actions.txt", help="Nome file azioni opzionale")
+    parser = argparse.ArgumentParser(description="Build JSONL dataset in Unsloth Vision style")
+    parser.add_argument("--episodes_root", type=str, required=True, help="Root directory with episodes and meta.json")
+    parser.add_argument("--out_root", type=str, required=True, help="Output root dir for train/val splits")
+    parser.add_argument("--meta_filename", type=str, default="meta.json")
+    parser.add_argument("--xml_filename", type=str, default="bt.xml")
+    parser.add_argument("--actions_filename", type=str, default="actions.txt")
+    parser.add_argument("--frames_dirname", type=str, default="sampled_frames")
+    parser.add_argument("--frames_glob", type=str, default="frame_*.jpg")
+    parser.add_argument("--jsonl_name", type=str, default="data.jsonl")
+    parser.add_argument("--train_ratio", type=float, default=0.9)
+    parser.add_argument("--shuffle_seed", type=int, default=42)
+    parser.add_argument("--dropout_ratio", type=float, default=0.0)
     args = parser.parse_args()
 
-    random.seed(args.seed)
-    dataset_root = Path(args.dataset_root).resolve()
-    output_root = Path(args.output_root).resolve()
+    episodes_root = Path(args.episodes_root).resolve()
+    out_root = Path(args.out_root).resolve()
+    train_dir = out_root / "train"
+    val_dir = out_root / "val"
+    train_dir.mkdir(parents=True, exist_ok=True)
+    val_dir.mkdir(parents=True, exist_ok=True)
 
-    episodes = find_episodes(dataset_root)
-    episodes = [ep for ep in episodes if (ep / args.frames_dirname).exists()]
+    # Discover episodes (supports dataset_name/episode_* and fallback)
+    all_episodes = []
+    for ds_dir in sorted(episodes_root.iterdir()):
+        if ds_dir.is_dir():
+            eps = sorted([p for p in ds_dir.glob("episode_*") if p.is_dir()])
+            for ep in eps:
+                all_episodes.append(ep)
+    if not all_episodes:
+        # Fallback: episodes directly in root
+        eps = sorted([p for p in episodes_root.glob("episode_*") if p.is_dir()])
+        all_episodes.extend(eps)
 
-    print(f"Found {len(episodes)} episodes.")
+    print(f"Found {len(all_episodes)} episodes.")
 
-    # Shuffle e split PER EPISODIO (robustezza!)
-    random.shuffle(episodes)
-    split_n = int(len(episodes) * (1 - args.val_ratio))
-    train_episodes = episodes[:split_n]
-    val_episodes = episodes[split_n:]
+    # Shuffle and split PER episodio
+    random.Random(args.shuffle_seed).shuffle(all_episodes)
+    n_train = int(len(all_episodes) * args.train_ratio)
+    train_episodes = all_episodes[:n_train]
+    val_episodes = all_episodes[n_train:]
 
-    splits = [("train", train_episodes), ("val", val_episodes)]
-
-    for split_name, split_episodes in splits:
-        split_dir = output_root / split_name
-        images_dir = split_dir / "images"
-        images_dir.mkdir(parents=True, exist_ok=True)
-        data_jsonl = split_dir / "data.jsonl"
-
+    def process_split(episodes, split_dir):
+        jsonl_path = split_dir / args.jsonl_name
         total_samples = 0
-
-        with data_jsonl.open("w", encoding="utf-8") as f:
-            for ep_dir in split_episodes:
-                # Dataset root per path relativo
-                dataset_subroot = ep_dir.relative_to(dataset_root).parts[0]  # Es: austin_buds_dataset_converted_externally_xyz
-                rel_episode = ep_dir.relative_to(dataset_root)
-
-                # Lettura file txt/xml
-                system_msg = (ep_dir / "system_message.txt").read_text(encoding="utf-8").strip() if (ep_dir / "system_message.txt").exists() else ""
-                instruction = (ep_dir / "instruction.txt").read_text(encoding="utf-8").strip() if (ep_dir / "instruction.txt").exists() else ""
-                actions = (ep_dir / args.actions_filename).read_text(encoding="utf-8").strip() if (ep_dir / args.actions_filename).exists() else ""
-                bt_xml = (ep_dir / "bt.xml").read_text(encoding="utf-8").strip() if (ep_dir / "bt.xml").exists() else None
-                assert bt_xml, f"Missing bt.xml in {ep_dir}"
-
-                frames_dir = ep_dir / args.frames_dirname
-                frame_list = sorted(frames_dir.glob(args.frames_glob))
-
-                for frame_path in frame_list:
-                    # Calcola path relativo dentro images/
-                    rel_img_path = rel_episode / frame_path.name     # episode_xx/frame_0001.jpg
-                    dest_img_path = images_dir / rel_img_path        # full path in output
-
-                    dest_img_path.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(frame_path, dest_img_path)
-
-                    # Costruisci testo completo
-                    user_text = build_full_user_text(system_msg, instruction, actions)
-                    image_field = f"images/{rel_img_path.as_posix()}"
-
-                    sample = {
-                        "messages": [
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "text", "text": user_text},
-                                    {"type": "image", "image": image_field}
-                                ]
-                            },
-                            {
-                                "role": "assistant",
-                                "content": [
-                                    {"type": "text", "text": bt_xml}
-                                ]
-                            }
-                        ]
-                    }
+        with jsonl_path.open("w", encoding="utf-8") as f:
+            for ep_dir in episodes:
+                samples = process_episode(ep_dir, args, split_dir, episodes_root)
+                for sample in samples:
                     f.write(json.dumps(sample, ensure_ascii=False) + "\n")
                     total_samples += 1
+        return total_samples
 
-        print(f"{split_name}: {total_samples} samples ({len(split_episodes)} episodes) written to {data_jsonl}")
+    print("\nProcessing train split...")
+    train_samples = process_split(train_episodes, train_dir)
+    print("Processing val split...")
+    val_samples = process_split(val_episodes, val_dir)
+
+    print("\n" + "=" * 60)
+    print("✓ Dataset created successfully!")
+    print("=" * 60)
+    print(f"Train: {train_samples} samples in {train_dir / args.jsonl_name}")
+    print(f"Val: {val_samples} samples in {val_dir / args.jsonl_name}")
+    print("=" * 60)
 
 if __name__ == "__main__":
     main()
