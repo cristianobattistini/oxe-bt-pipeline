@@ -58,44 +58,55 @@ def process_episode(ep_dir: Path, args, split_dir: Path, episodes_root: Path) ->
         "- Do NOT add explanations, comments, or markdown."
     )
 
-    # Process all frames in sampled_frames/
-    frames_dir = ep_dir / args.frames_dirname
-    if not frames_dir.exists() or not frames_dir.is_dir():
+    # Process frames in locals/ subdirectories
+    locals_dir = ep_dir / args.locals_dirname
+    if not locals_dir.exists() or not locals_dir.is_dir():
         return samples
 
-    for frame_path in sorted(frames_dir.glob(args.frames_glob)):
-        # Calculate output image path: images/rel_episode/frame_xxxx.jpg
-        rel_episode = ep_dir.relative_to(episodes_root)
-        rel_img_path = rel_episode / frame_path.name
-        dest_img_path = split_dir / "images" / rel_img_path
-        dest_img_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(frame_path, dest_img_path)
-        image_field = f"images/{rel_img_path.as_posix()}"
+    for local_subdir in sorted(locals_dir.iterdir()):
+        if not local_subdir.is_dir():
+            continue
+        
+        # Find frames in this local_X/ directory
+        frame_candidates = sorted(local_subdir.glob(args.frames_glob))
+        if not frame_candidates:
+            continue
+        
+        # Process each frame in this local directory
+        for frame_path in frame_candidates:
+            # Calculate output image path: images/rel_episode/locals/local_X/frame_XX.jpg
+            rel_episode = ep_dir.relative_to(episodes_root)
+            rel_img_path = rel_episode / args.locals_dirname / local_subdir.name / frame_path.name
+            dest_img_path = split_dir / "images" / rel_img_path
+            dest_img_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(frame_path, dest_img_path)
+            image_field = f"images/{rel_img_path.as_posix()}"
 
-        # Build single "text" block: always system_msg, then instruction (if), then actions (if)
-        parts = [system_msg]
-        if instruction.strip():
-            parts.append(f"INSTRUCTION: {instruction.strip()}")
-        user_text = "\n".join(parts)
+            # Build single "text" block: always system_msg, then instruction (if)
+            parts = [system_msg]
+            if instruction.strip():
+                parts.append(f"INSTRUCTION: {instruction.strip()}")
+            user_text = "\n".join(parts)
 
-        sample = {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": user_text},
-                        {"type": "image", "image": image_field}
-                    ]
-                },
-                {
-                    "role": "assistant",
-                    "content": [
-                        {"type": "text", "text": bt_xml}
-                    ]
-                }
-            ]
-        }
-        samples.append(sample)
+            sample = {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": user_text},
+                            {"type": "image", "image": image_field}
+                        ]
+                    },
+                    {
+                        "role": "assistant",
+                        "content": [
+                            {"type": "text", "text": bt_xml}
+                        ]
+                    }
+                ]
+            }
+            samples.append(sample)
+    
     return samples
 
 def main():
@@ -105,7 +116,7 @@ def main():
     parser.add_argument("--meta_filename", type=str, default="meta.json")
     parser.add_argument("--xml_filename", type=str, default="bt.xml")
     parser.add_argument("--actions_filename", type=str, default="actions.txt")
-    parser.add_argument("--frames_dirname", type=str, default="sampled_frames")
+    parser.add_argument("--locals_dirname", type=str, default="locals", help="Directory containing local_X subdirs")
     parser.add_argument("--frames_glob", type=str, default="frame_*.jpg")
     parser.add_argument("--jsonl_name", type=str, default="data.jsonl")
     parser.add_argument("--train_ratio", type=float, default=0.9)

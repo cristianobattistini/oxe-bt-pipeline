@@ -10,7 +10,7 @@ from pathlib import Path
 import logging
 
 # FIXED: Absolute imports instead of relative
-from utils import move_to_device, save_checkpoint, rotate_checkpoints
+from processing import move_to_device, save_checkpoint, rotate_checkpoints
 
 logger = logging.getLogger(__name__)
 
@@ -406,7 +406,7 @@ class VLMTrainer:
         Args:
             resume_path: Path to checkpoint directory
         """
-        from utils import load_checkpoint_if_any
+        from processing import load_checkpoint_if_any
         
         logger.info(f"Attempting to resume from: {resume_path}")
         
