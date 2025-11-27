@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="faucet_knob"/>
+      <Action ID="DetectObject" target="faucet_knob" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="faucet_knob" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="faucet_knob" strategy="side" result_key="grasp_faucet_knob"/>
+    <Action ID="GraspAtPose" pose_key="grasp_faucet_knob" strategy="side" timeout_ms="1500"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="TurnKnob" target="faucet_knob" knob_type="knob" angle_deg="90" direction="open" force_limit="5" timeout_ms="1500"/>
+    <Condition ID="ButtonPressed" target="faucet_knob"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

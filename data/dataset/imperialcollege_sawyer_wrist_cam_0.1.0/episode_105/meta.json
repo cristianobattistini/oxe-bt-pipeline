@@ -1,0 +1,263 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_105",
+  "task_summary": "Hang a cup onto a hook using a robotic manipulator, following a sequence of perception, grasp, transfer, and precise placement actions with recovery for failures in perception or grasp.",
+  "task_long_description": {
+    "overview": "A robotic arm equipped with a gripper is tasked to autonomously hang a cup on a hook. The workspace is a blue mat. The process requires perceiving the cup, aligning to grasp it from the top, lifting, transferring to the hook, and executing a hang maneuver. The robot verifies object detection and grasp stability at each step, with recovery if cup or hook are not visible or grasp fails.",
+    "preconditions": [
+      "Cup and hook are present in reachable workspace",
+      "No obstacles between robot, cup, or hook",
+      "Gripper is operational and starts open"
+    ],
+    "stepwise_plan": [
+      "Locate the cup; retry scan if not detected",
+      "Open gripper",
+      "Move above and align to the cup",
+      "Lower and close gripper for grasp",
+      "Verify grasp stability",
+      "Locate the hook; recover if needed",
+      "Move above the hook and align",
+      "Execute the hang action at 90 degrees",
+      "Open gripper to release",
+      "Retreat and wait briefly to confirm placement"
+    ],
+    "success_criteria": [
+      "Cup is securely hanging from the hook",
+      "No slip or drop observed after gripper release"
+    ],
+    "failure_and_recovery": [
+      "If cup undetected, retry scan up to 3 times",
+      "If grasp is unstable, abort and retry sequence",
+      "If hook undetected, retry detection once before failing"
+    ],
+    "termination": "Task ends successfully when cup is released hanging on hook, or fails after recovery steps are exhausted"
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "hang cup",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["cup","hook"],
+  "objects_from_instruction": ["cup"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target":"cup"},
+      "description": "Checks that the cup is visible before attempting grasp"
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target":"cup","pattern":"grid","max_attempts":3,"timeout_ms":1200},
+      "description": "Scan workspace for cup if not initially detected"
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target":"cup","timeout_ms":800},
+      "description": "Identify and refine cup pose"
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width":0.06,"timeout_ms":500},
+      "description": "Open the gripper to prepare for grasp"
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target":"cup","offset_z":0.05,"timeout_ms":1500},
+      "description": "Move manipulator above the cup"
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target":"cup","strategy":"top","result_key":"std_top"},
+      "description": "Calculate grasp pose above cup"
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target":"cup","tolerance":0.005,"timeout_ms":1500},
+      "description": "Align and approach the cup for grasp"
+    },
+    {
+      "id": "LowerUntilContact",
+      "type": "Action",
+      "ports": {"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1200},
+      "description": "Lower gripper until contact sensed"
+    },
+    {
+      "id": "CloseGripper",
+      "type": "Action",
+      "ports": {"force":10,"timeout_ms":800},
+      "description": "Close gripper to grasp cup"
+    },
+    {
+      "id": "IsGraspStable",
+      "type": "Condition",
+      "ports": {},
+      "description": "Confirm a stable cup grasp"
+    },
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target":"hook"},
+      "description": "Verify hook visibility"
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target":"hook","timeout_ms":800},
+      "description": "Detect and localize hook"
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target":"hook","offset_z":0.05,"timeout_ms":1500},
+      "description": "Move cup (in gripper) above hook"
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target":"hook","tolerance":0.005,"timeout_ms":1500},
+      "description": "Align cup with hook"
+    },
+    {
+      "id": "Hang",
+      "type": "Action",
+      "ports": {"target":"cup","hook_id":"hook","approach_angle":90,"timeout_ms":1200},
+      "description": "Perform hang maneuver onto hook"
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width":0.08,"timeout_ms":500},
+      "description": "Release cup after hanging"
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance":0.1,"timeout_ms":1200},
+      "description": "Move away from hung cup"
+    },
+    {
+      "id": "Wait",
+      "type": "Action",
+      "ports": {"timeout_ms":500},
+      "description": "Pause to confirm completion"
+    }
+  ],
+  "tree_stats": {"nodes_total":18,"actions":14,"conditions":4,"depth":2},
+  "failure_modes": [
+    "Cup not detected",
+    "Hook not detected",
+    "Grasp unstable",
+    "Physical obstruction during approach",
+    "Cup slips after release"
+  ],
+  "recovery_strategy": [
+    "Retry scanning for the cup up to 3 times",
+    "Retry hook detection once",
+    "Abort and retry if grasp is unstable"
+  ],
+  "assumptions": [
+    "The instruction omits explicit mention of hook, but visual frames [0]–[8] show a black hook and a cup being manipulated toward it. The action sequence is constructed including the hook as necessary target for 'hang cup'.",
+    "Phases are inferred from contact, prehension, and release progression in the frames."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Cup remains hanging on hook at end of sequence"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"cup","pattern":"grid","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"cup","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"cup","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"hook","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"Hang","attrs":{"target":"cup","hook_id":"hook","approach_angle":90,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
+}

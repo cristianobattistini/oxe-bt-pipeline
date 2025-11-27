@@ -1,0 +1,223 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_117",
+  "task_summary": "Pick up a mug from a surface using an arm with a gripper, employing visual detection, pose computation, approach, grasping, and retreat actions. The behavior tree ensures robustness by retrying detection if initial visual confirmation fails.",
+  "task_long_description": {
+    "overview": "The robot's goal is to pick up a visible mug from a blue table surface. It first visually locates the mug, then prepares the gripper by opening it. Next, it moves above the mug, computes a suitable grasp pose focusing on a top grasp, approaches and aligns with precise tolerance, grasps the mug gently, verifies successful pickup, and retreats from the surface. All steps occur sequentially and are visually confirmed in the contact sheet frames.",
+    "preconditions": [
+      "Robot is powered on and operational.",
+      "Gripper is free and unobstructed.",
+      "Mug is present on the table surface in the workspace.",
+      "Camera view is unobstructed."
+    ],
+    "stepwise_plan": [
+      "Check if mug is visible; retry scan for object if needed.",
+      "Detect and localize the mug.",
+      "Open gripper to pick-ready width.",
+      "Move above the mug with safe offset.",
+      "Compute and store a grasp pose from the top.",
+      "Approach and align the gripper with precise tolerance.",
+      "Grasp the mug with minimum necessary force.",
+      "Verify mug is held in gripper.",
+      "Retreat upwards from surface."
+    ],
+    "success_criteria": [
+      "Mug is securely in the robot's gripper after retreat.",
+      "No collision, slip, or dropped object throughout the sequence."
+    ],
+    "failure_and_recovery": [
+      "Object not visible: retry scan for target.",
+      "Mug slip or grasp fail: re-attempt the grasp phase.",
+      "Visual false positive: abort or reverify detection.",
+      "Unexpected collision: halt and retreat sequence."
+    ],
+    "termination": "Sequence ends after mug detected securely in gripper and retreat completed."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up mug",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": null,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["mug"],
+  "objects_from_instruction": ["mug"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"mug"},
+      "description":"Checks if the mug is currently visible in the workspace."
+    },
+    {
+      "id":"ScanForTarget",
+      "type":"Action",
+      "ports":{"target":"mug","pattern":"grid","max_attempts":3,"timeout_ms":1200},
+      "description":"Scans the scene to search for the mug in a grid pattern up to three attempts."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"mug","timeout_ms":800},
+      "description":"Detects the position and orientation of the mug."
+    },
+    {
+      "id":"OpenGripper",
+      "type":"Action",
+      "ports":{"width":0.06,"timeout_ms":500},
+      "description":"Opens the gripper to an appropriate width for grasping the mug."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"mug","offset_z":0.05,"timeout_ms":1500},
+      "description":"Moves the gripper above the mug with a 5cm vertical offset."
+    },
+    {
+      "id":"ComputeGraspPose",
+      "type":"Action",
+      "ports":{"target":"mug","strategy":"top","result_key":"std_top"},
+      "description":"Computes a grasp pose for the mug using a top-down grasp strategy."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"mug","tolerance":0.005,"timeout_ms":1500},
+      "description":"Approaches and aligns the gripper to the mug with precise positioning."
+    },
+    {
+      "id":"Grasp",
+      "type":"Action",
+      "ports":{"target":"mug","strategy":"top","force":5,"timeout_ms":800},
+      "description":"Closes the gripper on the mug using gentle force suitable for a secure yet minimal grip."
+    },
+    {
+      "id":"ObjectInGripper",
+      "type":"Condition",
+      "ports":{"target":"mug"},
+      "description":"Checks if the mug is securely held in the gripper."
+    },
+    {
+      "id":"Retreat",
+      "type":"Action",
+      "ports":{"distance":0.05,"timeout_ms":1200},
+      "description":"Retracts the gripper by 5cm away from the surface following a successful grasp."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 11,
+    "actions": 8,
+    "conditions": 3,
+    "depth": 4
+  },
+  "failure_modes": [
+    "Mug not detected in camera feed.",
+    "Gripper fails to grasp mug securely.",
+    "Collision with table or mug during approach.",
+    "Vision mislocalizes mug."
+  ],
+  "recovery_strategy": [
+    "Retry scan if mug not visible.",
+    "Verify grasp and retry if mug not in gripper.",
+    "Abort and retreat if unexpected contact detected."
+  ],
+  "assumptions": [
+    "Instruction matches visual evidence: only a single mug on a clear blue table.",
+    "No grasp orientation constraints detected visually; standard top grasp inferred.",
+    "No interruptions or obstructions present in scene; plain workspace.",
+    "Retreat phase assumed complete when mug is lifted and visible clearance shown."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Mug successfully lifted from table and held in gripper after full retreat move."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"mug"}},
+      "active_path_ids": ["Sequence","Fallback","IsObjectVisible"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"mug","timeout_ms":800}},
+      "active_path_ids": ["Sequence","DetectObject"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": ["Sequence","OpenGripper"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"mug","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"mug","strategy":"top","result_key":"std_top"}},
+      "active_path_ids": ["Sequence","ComputeGraspPose"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"mug","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"Grasp","attrs":{"target":"mug","strategy":"top","force":5,"timeout_ms":800}},
+      "active_path_ids": ["Sequence","Grasp"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"mug"}},
+      "active_path_ids": ["Sequence","ObjectInGripper"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.05,"timeout_ms":1200}},
+      "active_path_ids": ["Sequence","Retreat"]
+    }
+  ]
+}

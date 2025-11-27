@@ -1,0 +1,18 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="pan"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="pan" pattern="spiral" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="pan" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="pan" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="pan" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="pan" strategy="top" result_key="grasp_pan"/>
+    <Action ID="GraspAtPose" pose_key="grasp_pan" strategy="top" timeout_ms="1200"/>
+    <Condition ID="ObjectInGripper" target="pan"/>
+    <Action ID="RaiseHeld" target="pan" distance="0.15" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

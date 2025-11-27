@@ -1,0 +1,212 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_048",
+  "task_summary": "The robot is tasked to swipe a small spherical object using its end-effector across a flat blue surface, following a left-to-right translation motion.",
+  "task_long_description": {
+    "overview": "This episode features a robot (likely Sawyer) equipped with a wrist camera, performing a swipe motion on a small ball located on a blue surface. The sequence involves locating the ball, aligning the tool, grasping lightly, moving laterally in the x direction, and releasing the object at the goal position. No visible obstacles are present, and the action is characterized by a smooth motion with minimal force applied.",
+    "preconditions": [
+      "small_ball placed on blue flat surface",
+      "robot end-effector in starting pose",
+      "gripper operational and empty"
+    ],
+    "stepwise_plan": [
+      "Verify visibility of small_ball",
+      "Detect precise location of small_ball",
+      "Move gripper above small_ball",
+      "Open gripper to suitable width",
+      "Approach and align with small_ball",
+      "Close gripper gently to grasp small_ball",
+      "Verify grasp stability",
+      "Swipe small_ball by moving x axis (rightward)",
+      "Open gripper to release small_ball at destination",
+      "Retreat end-effector"
+    ],
+    "success_criteria": [
+      "small_ball is translated along the surface and released at target location",
+      "no undesired displacement, drop, or excessive force applied"
+    ],
+    "failure_and_recovery": [
+      "Object not detected: scan for target up to 3 times",
+      "Grasp fails: retry approach and alignment",
+      "Ball escapes during swipe: abort and re-detect"
+    ],
+    "termination": "Episode terminates when the ball is at the new location and the gripper has retreated from the area."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "swipe",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 1000,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["small_ball", "end_effector", "blue_surface"],
+  "objects_from_instruction": ["small_ball"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports": {"target":"small_ball"},
+      "description":"Returns SUCCESS if the small ball is visible to the wrist camera."
+    },
+    {
+      "id":"ScanForTarget",
+      "type":"Action",
+      "ports": {"target":"small_ball","pattern":"line","max_attempts":3,"timeout_ms":800},
+      "description":"Scans for the small ball in a line pattern, up to three times, each within timing constraints."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports": {"target":"small_ball","timeout_ms":800},
+      "description":"Detect the precise pose of the small ball."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports": {"target":"small_ball","offset_z":0.05,"timeout_ms":1000},
+      "description":"Move the gripper above the ball with an offset in z."
+    },
+    {
+      "id":"OpenGripper",
+      "type":"Action",
+      "ports": {"width":0.06,"timeout_ms":500},
+      "description":"Open the gripper to 6cm width for grasp preparation."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports": {"target":"small_ball","tolerance":0.005,"timeout_ms":1000},
+      "description":"Approach and align gripper with ball, maintaining tight position tolerance."
+    },
+    {
+      "id":"CloseGripper",
+      "type":"Action",
+      "ports": {"force":5,"timeout_ms":800},
+      "description":"Close the gripper gently around the ball."
+    },
+    {
+      "id":"IsGraspStable",
+      "type":"Condition",
+      "ports": {},
+      "description":"Check if the ball is securely held."
+    },
+    {
+      "id":"MoveDelta",
+      "type":"Action",
+      "ports": {"axis":"x","dist":0.20,"timeout_ms":1000},
+      "description":"Translate the end-effector 20cm along the x-axis to swipe the ball."
+    },
+    {
+      "id":"OpenGripper",
+      "type":"Action",
+      "ports": {"width":0.08,"timeout_ms":500},
+      "description":"Open gripper to release ball after swipe."
+    },
+    {
+      "id":"Retreat",
+      "type":"Action",
+      "ports": {"distance":0.10,"timeout_ms":1000},
+      "description":"Move the gripper back 10cm after releasing the ball."
+    }
+  ],
+  "tree_stats": {"nodes_total": 12, "actions": 9, "conditions": 2, "depth": 2},
+  "failure_modes": [
+    "small_ball not found (visual occlusion or error)",
+    "grasp fails (misalignment or too much force)",
+    "ball not carried during swipe",
+    "gripper jams or fails to open"
+  ],
+  "recovery_strategy": [
+    "Retry scanning for small_ball up to 3 times if not detected",
+    "Re-attempt approach if grasp unstable",
+    "Abort and re-align on ball loss"
+  ],
+  "assumptions": [
+    "Instruction 'swipe' interpreted as lateral translation of an object, specifically the small ball visible in all frames",
+    "No grasp of ball for lift or placement; strictly a swipe motion",
+    "No visible target location marks; swipe direction inferred from frame progression",
+    "Blue surface assumed flat and unobstructed"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "small_ball is displaced laterally by 20cm on surface",
+      "No excessive force or drop",
+      "Robot posture as expected at termination"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible", "attrs":{"target":"small_ball"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject", "attrs":{"target":"small_ball","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove", "attrs":{"target":"small_ball","offset_z":0.05,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper", "attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign", "attrs":{"target":"small_ball","tolerance":0.005,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper", "attrs":{"force":5,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveDelta", "attrs":{"axis":"x","dist":0.20,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper", "attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat", "attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

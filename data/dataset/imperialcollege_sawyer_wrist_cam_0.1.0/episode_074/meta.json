@@ -1,0 +1,175 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_074",
+  "task_summary": "Robot arm executes a surface swipe of a dustpan, progressing from approach to alignment to execution of a sustained slide action, then retreat.",
+  "task_long_description": {
+    "overview": "This episode shows a robot arm tasked with swiping a dustpan over a blue surface, likely a table. Visual evidence from the 9 frames indicates the dustpan is positioned near the bottom edge and sequentially aligns for a swipe action, which is performed across several frames in a straight direction, terminating with a retreat. Main roles are perception, approach/alignment, and surface slide. Objects in use are a dustpan and table.",
+    "preconditions": ["Dustpan placed on table and visible", "Robot reachable workspace includes dustpan", "No obstacles present on swipe trajectory", "Gripper or tool ready to initiate swipe"],
+    "stepwise_plan": [
+      "Detect the dustpan on the table",
+      "Move the end-effector above the dustpan",
+      "Approach and align with the dustpan for swiping",
+      "Execute slide-along-surface (swipe) on the dustpan over a distance in a straight line",
+      "Retreat after completing swipe"
+    ],
+    "success_criteria": [
+      "Dustpan is successfully moved/swept along the intended surface trajectory",
+      "Execution completes with no collision or loss of tool contact",
+      "Final pose matches expected endpoint of swipe"
+    ],
+    "failure_and_recovery": [
+      "Failure to detect dustpan: retry detection or rescan",
+      "Unsuccessful alignment: repeat approach or adjust tolerance",
+      "Blocked or stalled swipe: attempt alternate trajectory or force retreat"
+    ],
+    "termination": "When the swipe action completes and arm retreats from the surface"
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "swipe",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["dustpan", "table"],
+  "objects_from_instruction": [],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"dustpan","timeout_ms":800},
+      "description":"Detect the dustpan object on the table within timeout."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"dustpan","offset_z":0.05,"timeout_ms":1200},
+      "description":"Move the end-effector to a stable pre-swipe position above the dustpan."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"dustpan","tolerance":0.005,"timeout_ms":1200},
+      "description":"Approach and tightly align to the dustpan's swipe start position."
+    },
+    {
+      "id":"SlideAlongSurface",
+      "type":"Action",
+      "ports":{"target":"dustpan","area_id":"table","distance":0.20,"direction_deg":0,"pattern":"line","timeout_ms":1200},
+      "description":"Execute straight-line swipe of the dustpan along the surface (table)."
+    },
+    {
+      "id":"Retreat",
+      "type":"Action",
+      "ports":{"distance":0.10,"timeout_ms":800},
+      "description":"Retreat the arm after completing the swipe action."
+    }
+  ],
+  "tree_stats": {"nodes_total": 5, "actions": 5, "conditions": 0, "depth": 1},
+  "failure_modes": [
+    "Dustpan not detected",
+    "Misalignment prior to swipe",
+    "Obstacle interference during slide",
+    "Premature loss of contact"
+  ],
+  "recovery_strategy": [
+    "Retry detection/scan",
+    "Repeat approach and alignment with adjusted tolerance",
+    "Retreat if swipe unsuccessful"
+  ],
+  "assumptions": [
+    "Instruction 'swipe' does not specify object, but frames clearly show dustpan as swipe target",
+    "No evidence of grasp or use of force parameters",
+    "No transition to pickup or vertical movement, only planar swipe",
+    "Direction_deg guessed from visual trajectory (left-right); set to 0 as default (horizontal/rightwards from visual cues)"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Dustpan shifts position along intended trajectory following swipe",
+      "No collision or unintended object movements",
+      "Robot arm returns to safe post-swipe pose"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"dustpan","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"dustpan","offset_z":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"dustpan","offset_z":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"dustpan","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"dustpan","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"SlideAlongSurface","attrs":{"target":"dustpan","area_id":"table","distance":0.20,"direction_deg":0,"pattern":"line","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"SlideAlongSurface","attrs":{"target":"dustpan","area_id":"table","distance":0.20,"direction_deg":0,"pattern":"line","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

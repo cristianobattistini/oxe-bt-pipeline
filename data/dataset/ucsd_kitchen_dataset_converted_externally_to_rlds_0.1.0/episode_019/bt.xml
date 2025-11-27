@@ -1,0 +1,16 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="faucet_handle"/>
+      <RetryUntilSuccessful num_attempts="2">
+        <Action ID="ScanForTarget" target="faucet_handle" pattern="arc" max_attempts="2" timeout_ms="800"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="faucet_handle" timeout_ms="800"/>
+    <Action ID="ApproachAndAlign" target="faucet_handle" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="Grasp" target="faucet_handle" strategy="twist" force="5" timeout_ms="800"/>
+    <Action ID="TurnKnob" target="faucet_handle" knob_type="knob" angle_deg="45" direction="open" force_limit="5" timeout_ms="800"/>
+    <Condition ID="ButtonPressed" target="faucet_handle"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

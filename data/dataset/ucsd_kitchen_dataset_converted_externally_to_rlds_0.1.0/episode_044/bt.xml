@@ -1,0 +1,29 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="bowl"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="bowl" pattern="raster" max_attempts="3" timeout_ms="1500"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="bowl" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="bowl" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="bowl" strategy="top" result_key="std_top"/>
+    <Action ID="ApproachAndAlign" target="bowl" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.05" force_threshold="5" timeout_ms="1200"/>
+    <Action ID="CloseGripper" force="10" timeout_ms="800"/>
+    <Condition ID="IsGraspStable"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="cabinet"/>
+      <Action ID="DetectObject" target="cabinet" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="OpenContainer" target="cabinet" container_type="cabinet" timeout_ms="1500"/>
+    <Action ID="MoveAbove" target="cabinet" offset_z="0.10" timeout_ms="1500"/>
+    <Action ID="PlaceAt" pose_key="goal_pose" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1200"/>
+    <Action ID="CloseContainer" target="cabinet" container_type="cabinet" timeout_ms="1500"/>
+    <Action ID="Wait" timeout_ms="500"/>
+  </Sequence>
+</BehaviorTree>

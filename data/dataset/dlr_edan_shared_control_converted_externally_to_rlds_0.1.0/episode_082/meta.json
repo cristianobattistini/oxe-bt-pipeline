@@ -1,0 +1,248 @@
+{
+  "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_082",
+  "task_summary": "Robot identifies, approaches, and grasps a die located on a black shelf using visual feedback and sequential manipulation primitives.",
+  "task_long_description": {
+    "overview": "This episode demonstrates a robot arm executing a pick operation to acquire a die from a shelf in a collaborative workspace setting. Using visual perception, the robot first locates the die, then controls its gripper to approach, align, and securely pick the object. The scene involves an open shelf, a clearly visible die, and the robot working without environmental obstructions. The system follows strict order: perceive, approach, verify possession via grasp stability, with safety and success checks after critical steps.",
+    "preconditions": [
+      "The die is visible or within the camera's search area.",
+      "Robot arm and gripper are operational.",
+      "Workspace is free from unexpected obstacles."
+    ],
+    "stepwise_plan": [
+      "Visually check for the die; scan if not immediately visible.",
+      "Detect and localize the die within the environment.",
+      "Open the gripper to a width slightly larger than the die.",
+      "Move above the die, maintaining vertical offset.",
+      "Compute an appropriate top-down grasp pose.",
+      "Approach the die and align the gripper precisely.",
+      "Lower until contact is made, using force feedback.",
+      "Close the gripper with moderate force to grasp the die.",
+      "Verify the grasp is stable and the die is in the gripper."
+    ],
+    "success_criteria": [
+      "Die is securely held in the gripper.",
+      "No collisions or dropped object are observed during the process."
+    ],
+    "failure_and_recovery": [
+      "Failure to detect die: re-scan area up to 3 times.",
+      "Failed or unstable grasp: repeat the approach and grasp phase if possible.",
+      "Object slips: trigger recovery or abort task with alert."
+    ],
+    "termination": "Task ends when the robot holds the die securely in the gripper or upon failed recovery attempts."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the die",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": ["die", "shelf", "robot arm", "gripper", "flowerpot"],
+  "objects_from_instruction": ["die"],
+  "blackboard_keys": ["grasp_die"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target":"die"},
+      "description": "Checks if the die is visible."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "die", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Scans the environment in a raster pattern to locate the die."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "die", "timeout_ms": 800},
+      "description": "Refines detection and localization of die."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width": 0.06, "timeout_ms": 500},
+      "description": "Opens gripper to grasp-ready width."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "die", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Moves the gripper to a position above the die."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target":"die", "strategy":"top", "result_key":"grasp_die"},
+      "description": "Computes an appropriate grasp pose for the die."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target":"die", "tolerance":0.005, "timeout_ms":1500},
+      "description": "Approaches and aligns to the target die with precision."
+    },
+    {
+      "id": "LowerUntilContact",
+      "type": "Action",
+      "ports": {"speed":"slow", "max_depth":0.05, "force_threshold":5, "timeout_ms":1200},
+      "description": "Lowers gripper until gentle contact with the die is detected."
+    },
+    {
+      "id": "CloseGripper",
+      "type": "Action",
+      "ports": {"force":10, "timeout_ms":800},
+      "description": "Closes gripper to grasp the die."
+    },
+    {
+      "id": "IsGraspStable",
+      "type": "Condition",
+      "ports": {},
+      "description": "Checks if the grasp is stable."
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {"target":"die"},
+      "description": "Verifies that die is held in the gripper."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 12,
+    "actions": 8,
+    "conditions": 3,
+    "depth": 3
+  },
+  "failure_modes": [
+    "Die not detected in vision.",
+    "Failed approach or alignment due to obstruction.",
+    "Unstable or failed grasp on die.",
+    "Arm collision with shelf or environment."
+  ],
+  "recovery_strategy": [
+    "Repeat scan if die is not visible.",
+    "Abort and alert operator if repeated attempts fail.",
+    "Retry approach and grasp if stability checks fail."
+  ],
+  "assumptions": [
+    "Frames confirm the presence of a single die in view.",
+    "No explicit place step is shown; task ends with secure grasp.",
+    "Instruction maps directly to observable sequential pick operation."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Die is securely held in the gripper."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"die"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"die", "pattern":"raster","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"die","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"die","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"die","strategy":"top","result_key":"grasp_die"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"die","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

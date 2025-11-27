@@ -1,0 +1,161 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_081",
+  "task_summary": "Insert a slice of toast into a toaster slot by first locating and grasping the toast, then approaching the correct slot, aligning, and carefully inserting the toast.",
+  "task_long_description": {
+    "overview": "The robot must pick up a single slice of toast and insert it into a slot of a visible toaster. The contact sheet frames show the toast being manipulated in proximity to a toaster slot. The robot first perceives the toast, grasps it from above, verifies the grasp, locates the toaster slot, aligns precisely, and inserts the toast vertically into the slot with low force and tight tolerance, finally releasing the toast and retreating. Steps are informed by visual cues of hand and toast progression in the contact sheet, prioritizing careful alignment and insertion.",
+    "preconditions": [
+      "Toast is present and reachable",
+      "Toaster slot is visible and accessible",
+      "Gripper is empty and operational"
+    ],
+    "stepwise_plan": [
+      "Ensure toast is visible; scan grid if needed up to 3 times.",
+      "Detect toast and grasp it with low force using a top strategy.",
+      "Verify toast is secured in gripper.",
+      "Ensure toaster slot is visible; scan grid up to 2 times if needed.",
+      "Detect slot, approach, and align with tight tolerance.",
+      "Insert toast into slot vertically (along z axis) to precise depth.",
+      "Verify toast is inserted.",
+      "Open gripper to release toast.",
+      "Retreat from slot."
+    ],
+    "success_criteria": [
+      "Toast is fully and stably inserted into slot",
+      "Toast released after insertion",
+      "No excessive force or misalignment is observed"
+    ],
+    "failure_and_recovery": [
+      "Toast not visible: re-scan up to 3 times",
+      "Toaster slot not visible: re-scan up to 2 times",
+      "Grasp fails: retry sequence, abort if unsuccessful",
+      "Insertion jammed: retry alignment and insertion, abort after repeated failures"
+    ],
+    "termination": "Tree terminates after toast is inserted, released, and arm has retreated"
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "insert toast",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["toast", "toaster_slot"],
+  "objects_from_instruction": ["toast"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"toast","pattern":"grid","max_attempts":3,"timeout_ms":1000},"description":"Scan visual scene for toast up to 3 grid passes, if not immediately visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"toast","timeout_ms":800},"description":"Detect location and pose of toast."},
+    {"id":"Grasp","type":"Action","ports":{"target":"toast","strategy":"top","force":5,"timeout_ms":800},"description":"Grasp toast using top approach and minimal force."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"toast"},"description":"Confirm toast is held by gripper."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"toaster_slot","pattern":"grid","max_attempts":2,"timeout_ms":800},"description":"Scan for toaster slot up to 2 grid passes as needed."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"toaster_slot","timeout_ms":800},"description":"Detect toaster slot location."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"toaster_slot","tolerance":0.005,"timeout_ms":1000},"description":"Approach and precisely align to toaster slot."},
+    {"id":"InsertInto","type":"Action","ports":{"target":"toast","slot_id":"slot_1","axis":"z","distance":0.10,"tolerance":0.005,"force_limit":5,"timeout_ms":800},"description":"Insert toast into slot_1 moving vertically (z) with tight tolerance and minimal force."},
+    {"id":"Inserted","type":"Condition","ports":{"target":"toast","slot_id":"slot_1"},"description":"Verify toast is inserted in slot_1."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Release toast with an open gripper."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":800},"description":"Retreat arm from toaster slot after release."}
+  ],
+  "tree_stats": {"nodes_total": 15, "actions": 10, "conditions": 3, "depth": 2},
+  "failure_modes": [
+    "Toast not found",
+    "Toast grasp failed",
+    "Slot not detected",
+    "Insertion misalignment/jam"
+  ],
+  "recovery_strategy": [
+    "Retry scans for toast and slot if not visible",
+    "Abort after grasp or insertion failures",
+    "Re-align before insertion on error"
+  ],
+  "assumptions": [
+    "Instruction mentions toast but frames show a toaster slot and a toasted object; mapped 'toast' to visible item and 'slot' to the opening.",
+    "Frames suggest correct approach is vertical and alignment is tight; mapped to z axis for InsertInto.",
+    "No extraneous objects; slot_1 chosen as canonical."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Toast inserted fully into slot",
+      "Toast released and arm retreated"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "ScanForTarget", "attrs": {"target": "toast", "pattern": "grid", "max_attempts": 3, "timeout_ms": 1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "toast", "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "grasp",
+      "active_leaf": {"id": "Grasp", "attrs": {"target": "toast", "strategy": "top", "force": 5, "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id": "ObjectInGripper", "attrs": {"target": "toast"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id": "ScanForTarget", "attrs": {"target": "toaster_slot", "pattern": "grid", "max_attempts": 2, "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "toaster_slot", "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "approach",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "toaster_slot", "tolerance": 0.005, "timeout_ms": 1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id": "InsertInto", "attrs": {"target": "toast", "slot_id": "slot_1", "axis": "z", "distance": 0.10, "tolerance": 0.005, "force_limit": 5, "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id": "Retreat", "attrs": {"distance": 0.10, "timeout_ms": 800}},
+      "active_path_ids": []
+    }
+  ]
+}

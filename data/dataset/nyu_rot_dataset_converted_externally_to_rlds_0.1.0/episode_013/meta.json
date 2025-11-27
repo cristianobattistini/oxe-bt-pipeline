@@ -1,0 +1,171 @@
+{
+  "dataset_id": "nyu_rot_dataset_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_013",
+  "task_summary": "Robot perceives, grasps the blue cup, and stacks it atop the pink cup as seen across nine frames.",
+  "task_long_description": {
+    "overview": "This episode depicts a robotic arm tasked to stack two cups on a stable tabletop. The robot begins by locating the blue cup visually and verifying its position. It then opens its gripper, approaches from above, computes a top grasp, and performs the grasp. Upon confirmation that the blue cup is secure, the robot detects the second, pink cup, moves to its location, and places (stacks) the blue cup directly on top with alignment. Finally, it opens the gripper and retreats to complete the stacking. The environment is a clear, uncluttered tabletop with both cups in proximity.",
+    "preconditions": [
+      "Both cups are present and stably placed on the table",
+      "Robot gripper is empty and operational",
+      "Tabletop is clear"
+    ],
+    "stepwise_plan": [
+      "Visually acquire blue cup position",
+      "Open gripper and approach blue cup from above",
+      "Compute and execute top grasp on blue cup",
+      "Verify blue cup is grasped securely",
+      "Locate pink cup on table",
+      "Approach and align above pink cup",
+      "Stack blue cup on pink cup using center alignment and low force",
+      "Open gripper to release blue cup",
+      "Retreat from stacked cups"
+    ],
+    "success_criteria": [
+      "Blue cup is placed and stably stacked on the pink cup",
+      "Both cups remain upright and in contact"
+    ],
+    "failure_and_recovery": [
+      "Cup not detected: retry visual scan for up to 3 attempts",
+      "Grasp failure: abort or retry full grasp sequence",
+      "Stack misalignment: manually realign and retry stack"
+    ],
+    "termination": "Robot completes retreat after blue cup is stacked and gripper is open"
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "stack the cups",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 1200,
+    "tolerance": null,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["cup_blue","cup_pink","table"],
+  "objects_from_instruction": ["cup", "cups"],
+  "blackboard_keys": ["grasp_cup_blue"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"cup_blue"},"description":"True if blue cup is visually detected"},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"cup_blue","pattern":"grid","max_attempts":3,"timeout_ms":1200},"description":"Grid scan to locate blue cup"},
+    {"id":"DetectObject","type":"Action","ports":{"target":"cup_blue","timeout_ms":800},"description":"Object detection for blue cup"},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Open gripper for grasp"},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"cup_blue","offset_z":0.05,"timeout_ms":1500},"description":"Approach above blue cup"},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"cup_blue","strategy":"top","result_key":"grasp_cup_blue"},"description":"Calculate top grasp for blue cup"},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_cup_blue","strategy":"top","timeout_ms":1000},"description":"Perform grasp using computed pose"},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"cup_blue"},"description":"Verify blue cup grasped"},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"cup_pink"},"description":"True if pink cup is visually detected"},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"cup_pink","pattern":"grid","max_attempts":3,"timeout_ms":1200},"description":"Grid scan to locate pink cup"},
+    {"id":"DetectObject","type":"Action","ports":{"target":"cup_pink","timeout_ms":800},"description":"Object detection for pink cup"},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"cup_pink","offset_z":0.05,"timeout_ms":1500},"description":"Approach above pink cup"},
+    {"id":"Stack","type":"Action","ports":{"target":"cup_blue","on_top_of":"cup_pink","alignment":"center","press_force":5,"timeout_ms":1200},"description":"Stack blue cup atop pink cup"},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Release stacked cup"},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1200},"description":"Move away from stack"}
+  ],
+  "tree_stats": {"nodes_total":15, "actions":11, "conditions":4, "depth":2},
+  "failure_modes": [
+    "Cup(s) not visible or occluded",
+    "Grasp slippage or failure",
+    "Stack misalignment causing instability",
+    "Gripper jam",
+    "Collision with table or other objects"
+  ],
+  "recovery_strategy": [
+    "Retry visual scan up to 3 attempts",
+    "Abort and retry grasp sequence from top",
+    "Abort stacking if alignment fails, reposition, and retry",
+    "Recover gripper by opening fully if jammed, then resume"
+  ],
+  "assumptions": [
+    "Both cups present, visually distinctive (blue, pink)",
+    "Stacking is achievable with simple top-aligned motion",
+    "No additional objects interfere; table is flat"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Blue cup remains stably stacked on pink cup"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"cup_blue"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"cup_blue","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"cup_blue","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_cup_blue","strategy":"top","timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"cup_blue"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"cup_pink","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"Stack","attrs":{"target":"cup_blue","on_top_of":"cup_pink","alignment":"center","press_force":5,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_109",
+  "task_summary": "Pick up a bottle: detect it, approach, compute grasp, align, grasp, confirm pickup.",
+  "task_long_description": {
+    "overview": "A robot arm observes a green bottle on a blue background and must pick it up. The system first verifies bottle visibility (with retries via raster scan if necessary), opens the gripper, positions above the bottle, computes a top-down grasp, approaches and aligns, grasps, and confirms the bottle is in the gripper. The scene features minimal clutter, and the only relevant object is the bottle. Robustness to visual uncertainty is required.",
+    "preconditions": [
+      "Bottle is present in workspace and visible, or recoverable via scanning.",
+      "Gripper is free and functional.",
+      "Workspace is accessible and not obstructed.",
+      "Proper camera and gripper calibration."
+    ],
+    "stepwise_plan": [
+      "Check if bottle is visible with IsObjectVisible.",
+      "If not visible, scan workspace up to 3 times using raster pattern.",
+      "Detect the bottle precisely.",
+      "Open gripper to width 0.06m.",
+      "Move above the bottle to offset_z=0.05m.",
+      "Compute grasp pose using top strategy.",
+      "Approach and align to the grasp pose (tolerance=0.005m).",
+      "Grasp bottle by actuating the gripper at computed pose.",
+      "Confirm bottle is in gripper (ObjectInGripper)."
+    ],
+    "success_criteria": [
+      "Bottle is successfully secured in the gripper.",
+      "No collision or misalignment occurred.",
+      "Arm and gripper remain functional."
+    ],
+    "failure_and_recovery": [
+      "If bottle is not found: retry scanning (up to 3 attempts).",
+      "If grasp unsuccessful: repeat approach if allowed in higher-level BT.",
+      "If misalignment: manual intervention or escalate.",
+      "If object slips: re-detect and restart sequence."
+    ],
+    "termination": "Sequence ends when the bottle is detected in the gripper at the end of the plan."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["bottle"],
+  "objects_from_instruction": ["bottle"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {"id": "IsObjectVisible", "type": "Condition", "ports": {"target":"bottle"}, "description": "Checks if the bottle is visible to the robot."},
+    {"id": "ScanForTarget", "type": "Action", "ports": {"target":"bottle","pattern":"raster","max_attempts":3,"timeout_ms":1200}, "description": "Scans workspace for the bottle using raster pattern."},
+    {"id": "DetectObject", "type": "Action", "ports": {"target":"bottle","timeout_ms":800}, "description": "Detect bottle and estimate its pose."},
+    {"id": "OpenGripper", "type": "Action", "ports": {"width":0.06,"timeout_ms":500}, "description": "Opens the gripper to receive the bottle."},
+    {"id": "MoveAbove", "type": "Action", "ports": {"target":"bottle","offset_z":0.05,"timeout_ms":1000}, "description": "Moves above the bottle for a safe pregrasp position."},
+    {"id": "ComputeGraspPose", "type": "Action", "ports": {"target":"bottle","strategy":"top","result_key":"std_top"}, "description": "Computes a top-down grasp pose for the bottle."},
+    {"id": "ApproachAndAlign", "type": "Action", "ports": {"target":"bottle","tolerance":0.005,"timeout_ms":1000}, "description": "Approaches and aligns end effector with the bottle within fine tolerance."},
+    {"id": "GraspAtPose", "type": "Action", "ports": {"pose_key":"std_top","strategy":"top","timeout_ms":800}, "description": "Closes gripper to grasp bottle at specified pose."},
+    {"id": "ObjectInGripper", "type": "Condition", "ports": {"target":"bottle"}, "description": "Checks if the bottle is securely held."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 7, "conditions": 2, "depth": 3},
+  "failure_modes": [
+    "Bottle not visible or occluded.",
+    "Detection fails due to lighting/background.",
+    "Gripper fails to open/close.",
+    "Misalignment causes failed grasp.",
+    "Bottle slips during grasp closure."
+  ],
+  "recovery_strategy": [
+    "Retry scan if not visible.",
+    "Optionally repeat align/grasp step.",
+    "Abort if repeated failures."
+  ],
+  "assumptions": [
+    "All frames only show approach phases, no actual grasp/transfer is observed—local annotations reflect this.",
+    "Instruction and visual cues are in agreement: bottle is present and unobstructed.",
+    "No hand or gripper visible in frames—phases derived from progression toward the object (visual focus)."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Bottle ends up in gripper, not dropped or misaligned.",
+      "All sequence nodes succeed without hard error."
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "IsObjectVisible",
+        "attrs": {"target": "bottle"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {"target":"bottle","pattern":"raster","max_attempts":3,"timeout_ms":1200}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {"target":"bottle","timeout_ms":800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {"width":0.06,"timeout_ms":500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {"target":"bottle","offset_z":0.05,"timeout_ms":1000}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ComputeGraspPose",
+        "attrs": {"target":"bottle","strategy":"top","result_key":"std_top"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {"target":"bottle","tolerance":0.005,"timeout_ms":1000}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "GraspAtPose",
+        "attrs": {"pose_key":"std_top","strategy":"top","timeout_ms":800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ObjectInGripper",
+        "attrs": {"target":"bottle"}
+      },
+      "active_path_ids": []
+    }
+  ]
+}

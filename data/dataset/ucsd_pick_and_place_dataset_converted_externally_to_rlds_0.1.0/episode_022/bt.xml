@@ -1,0 +1,20 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="red_cylinder"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="red_cylinder" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="red_cylinder" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="red_cylinder" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="red_cylinder" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="CloseGripper" force="5" timeout_ms="800"/>
+    <Condition ID="ObjectInGripper" target="red_cylinder"/>
+    <Action ID="MoveAbove" target="table" offset_z="0.10" timeout_ms="1500"/>
+    <Action ID="PlaceDown" target="table" timeout_ms="1000"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

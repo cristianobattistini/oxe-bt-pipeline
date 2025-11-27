@@ -1,0 +1,14 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="oven_door"/>
+      <Action ID="DetectObject" target="oven_door" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="ApproachAndAlign" target="oven_door" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="oven_door" strategy="side" result_key="oven_door_grasp"/>
+    <Action ID="GraspAtPose" pose_key="oven_door_grasp" strategy="side" timeout_ms="1500"/>
+    <Action ID="OpenContainer" target="oven_door" container_type="door" timeout_ms="3000"/>
+    <Condition ID="ContainerOpen" target="oven_door"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

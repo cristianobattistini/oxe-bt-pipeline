@@ -1,0 +1,169 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_037",
+  "task_summary": "The robot is tasked with swiping a spherical white ball object across a blue surface using its tool, as visually confirmed in the provided frames.",
+  "task_long_description": {
+    "overview": "The episode depicts a robotic arm equipped with a flat tool positioned above a small white ball on a blue surface. The robot first localizes the ball, approaches from above, and aligns. It proceeds to execute a swipe (push) action, propelling the ball with the tool in a specific direction (across the surface). After completing the swipe, the robot retreats its end-effector from the interaction area. No grasping or pick-and-place is performed; only a planar push/swipe.",
+    "preconditions": [
+      "Ball object is present and visible on the blue surface.",
+      "The robot tool is within workspace reachable of the ball.",
+      "No obstacles obstruct push trajectory."
+    ],
+    "stepwise_plan": [
+      "Detect the ball using vision.",
+      "Move tool above the ball to a safe offset.",
+      "Approach and align with the ball's center.",
+      "Push (swipe) the ball along the surface with the tool for a set distance.",
+      "Retreat the tool from the ball's vicinity."
+    ],
+    "success_criteria": [
+      "Ball is clearly translated from its initial to a new location along the push direction.",
+      "No unintended object is displaced.",
+      "No grasp or pick action occurs."
+    ],
+    "failure_and_recovery": [
+      "If ball is not detected: reattempt detection.",
+      "If push results in missed contact: retry push.",
+      "If unexpected movement occurs: abort and retreat."
+    ],
+    "termination": "Task terminates after completing the swipe and retreat actions."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "swipe",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["ball", "tool", "blue_surface"],
+  "objects_from_instruction": [],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"ball","timeout_ms":800},
+      "description":"Detects the ball on the workspace using vision."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"ball","offset_z":0.05,"timeout_ms":1500},
+      "description":"Moves the tool above the ball at a safe Z height."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"ball","tolerance":0.005,"timeout_ms":1500},
+      "description":"Aligns tool precisely with the centerline of the ball."
+    },
+    {
+      "id":"Push",
+      "type":"Action",
+      "ports":{"target":"ball","distance":0.10,"direction_deg":180,"timeout_ms":1000},
+      "description":"Executes the push/swipe action, moving the ball across the surface."
+    },
+    {
+      "id":"Retreat",
+      "type":"Action",
+      "ports":{"distance":0.05,"timeout_ms":800},
+      "description":"Retracts end-effector from ball after push."
+    }
+  ],
+  "tree_stats": {"nodes_total": 5, "actions": 5, "conditions": 0, "depth": 2},
+  "failure_modes": [
+    "Ball not detected",
+    "Missed ball during approach or push",
+    "Obstacle in push path",
+    "End-effector slips off trajectory"
+  ],
+  "recovery_strategy": [
+    "Re-attempt object detection",
+    "Retry approach and push steps",
+    "Abort and retreat if unexpected object encountered"
+  ],
+  "assumptions": [
+    "Instruction 'swipe' was interpreted via visual evidence—which strongly pointed to a push action with the tool against a spherical object; no indication of grasp or pick.",
+    "Direction_deg=180 selected from visual push appearance; 'ball' used as symbolic object id.",
+    "The dataset frames showed no overt grasp or rotation, so simpler push schema applied."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Ball's final position is displaced along the push direction after tool contact."
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail (not applicable here, as no grasp)","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"ball","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"ball","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"ball","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"ball","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"ball","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"ball","distance":0.10,"direction_deg":180,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"ball","distance":0.10,"direction_deg":180,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.05,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.05,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

@@ -1,0 +1,239 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_061",
+  "task_summary": "Locate and pick up a shoe using a robotic arm with a wrist camera. Action plan includes visual detection, above-object approach, pregrasping alignment, contact-based grasp, and closing the gripper to lift the shoe.",
+  "task_long_description": {
+    "overview": "The robot is tasked to visually search, approach, and pick up a shoe as observed under the wrist camera. The scene consists of a single white shoe (with visible details) placed on a flat blue background. The system must ensure reliable detection under possible pose and lighting variations, approach from above, align precisely, and execute a stable grasp with moderate force. Contact and grasp confirmation are required before concluding success.",
+    "preconditions": [
+      "Shoe is present in workspace",
+      "Gripper is free and open",
+      "Shoe is accessible and not obstructed"
+    ],
+    "stepwise_plan": [
+      "Check if the shoe is visible; scan if not.",
+      "Detect the shoe's location and pose.",
+      "Approach above the shoe with a safe vertical offset.",
+      "Open gripper in preparation for grasp.",
+      "Compute a top-down grasp pose on shoe.",
+      "Align end-effector to the target pose.",
+      "Lower until gentle contact with shoe.",
+      "Close gripper with moderate force.",
+      "Confirm shoe is inside the gripper."
+    ],
+    "success_criteria": [
+      "Shoe securely held by the gripper",
+      "No damage to the shoe or misgrasp event",
+      "Robot does not collide with the environment"
+    ],
+    "failure_and_recovery": [
+      "If shoe not visible, rescan up to 3 times",
+      "If failed to detect, fallback to ScanForTarget",
+      "If grasp fails (no object detected in gripper), abort or retry sequence"
+    ],
+    "termination": "Terminate when the shoe is securely held in the gripper and object presence is confirmed."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up shoe",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["shoe"],
+  "objects_from_instruction": ["shoe"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"shoe"},
+      "description":"Checks if the shoe is currently visible to the camera."
+    },
+    {
+      "id":"ScanForTarget",
+      "type":"Action",
+      "ports":{"target":"shoe","pattern":"grid","max_attempts":3,"timeout_ms":800},
+      "description":"Attempts a grid-pattern scan to visually locate the shoe, up to 3 times."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"shoe","timeout_ms":800},
+      "description":"Detects the shoe and localizes its position."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"shoe", "offset_z":0.05, "timeout_ms":1500},
+      "description":"Moves above the shoe with a vertical offset to prepare for grasp."
+    },
+    {
+      "id":"OpenGripper",
+      "type":"Action",
+      "ports":{"width":0.06, "timeout_ms":500},
+      "description":"Opens the gripper to a width suitable for grasping the shoe."
+    },
+    {
+      "id":"ComputeGraspPose",
+      "type":"Action",
+      "ports":{"target":"shoe","strategy":"top","result_key":"std_top"},
+      "description":"Computes the top-down grasp pose for the shoe and stores in 'std_top'."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"shoe","tolerance":0.005,"timeout_ms":1500},
+      "description":"Aligns the end-effector for precise grasp relative to the shoe."
+    },
+    {
+      "id":"LowerUntilContact",
+      "type":"Action",
+      "ports":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1200},
+      "description":"Lowers gripper toward the shoe until contact at low force is detected."
+    },
+    {
+      "id":"CloseGripper",
+      "type":"Action",
+      "ports":{"force":10,"timeout_ms":800},
+      "description":"Closes the gripper with moderate force to grasp the shoe."
+    },
+    {
+      "id":"ObjectInGripper",
+      "type":"Condition",
+      "ports":{"target":"shoe"},
+      "description":"Checks that the shoe is securely held in the gripper."
+    }
+  ],
+  "tree_stats": {"nodes_total": 12, "actions": 8, "conditions": 2, "depth": 2},
+  "failure_modes": [
+    "Shoe not found during scan",
+    "Failed detection of shoe pose",
+    "Misalignment leading to failed grasp",
+    "No object detected in gripper after close"
+  ],
+  "recovery_strategy": [
+    "Rescan for shoe up to 3 times",
+    "Fallback to scan if not visible",
+    "Abort if gripper is empty after grasp"
+  ],
+  "assumptions": [
+    "Frames consistently show only one shoe; no competing distractors.",
+    "No conflicting visual evidence with respect to the instruction.",
+    "No color or occlusion issues preventing detection.",
+    "Shoe pose and lighting do not violate approach constraints."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Shoe is picked up and remains secured in the gripper after the sequence."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "IsObjectVisible",
+        "attrs": {"target":"shoe"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {"target":"shoe","pattern":"grid","max_attempts":3,"timeout_ms":800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {"target":"shoe","timeout_ms":800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {"target":"shoe","offset_z":0.05,"timeout_ms":1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {"width":0.06,"timeout_ms":500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ComputeGraspPose",
+        "attrs": {"target":"shoe","strategy":"top","result_key":"std_top"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {"target":"shoe","tolerance":0.005,"timeout_ms":1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "LowerUntilContact",
+        "attrs": {"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1200}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "CloseGripper",
+        "attrs": {"force":10,"timeout_ms":800}
+      },
+      "active_path_ids": []
+    }
+  ]
+}

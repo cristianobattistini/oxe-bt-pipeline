@@ -1,0 +1,173 @@
+{
+  "dataset_id": "dlr_sara_pour_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_041",
+  "task_summary": "The robot arm pours liquid from a cup into a mug, starting from an aligned pre-position, executing the pour over the mug, and retreating after completion.",
+  "task_long_description": {
+    "overview": "This episode features a 6-DOF robot arm performing a pouring task. The arm first locates and approaches the mug on the workspace, aligns the cup above the mug, and performs a controlled pour, tilting the source cup until its contents are transferred into the mug. After pouring, the arm retreats to a safe position. The core objects are the cup (source) and mug (target). The process relies on successful visual detection, alignment, and pour actuation; timing and force are set for a typical controlled pour. No container opening is necessary, and obstacles are absent.",
+    "preconditions": [
+      "Cup is grasped and contains pourable material",
+      "Mug is upright and visible on the table",
+      "Workspace clear of obstacles above mug",
+      "Robot arm powered and homed"
+    ],
+    "stepwise_plan": [
+      "Detect and localize mug",
+      "Move cup to position above mug",
+      "Perform pouring action with prescribed tilt and rate",
+      "Wait to ensure transfer",
+      "Retreat arm to avoid spillage or collision"
+    ],
+    "success_criteria": [
+      "Cup contents transferred into mug",
+      "No spillage onto table",
+      "Cup returns to neutral position",
+      "Mug remains upright"
+    ],
+    "failure_and_recovery": [
+      "Mug not detected: retry visual scan",
+      "Pour interrupted: restart pour step",
+      "Collision detected: retreat and replan approach"
+    ],
+    "termination": "Task terminates when pour is complete and the robot has retreated to a safe distance from the mug."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Pour into the mug",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["robot_arm", "cup", "mug", "table"],
+  "objects_from_instruction": ["mug"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "mug"},
+      "description": "Checks if the mug is visible in the robot's workspace."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "mug", "timeout_ms": 800},
+      "description": "Detects and localizes the mug; if not already visible, initiates a scan."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "mug", "offset_z": 0.10, "timeout_ms": 1500},
+      "description": "Moves the robot's end effector with cup above the mug with 10 cm offset."
+    },
+    {
+      "id": "Pour",
+      "type": "Action",
+      "ports": {"source": "cup", "target": "mug", "amount": "full", "tilt_angle": 90, "pour_rate": "normal", "timeout_ms": 2000},
+      "description": "Pours full contents from the cup into the mug with a 90 degree tilt at normal rate."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance": 0.10, "timeout_ms": 1200},
+      "description": "Retracts the robot arm by 10 cm after pouring is complete."
+    }
+  ],
+  "tree_stats": {"nodes_total": 7, "actions": 4, "conditions": 1, "depth": 3},
+  "failure_modes": [
+    "Mug not visible or misplaced",
+    "Pour misaligned causing spillage",
+    "Robot fails to retreat after pouring"
+  ],
+  "recovery_strategy": [
+    "Fallback scan for mug if not seen",
+    "Retry pour if contents remain in cup",
+    "Retreat and replan if collision detected"
+  ],
+  "assumptions": [
+    "Frame analysis shows cup already grasped—no explicit grasp step",
+    "Instruction does not specify source; frames indicate pouring from cup",
+    "Pour appears to be of complete contents, thus amount='full'",
+    "No requirement for tight force or time tolerance per instruction or frames",
+    "No container opening needed per episode frames"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Cup contents transferred into mug without spill",
+      "Pour performed while mug is visible and correctly positioned"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"mug"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"mug","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"mug","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"mug","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"Pour","attrs":{"source":"cup","target":"mug","amount":"full","tilt_angle":90,"pour_rate":"normal","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Pour","attrs":{"source":"cup","target":"mug","amount":"full","tilt_angle":90,"pour_rate":"normal","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Pour","attrs":{"source":"cup","target":"mug","amount":"full","tilt_angle":90,"pour_rate":"normal","timeout_ms":2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
+}

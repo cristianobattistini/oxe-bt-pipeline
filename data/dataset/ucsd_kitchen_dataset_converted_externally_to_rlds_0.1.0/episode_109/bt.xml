@@ -1,0 +1,16 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="cabinet_door"/>
+      <Action ID="ScanForTarget" target="cabinet_door" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <Action ID="DetectObject" target="cabinet_door" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="ApproachAndAlign" target="cabinet_door" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="cabinet_door" strategy="side" result_key="cabinet_door_grasp"/>
+    <Action ID="GraspAtPose" pose_key="cabinet_door_grasp" strategy="side" timeout_ms="1000"/>
+    <Action ID="Pull" target="cabinet_door" distance="0.20" direction_deg="90" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1000"/>
+  </Sequence>
+</BehaviorTree>

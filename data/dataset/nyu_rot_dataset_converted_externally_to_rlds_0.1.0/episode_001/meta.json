@@ -1,0 +1,225 @@
+{
+  "dataset_id": "nyu_rot_dataset_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_001",
+  "task_summary": "Pick up the container with almonds and pour all contents into the cup using a robot arm.",
+  "task_long_description": {
+    "overview": "In this task, a robot arm is visually guided to locate a container holding almonds, grasp it, and pour all almonds into a nearby cup positioned on a tabletop. The process requires reliable perception for both source and target objects, careful grasping and precise above-cup alignment, and a pour actuation with sufficient tilt. The arm must avoid spillage and retreat after pouring. The scene contains a white robot arm, a brown/black gripper, a yellow cup, and the almond container. Main constraints include successful object detection, secure grasp, and full transfer of contents.",
+    "preconditions": [
+      "Almonds are present in a graspable container on the table",
+      "Cup is visible and accessible on the table",
+      "Robot arm and gripper are functional",
+      "Workspace is unobstructed"
+    ],
+    "stepwise_plan": [
+      "Visually locate the almonds container",
+      "Grasp the container from above using a top strategy",
+      "Move the grasped container above the cup",
+      "Pour all almonds into the cup by tilting to 90 degrees",
+      "Retreat after pouring is complete"
+    ],
+    "success_criteria": [
+      "All almonds are transferred into the cup",
+      "No almonds remain in the container",
+      "Cup is not knocked over",
+      "Robot arm releases grip and retreats"
+    ],
+    "failure_and_recovery": [
+      "Failure to detect almonds: retry scan up to 3 times",
+      "Poor grasp: abort and retry",
+      "Pour miss: re-align and attempt pour again",
+      "Gripper jamming: open gripper and retry"
+    ],
+    "termination": "Task ends successfully if all almonds are in the cup after retreat; ends unsuccessfully if retries are exhausted or spillage occurs."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pour the almonds into the cup",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 1500,
+    "tolerance": null,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["almonds", "cup", "robot_arm", "gripper", "table"],
+  "objects_from_instruction": ["almonds", "cup"],
+  "blackboard_keys": ["grasp_almonds"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "almonds"},
+      "description": "Checks if the almonds container is visible to the perception system."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "almonds", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Performs a raster scan to detect the almonds if not directly visible."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "almonds", "timeout_ms": 800},
+      "description": "Detect and localize the almonds container for grasping."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "almonds", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Move the gripper above the almonds for pre-grasp alignment."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target": "almonds", "strategy": "top", "result_key": "grasp_almonds"},
+      "description": "Compute the grasp pose (top strategy) for the almonds container."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key": "grasp_almonds", "strategy": "top", "timeout_ms": 1200},
+      "description": "Move to and execute the grasp at the computed pose."
+    },
+    {
+      "id": "IsObjectVisible",
+      "type": "Action",
+      "ports": {"target": "cup"},
+      "description": "Verify and localize the cup for pouring."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "cup", "offset_z": 0.08, "timeout_ms": 1500},
+      "description": "Move the almonds container above the cup for pouring."
+    },
+    {
+      "id": "Pour",
+      "type": "Action",
+      "ports": {"source": "almonds", "target": "cup", "amount": "all", "tilt_angle": 90, "pour_rate": "normal", "timeout_ms": 1500},
+      "description": "Pour all almonds into the cup by tilting the container."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance": 0.10, "timeout_ms": 800},
+      "description": "Move the gripper away from the cup after pouring."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 11,
+    "actions": 9,
+    "conditions": 2,
+    "depth": 3
+  },
+  "failure_modes": [
+    "Almonds not detected after 3 scans",
+    "Grasp failed or not stable",
+    "Cup not detected",
+    "Pour misalignment or spillage",
+    "Mechanical/joint error"
+  ],
+  "recovery_strategy": [
+    "Retry object detection up to allowed attempts",
+    "Abort and retry grasp if slip detected",
+    "Re-detect and re-align over cup if not located",
+    "Abort if maximum errors exceeded"
+  ],
+  "assumptions": [
+    "Assumed 'almonds' are in a pourable container; if loose, grasp/tilt may be less effective.",
+    "Cup is empty and stable at target location.",
+    "The frames do not show explicit pouring (no visible flow), but arm positions and orientation are consistent with the pouring sequence."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "All contents of the almonds container end inside the cup.",
+      "No major spillage occurs."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "ScanForTarget", "attrs": {"target": "almonds", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "almonds", "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id": "MoveAbove", "attrs": {"target": "almonds", "offset_z": 0.05, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id": "ComputeGraspPose", "attrs": {"target": "almonds", "strategy": "top", "result_key": "grasp_almonds"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id": "GraspAtPose", "attrs": {"pose_key": "grasp_almonds", "strategy": "top", "timeout_ms": 1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id": "IsObjectVisible", "attrs": {"target": "cup"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id": "MoveAbove", "attrs": {"target": "cup", "offset_z": 0.08, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id": "Pour", "attrs": {"source": "almonds", "target": "cup", "amount": "all", "tilt_angle": 90, "pour_rate": "normal", "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id": "Retreat", "attrs": {"distance": 0.10, "timeout_ms": 800}},
+      "active_path_ids": []
+    }
+  ]
+}

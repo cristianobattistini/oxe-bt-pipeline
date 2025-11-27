@@ -1,0 +1,241 @@
+{
+  "dataset_id": "nyu_rot_dataset_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_006",
+  "task_summary": "A robot is instructed to hang a hanger on a rod, coordinating perception, grasp, transfer, and placement using precise visual and manipulation actions.",
+  "task_long_description": {
+    "overview": "In this episode, a robotic arm must hang a hanger on a horizontal rod. The system locates the hanger, grasps it securely, lifts and transfers it to above the rod, and executes a hanging maneuver (placing the hook on the rod). The process leverages visual feedback for both the hanger and rod, emphasizes stable grasp and placement, and concludes with a gripper release and retreat. Scene constraints include precise positioning to avoid collisions and an unobstructed pathway between the objects.",
+    "preconditions": ["The hanger is visually accessible on the surface.", "The rod is clearly segmented and reachable.", "Robot gripper is initially empty and operational."],
+    "stepwise_plan": [
+      "Visually locate the hanger; retry if not visible.",
+      "Open gripper and move above hanger.",
+      "Compute grasp, grasp hanger, verify secure hold.",
+      "Locate and move above the rod.",
+      "Align, then hang the hanger on the rod.",
+      "Release, retreat, and confirm disengagement."
+    ],
+    "success_criteria": [
+      "Hanger is left hanging by its hook on the rod.",
+      "Gripper fully releases the hanger.",
+      "Robot retreats safely without disturbing placement."
+    ],
+    "failure_and_recovery": [
+      "Hanger not detected: Retry visual scan.",
+      "Grasp slip: Retry or abort process.",
+      "Failed alignment: Realign and repeat approach."
+    ],
+    "termination": "Task ends when the robot has released the hanger hanging on the rod and retreated."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "hang the hanger on the rod",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 1500,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["hanger", "rod"],
+  "objects_from_instruction": ["hanger", "rod"],
+  "blackboard_keys": ["grasp_hanger"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "hanger"},
+      "description": "Checks if the hanger is visible using current perception."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "hanger", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Performs a raster scan to find the hanger if not initially visible."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "hanger", "timeout_ms": 800},
+      "description": "Localizes the hanger for further manipulation."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width": 0.06, "timeout_ms": 500},
+      "description": "Opens the gripper to receive the hanger."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "hanger", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Moves gripper above the hanger for grasping."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target": "hanger", "strategy": "side", "result_key": "grasp_hanger"},
+      "description": "Computes a side grasp pose for the hanger."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key": "grasp_hanger", "strategy": "side", "timeout_ms": 1200},
+      "description": "Executes the side grasp at computed pose."
+    },
+    {
+      "id": "IsGraspStable",
+      "type": "Condition",
+      "ports": {},
+      "description": "Verifies the grasp is stable before transfer."
+    },
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "rod"},
+      "description": "Checks if rod is visible for placement."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "rod", "timeout_ms": 800},
+      "description": "Localizes the rod for accurate placement."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "rod", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Moves gripper (with hanger) above rod."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "rod", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Aligns hanger for precise placement on rod."
+    },
+    {
+      "id": "Hang",
+      "type": "Action",
+      "ports": {"target": "hanger", "hook_id": "rod", "approach_angle": 0, "timeout_ms": 1500},
+      "description": "Executes the hanging maneuver by placing hanger on rod."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width": 0.08, "timeout_ms": 500},
+      "description": "Opens gripper to release hanger onto rod."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance": 0.1, "timeout_ms": 1200},
+      "description": "Retracts gripper away from hanger and rod."
+    },
+    {
+      "id": "Wait",
+      "type": "Action",
+      "ports": {"timeout_ms": 500},
+      "description": "Waits momentarily to confirm task completion."
+    }
+  ],
+  "tree_stats": {"nodes_total": 18, "actions": 13, "conditions": 3, "depth": 3},
+  "failure_modes": [
+    "Hanger not found",
+    "Grasp failure or slip",
+    "Rod not detected",
+    "Misdirected hanging action",
+    "Collision with rod or table"
+  ],
+  "recovery_strategy": [
+    "Retry scanning for hanger or rod",
+    "Re-attempt grasp after failure",
+    "Approach and realign if misplacement occurs"
+  ],
+  "assumptions": [
+    "The BT assumes the object named 'hanger' corresponds to the black nonuniform object visible in frames 0-5.",
+    "The rod corresponds to the long cylindrical metallic bar running horizontally throughout all frames.",
+    "Action 'Hang' (approach_angle=0) suffices for placing hook on rod without explicit rotation.",
+    "Some subphases may overlap visually but are mapped strictly per frame sequence."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Hanger is securely left on the rod after release.",
+      "Gripper is clear of all obstructions.",
+      "No perturbation or fall observed post-release."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "ScanForTarget", "attrs": {"target": "hanger", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "hanger", "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id": "MoveAbove", "attrs": {"target": "hanger", "offset_z": 0.05, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id": "GraspAtPose", "attrs": {"pose_key": "grasp_hanger", "strategy": "side", "timeout_ms": 1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id": "MoveAbove", "attrs": {"target": "rod", "offset_z": 0.05, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "rod", "tolerance": 0.005, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id": "Hang", "attrs": {"target": "hanger", "hook_id": "rod", "approach_angle": 0, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id": "Retreat", "attrs": {"distance": 0.1, "timeout_ms": 1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id": "Wait", "attrs": {"timeout_ms": 500}},
+      "active_path_ids": []
+    }
+  ]
+}

@@ -1,0 +1,208 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_114",
+  "task_summary": "Robot is tasked to grasp a single can from a blue surface, following visual detection and alignment cues from the episode frames.",
+  "task_long_description": {
+    "overview": "The robot starts by visually searching for a metallic can lying on a blue planar surface. The sequence follows the can's initial location, approach, precise alignment, gripper opening, and grasp execution. Missions rely on visual confirmation, moving above the can, and attempting a top-down grasp. Actions are constrained by workspace boundaries and required pose availability. No obstacles or other objects appear.",
+    "preconditions": [
+      "Can is present and visible on surface",
+      "Robot gripper is open",
+      "Workspace is clear of other items",
+      "Robot is operational"
+    ],
+    "stepwise_plan": [
+      "Check can visibility; scan if not found",
+      "Detect the can's pose",
+      "Move above the can with safe offset",
+      "Compute available grasp pose using top strategy",
+      "Approach and align for minimal offset",
+      "Open gripper to standard width",
+      "Perform grasp at computed pose",
+      "Verify can is secured in gripper"
+    ],
+    "success_criteria": [
+      "Can detected and localized",
+      "Robot arm moved and aligned properly above can",
+      "Gripper closed at correct pose",
+      "Object held securely by gripper"
+    ],
+    "failure_and_recovery": [
+      "Can not detected—trigger scan and retry",
+      "Alignment not sufficient—repeat approach",
+      "Grasp fails—retry sequence or abort"
+    ],
+    "termination": "Ends when can is detected as securely grasped by the robot"
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "grasp can",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"
+  ],
+  "objects": ["can"],
+  "objects_from_instruction": ["can"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "can"},
+      "description": "Check if the target can is currently visible in the scene"
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "can", "pattern": "grid", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Scan using grid pattern to locate the can if not visible"
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "can", "timeout_ms": 1200},
+      "description": "Detect object pose of the can"
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "can", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Move the end-effector above the can with 5cm vertical offset"
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target": "can", "strategy": "top", "result_key": "std_top"},
+      "description": "Compute grasp pose for the can using top-down strategy"
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "can", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Approach and align gripper to can with tight 5mm tolerance"
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width": 0.08, "timeout_ms": 500},
+      "description": "Open gripper to 8cm ready for grasp"
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key": "std_top", "strategy": "top", "timeout_ms": 1000},
+      "description": "Perform grasp at computed top pose"
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {"target": "can"},
+      "description": "Confirm can is held by gripper after execution"
+    }
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 7, "conditions": 2, "depth": 2},
+  "failure_modes": [
+    "Can not detected",
+    "Visual noise or occlusion prevents detection",
+    "Approach too imprecise",
+    "Grasp fails or can slips"
+  ],
+  "recovery_strategy": [
+    "Retry scan for visibility",
+    "Repeat approach and alignment",
+    "Retry grasp at pose"
+  ],
+  "assumptions": [
+    "Task instruction 'grasp can' matches the single object seen in all frames",
+    "No evidence of workspace clutter, multiple cans, or grasp difficulty",
+    "No visible objects other than the can; top-down grasp assumed due to pose",
+    "Gripper force and timeout unspecified; standard values picked for library compliance"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Can is stably grasped and held by gripper"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "IsObjectVisible", "attrs": {"target": "can"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id": "ScanForTarget", "attrs": {"target": "can", "pattern": "grid", "max_attempts": 3, "timeout_ms": 1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "can", "timeout_ms": 1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id": "MoveAbove", "attrs": {"target": "can", "offset_z": 0.05, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id": "ComputeGraspPose", "attrs": {"target": "can", "strategy": "top", "result_key": "std_top"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "can", "tolerance": 0.005, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id": "OpenGripper", "attrs": {"width": 0.08, "timeout_ms": 500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id": "GraspAtPose", "attrs": {"pose_key": "std_top", "strategy": "top", "timeout_ms": 1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": {"id": "ObjectInGripper", "attrs": {"target": "can"}},
+      "active_path_ids": []
+    }
+  ]
+}

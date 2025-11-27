@@ -1,0 +1,166 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_093",
+  "task_summary": "Stack one bowl atop another, using visual perception and precise alignment, by grasping the upper bowl and placing it onto the lower bowl.",
+  "task_long_description": {
+    "overview": "The robot's objective is to stack two ceramic bowls on a blue surface. The sequence includes detecting both bowls using onboard vision, grasping the top bowl with an overhead gripper approach, and aligning it to stack onto the bottom bowl. The process involves visual confirmation, precise grasping, careful alignment, contact sensing, and a minimal press force to avoid damage or misalignment. Success is defined by stable and aligned stacking.",
+    "preconditions": [
+      "Both bowls are placed in accessible and visually clear positions.",
+      "The gripper is empty and capable of bowl manipulation.",
+      "Robot camera and perception modules are functional."
+    ],
+    "stepwise_plan": [
+      "Visually locate top and bottom bowls.",
+      "Open gripper to preset width.",
+      "Move the gripper above the top bowl.",
+      "Compute grasp pose and approach bowl.",
+      "Grasp bowl securely.",
+      "Verify stable grasp.",
+      "Move bowl above the bottom bowl.",
+      "Stack top bowl onto bottom bowl with center alignment using low press force.",
+      "Release bowl and retreat."
+    ],
+    "success_criteria": [
+      "Top bowl is centered and stably stacked on bottom bowl.",
+      "No visible misalignment or tilt.",
+      "Robot gripper is empty at end."
+    ],
+    "failure_and_recovery": [
+      "Grasp failure: retry grasp and realign.",
+      "Vision lost: re-scan for bowl detection.",
+      "Stack instability: adjust alignment and re-place."
+    ],
+    "termination": "Terminate when the top bowl is released and remains stably stacked on the bottom bowl for at least 2 seconds."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "stack bowls",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 1000,
+    "tolerance": 0.002,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["bowl_top", "bowl_bottom"],
+  "objects_from_instruction": ["bowl"],
+  "blackboard_keys": ["grasp_bowl_top"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"bowl_top"},"description":"Checks if top bowl is visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"bowl_top","pattern":"raster","max_attempts":3,"timeout_ms":800},"description":"Scans for top bowl with raster pattern."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"bowl_bottom"},"description":"Checks if bottom bowl is visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"bowl_bottom","pattern":"raster","max_attempts":3,"timeout_ms":800},"description":"Scans for bottom bowl with raster pattern."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"bowl_top","timeout_ms":800},"description":"Runs vision algorithm to detect top bowl."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"bowl_bottom","timeout_ms":800},"description":"Runs vision algorithm to detect bottom bowl."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Opens gripper to 0.06m."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"bowl_top","offset_z":0.05,"timeout_ms":1500},"description":"Moves gripper 5cm above top bowl."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"bowl_top","strategy":"top","result_key":"grasp_bowl_top"},"description":"Computes pose for top grasp on top bowl."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"bowl_top","tolerance":0.002,"timeout_ms":1000},"description":"Carefully approaches and aligns gripper to bowl_top."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_bowl_top","strategy":"top","timeout_ms":800},"description":"Executes grasp at computed pose."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Checks that grasp is secure and stable."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"bowl_bottom","offset_z":0.06,"timeout_ms":1500},"description":"Moves grasped bowl above bottom bowl."},
+    {"id":"Stack","type":"Action","ports":{"target":"bowl_top","on_top_of":"bowl_bottom","alignment":"center","press_force":5,"timeout_ms":1000},"description":"Stacks top bowl on bottom bowl with center alignment and light force."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Opens gripper to release bowl."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Moves gripper away from stacked bowls."}
+  ],
+  "tree_stats": {"nodes_total": 17, "actions": 13, "conditions": 4, "depth": 2},
+  "failure_modes": [
+    "Bowl not detected due to occlusion or lighting",
+    "Gripper fails to grasp bowl securely",
+    "Stacking misaligned",
+    "Top bowl slips off after placement"
+  ],
+  "recovery_strategy": [
+    "Retry bowl detection with ScanForTarget",
+    "Retry grasp after realignment",
+    "Repeat Stack with adjusted alignment",
+    "Abort and alert operator if persistent failures"
+  ],
+  "assumptions": [
+    "Frames show exactly two bowls and stacking from frame_2 to frame_6, clarifying ambiguity in the instruction regarding number of bowls.",
+    "No additional objects present or required.",
+    "Instruction does not specify which bowl is placed on top; frames indicate clear top-bottom arrangement."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Top bowl rests stably atop bottom bowl at episode close"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"bowl_top","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"bowl_bottom","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"bowl_top","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"bowl_top","strategy":"top","result_key":"grasp_bowl_top"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_bowl_top","strategy":"top","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"bowl_bottom","offset_z":0.06,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"Stack","attrs":{"target":"bowl_top","on_top_of":"bowl_bottom","alignment":"center","press_force":5,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

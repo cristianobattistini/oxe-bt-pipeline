@@ -1,0 +1,21 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="teapot"/>
+      <Action ID="DetectObject" target="teapot" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="teapot" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="teapot" strategy="top" result_key="grasp_teapot"/>
+    <Action ID="GraspAtPose" pose_key="grasp_teapot" strategy="top" timeout_ms="1000"/>
+    <Condition ID="ObjectInGripper" target="teapot"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="stove"/>
+      <Action ID="DetectObject" target="stove" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="stove" offset_z="0.10" timeout_ms="1500"/>
+    <Action ID="PlaceOnSurface" target="teapot" area_id="stove" yaw_deg="0" press_force="10" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,13 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="blue_mark"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="blue_mark" pattern="grid" max_attempts="3" timeout_ms="1000"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="blue_mark" timeout_ms="800"/>
+    <Action ID="ApproachAndAlign" target="blue_mark" tolerance="0.005" timeout_ms="1500"/>
+    <Condition ID="IsAt" target="blue_mark"/>
+  </Sequence>
+</BehaviorTree>

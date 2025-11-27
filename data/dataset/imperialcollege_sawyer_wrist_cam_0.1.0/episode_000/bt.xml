@@ -1,0 +1,28 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="toast"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="toast" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="toast" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="toast" offset_z="0.05" timeout_ms="1000"/>
+    <Action ID="ComputeGraspPose" target="toast" strategy="top" result_key="grasp_toast"/>
+    <Action ID="ApproachAndAlign" target="toast" tolerance="0.005" timeout_ms="1000"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.05" force_threshold="5" timeout_ms="1000"/>
+    <Action ID="CloseGripper" force="5" timeout_ms="800"/>
+    <Condition ID="IsGraspStable"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="toaster_slot"/>
+      <Action ID="DetectObject" target="toaster_slot" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="toaster_slot" offset_z="0.10" timeout_ms="1000"/>
+    <Action ID="ApproachAndAlign" target="toaster_slot" tolerance="0.005" timeout_ms="1000"/>
+    <Action ID="InsertInto" target="toast" slot_id="toaster_slot" axis="z" distance="0.05" tolerance="0.005" force_limit="5" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1000"/>
+    <Action ID="Wait" timeout_ms="500"/>
+  </Sequence>
+</BehaviorTree>

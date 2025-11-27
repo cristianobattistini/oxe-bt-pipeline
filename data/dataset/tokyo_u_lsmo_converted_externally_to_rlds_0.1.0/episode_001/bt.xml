@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="blue_pen"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="blue_pen" pattern="raster" max_attempts="3" timeout_ms="1000"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="blue_pen" timeout_ms="800"/>
+    <Action ID="MoveTo" target="pre_obstacle_position" timeout_ms="1000"/>
+    <Action ID="MoveTo" target="bypass_obstacle" timeout_ms="1000"/>
+    <Action ID="MoveTo" target="blue_pen" timeout_ms="1000"/>
+    <Condition ID="IsAt" target="blue_pen"/>
+  </Sequence>
+</BehaviorTree>

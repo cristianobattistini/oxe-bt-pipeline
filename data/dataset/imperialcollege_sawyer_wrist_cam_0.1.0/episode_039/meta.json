@@ -1,0 +1,162 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_039",
+  "task_summary": "The robot is instructed to pick up a shoe. The visual sequence shows the shoe on a blue surface, with progressive approach, alignment, and grasp phases evident across frames. The Behavior Tree comprises object detection, spatial movement, grasp computation and execution, followed by lifting.",
+  "task_long_description": {
+    "overview": "This episode involves a robotic arm equipped with a wrist camera tasked to locate and pick up a white sneaker (shoe) positioned on a blue mat. The robot initially verifies visual detection, approaches above the shoe, aligns its gripper, computes a grasp pose, and then performs the grasp. Post-grasp, the robot confirms acquisition before lifting the object. No explicit placement is shown or required. Key constraints are accurate object perception, spatial precision during approach, and secure gripping.",
+    "preconditions": [
+      "Shoe is present and visually accessible on the blue surface.",
+      "Gripper is open and clear.",
+      "Robot and sensors are operational."
+    ],
+    "stepwise_plan": [
+      "Scan for the shoe in the workspace.",
+      "Confirm shoe visibility.",
+      "Detect and localize the shoe.",
+      "Move the gripper above the shoe at offset.",
+      "Align precisely with the shoe.",
+      "Open the gripper to correct width.",
+      "Compute the best top grasp pose.",
+      "Execute grasp at computed pose.",
+      "Verify shoe is securely held.",
+      "Lift the shoe."
+    ],
+    "success_criteria": [
+      "Shoe is detected and grasped.",
+      "Gripper securely holds the shoe.",
+      "Shoe is lifted from its initial surface."
+    ],
+    "failure_and_recovery": [
+      "If shoe detection fails, retry scanning up to 3 times.",
+      "If grasp fails, abort and retry approach.",
+      "If pose computation fails, repeat detection."
+    ],
+    "termination": "Task ends when the shoe is successfully held and lifted by the robot."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up shoe",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["shoe"],
+  "objects_from_instruction": ["shoe"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {"id":"IsObjectVisible", "type":"Condition", "ports":{"target":"shoe"}, "description":"Checks if shoe is visible."},
+    {"id":"ScanForTarget", "type":"Action", "ports":{"target":"shoe","pattern":"grid","max_attempts":3,"timeout_ms":1000}, "description":"Scans workspace for shoe."},
+    {"id":"DetectObject", "type":"Action", "ports":{"target":"shoe","timeout_ms":800}, "description":"Detects and localizes shoe."},
+    {"id":"MoveAbove", "type":"Action", "ports":{"target":"shoe","offset_z":0.05,"timeout_ms":1500}, "description":"Moves gripper above shoe."},
+    {"id":"ApproachAndAlign", "type":"Action", "ports":{"target":"shoe","tolerance":0.005,"timeout_ms":1500}, "description":"Aligns gripper to shoe."},
+    {"id":"OpenGripper", "type":"Action", "ports":{"width":0.06,"timeout_ms":500}, "description":"Opens gripper in preparation to grasp."},
+    {"id":"ComputeGraspPose", "type":"Action", "ports":{"target":"shoe","strategy":"top","result_key":"std_top"}, "description":"Computes suitable top grasp."},
+    {"id":"GraspAtPose", "type":"Action", "ports":{"pose_key":"std_top","strategy":"top","timeout_ms":1000}, "description":"Executes grasp at computed pose."},
+    {"id":"ObjectInGripper", "type":"Condition", "ports":{"target":"shoe"}, "description":"Verifies shoe is held."},
+    {"id":"RaiseHeld", "type":"Action", "ports":{"target":"shoe","distance":0.10,"timeout_ms":800}, "description":"Lifts the shoe after grasp."}
+  ],
+  "tree_stats": {"nodes_total": 12, "actions": 8, "conditions": 2, "depth": 4},
+  "failure_modes": [
+    "Shoe not detected",
+    "Misalignment during approach",
+    "Grasp fails to acquire shoe",
+    "False positive on object held"
+  ],
+  "recovery_strategy": [
+    "Retry scan attempts up to 3 times",
+    "Repeat approach and alignment if necessary",
+    "Abort current grasp and restore open gripper"
+  ],
+  "assumptions": [
+    "Instruction ('pick up shoe') matches the visual evidence: a single shoe is present and always the target.",
+    "Frames do not show multiple shoes or other objects.",
+    "No explicit force or tolerance parameters required by the instruction.",
+    "Grasp pose and strategy ('top') justified by shoe's visual geometry."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Shoe is held in gripper and lifted",
+      "No visible slip or drop",
+      "Correct object selected"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"shoe","pattern":"grid","max_attempts":3,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"shoe","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"shoe","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"shoe","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"shoe","strategy":"top","result_key":"std_top"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"std_top","strategy":"top","timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"shoe"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"shoe","distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

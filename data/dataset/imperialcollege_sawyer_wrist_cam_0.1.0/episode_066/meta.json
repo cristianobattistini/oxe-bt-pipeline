@@ -1,0 +1,221 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_066",
+  "task_summary": "The robot must open a lid on a blue surface, progressing from perception, alignment, and grasp to actuation and verification.",
+  "task_long_description": {
+    "overview": "This episode depicts a manipulator tasked with opening a lid, likely from a circular container atop a blue surface. The sequence involves perception of the lid, spatial alignment, calculation of a suitable grasp, execution of a top grasp, actuation to open, verification, and retreat. Scene constraints include limited object visibility and fine alignment due to the lid's geometry. Robust perception is critical for success.",
+    "preconditions": [
+      "Robot and wrist camera operational",
+      "Lid is closed and visible",
+      "Gripper unobstructed",
+      "Lid accessible for top grasp"
+    ],
+    "stepwise_plan": [
+      "Ensure lid is visually detected; fallback to scanning",
+      "Detect and localize the lid",
+      "Move above the lid with small vertical offset",
+      "Compute top grasp pose for the lid",
+      "Approach and align to lid with tight tolerance",
+      "Grasp lid at computed pose using top strategy",
+      "Actuate to open the lid",
+      "Verify container is open",
+      "Retreat to safe distance"
+    ],
+    "success_criteria": [
+      "Lid is separated from its base",
+      "Final frame confirms lid opening",
+      "No collision or drop detected"
+    ],
+    "failure_and_recovery": [
+      "Failure to see lid: rescan with fallback",
+      "Misalignment: retry approach/alignment",
+      "Grasp failure: repeat compute/grasp/approach sequence",
+      "Opening actuation fails: reattempt open or abort"
+    ],
+    "termination": "Terminate when container open condition is verified and robot has retreated."
+  },
+  "frame_ranking": {
+    "order": ["frame_3", "frame_5", "frame_2", "frame_6", "frame_1", "frame_4", "frame_7", "frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "open lid",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["lid", "container", "blue_surface"],
+  "objects_from_instruction": ["lid"],
+  "blackboard_keys": ["grasp_lid"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "lid"},
+      "description": "Condition to check if lid is visible to the robot."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "lid", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Actively scan the scene to locate the lid if not immediately visible."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "lid", "timeout_ms": 800},
+      "description": "Acquire precise localization of the lid."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "lid", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Move the end-effector above the lid at a safe offset."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target": "lid", "strategy": "top", "result_key": "grasp_lid"},
+      "description": "Compute a grasp pose using top grasp strategy for the lid."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "lid", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Approach and finely align with the lid."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key": "grasp_lid", "strategy": "top", "timeout_ms": 1000},
+      "description": "Grasp the lid at the computed pose using top grasp."
+    },
+    {
+      "id": "OpenContainer",
+      "type": "Action",
+      "ports": {"target": "lid", "container_type": "lid", "timeout_ms": 2000},
+      "description": "Actuate the opening of the lid."
+    },
+    {
+      "id": "ContainerOpen",
+      "type": "Condition",
+      "ports": {"target": "lid"},
+      "description": "Verify that the container is now open."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance": 0.10, "timeout_ms": 1200},
+      "description": "Move the end-effector away to a safe distance."
+    }
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 8, "conditions": 2, "depth": 2},
+  "failure_modes": [
+    "lid not detected",
+    "grasp misaligned or missed",
+    "failure to open (insufficient force or incorrect rotation)",
+    "unverified container state"
+  ],
+  "recovery_strategy": [
+    "Scan for lid if not visible",
+    "Retry approach and grasp sequence",
+    "Retry open operation if lid not open",
+    "Abort or alert if recovery fails"
+  ],
+  "assumptions": [
+    "Frames confirm presence and geometry of a circular lid, matching instruction.",
+    "No visible drawer, pan, or box – selected 'lid' container_type per frames.",
+    "No explicit force parameter required.",
+    "Object in later frames is separated; thus container successfully opened."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Lid should be visually separated from base",
+      "ContainerOpen condition is true",
+      "BT follows phases as evidenced in frames"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "IsObjectVisible", "attrs": {"target": "lid"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "lid", "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id": "MoveAbove", "attrs": {"target": "lid", "offset_z": 0.05, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id": "ComputeGraspPose", "attrs": {"target": "lid", "strategy": "top", "result_key": "grasp_lid"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "align",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "lid", "tolerance": 0.005, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id": "GraspAtPose", "attrs": {"pose_key": "grasp_lid", "strategy": "top", "timeout_ms": 1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id": "OpenContainer", "attrs": {"target": "lid", "container_type": "lid", "timeout_ms": 2000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {"id": "ContainerOpen", "attrs": {"target": "lid"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id": "Retreat", "attrs": {"distance": 0.10, "timeout_ms": 1200}},
+      "active_path_ids": []
+    }
+  ]
+}

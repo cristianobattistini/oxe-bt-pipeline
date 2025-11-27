@@ -1,0 +1,231 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_103",
+  "task_summary": "Pick up the apple and place it inside the pot as depicted in the frames.",
+  "task_long_description": {
+    "overview": "This task involves a robotic arm identifying, grasping, and transferring an apple into a small pot positioned on a blue surface. The apple is bright red and highly visible, and the pot is metallic, open, and stationary. The process prioritizes reliable object detection and gentle manipulation to prevent drops. The visual sequence confirms both grasp and deposit are achievable with direct placement; no lid opening or complex orientation is necessary.",
+    "preconditions": [
+      "Apple and pot are present within reachable workspace.",
+      "Pot is open and unobstructed.",
+      "Robot gripper is empty and operational."
+    ],
+    "stepwise_plan": [
+      "Verify visibility of the apple; scan if necessary.",
+      "Detect and approach the apple.",
+      "Grasp the apple with top strategy and low force.",
+      "Confirm apple is in gripper.",
+      "Verify visibility of the pot; detect if necessary.",
+      "Move above the pot.",
+      "Place the apple into the pot.",
+      "Open the gripper to release the apple.",
+      "Retreat away from the pot."
+    ],
+    "success_criteria": [
+      "Apple ends up inside the pot.",
+      "Gripper is open and empty after placement.",
+      "No damage or drop during transfer."
+    ],
+    "failure_and_recovery": [
+      "If apple not visible: scan for apple up to 3 attempts.",
+      "If grasp fails: repeat approach and grasp.",
+      "If pot not located: detect again."
+    ],
+    "termination": "Tree terminates once retreat is completed after releasing the apple in the pot."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first clear visual evidence of apple over pot, indicating imminent place action.",
+        "predicts_next": "Confirms goal alignment, likely triggers placement.",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "put apple in pot",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 800,
+    "tolerance": null,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"
+  ],
+  "objects": ["apple", "pot"],
+  "objects_from_instruction": ["apple", "pot"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "apple"},
+      "description": "Checks if the apple is visible to the perception system."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "apple", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Performs a raster scan to locate the apple."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "apple", "timeout_ms": 800},
+      "description": "Triggers object detection module to confirm apple location."
+    },
+    {
+      "id": "MoveTo",
+      "type": "Action",
+      "ports": {"target": "apple", "timeout_ms": 1200},
+      "description": "Moves end-effector to apple's position."
+    },
+    {
+      "id": "Grasp",
+      "type": "Action",
+      "ports": {"target": "apple", "strategy": "top", "force": 5, "timeout_ms": 800},
+      "description": "Attempts to grasp the apple from above with low force."
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {"target": "apple"},
+      "description": "Checks if apple has been securely grasped."
+    },
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "pot"},
+      "description": "Checks if the pot is visible to the system."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "pot", "timeout_ms": 800},
+      "description": "Confirms pot's presence and pose."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "pot", "offset_z": 0.05, "timeout_ms": 1200},
+      "description": "Moves the gripper holding the apple above the pot."
+    },
+    {
+      "id": "PlaceDown",
+      "type": "Action",
+      "ports": {"target": "pot", "timeout_ms": 800},
+      "description": "Lowers and places the apple into the pot."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width": 0.08, "timeout_ms": 500},
+      "description": "Opens the gripper to release the apple into the pot."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance": 0.10, "timeout_ms": 1200},
+      "description": "Retracts the gripper away from the pot post-placement."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 13,
+    "actions": 8,
+    "conditions": 3,
+    "depth": 3
+  },
+  "failure_modes": [
+    "Apple not visible or moved out of workspace.",
+    "Grasp unsuccessful or object slips.",
+    "Pot not detected in scene (e.g., occlusion, misplaced)."
+  ],
+  "recovery_strategy": [
+    "Retry scan for apple up to three times.",
+    "Repeat grasp if not in gripper.",
+    "Re-detect pot if not located."
+  ],
+  "assumptions": [
+    "Frames show a simple scenario: apple already near or over pot; object types inferred by color/shape.",
+    "No explicit container opening needed per frames (pot is open throughout).",
+    "Top grasp feasible, as apple is exposed and unobstructed.",
+    "Timeouts and force chosen for gentle manipulation as apple must not be damaged."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Apple is stably located inside the pot by final frame.",
+      "No grasp or drop failures occur."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"apple"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"apple","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveTo","attrs":{"target":"apple","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"Grasp","attrs":{"target":"apple","strategy":"top","force":5,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"apple"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"pot","offset_z":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceDown","attrs":{"target":"pot","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
+}

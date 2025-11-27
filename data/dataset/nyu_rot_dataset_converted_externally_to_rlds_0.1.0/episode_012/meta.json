@@ -1,0 +1,166 @@
+{
+  "dataset_id": "nyu_rot_dataset_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_012",
+  "task_summary": "The robot detects and grasps a peg before aligning and inserting it into a blue cup, then releases and retreats.",
+  "task_long_description": {
+    "overview": "This episode shows a robot arm executing the instruction to 'insert the peg in the cup.' The workspace contains a blue cup and a peg, which the robot must perceive, approach, grasp, and manipulate. The robot detects the objects, computes a grasp, executes the grasp, aligns the peg over the cup's opening, and inserts it with controlled force and tolerance. Accurate perception, stable grasping, and successful insertion are required; the visual evidence guides all steps.",
+    "preconditions": [
+      "Workspace clear; blue cup and peg both present and visible.",
+      "Robot ready and gripper open.",
+      "Cup upright and accessible for vertical insertion."
+    ],
+    "stepwise_plan": [
+      "Detect and localize the peg.",
+      "Detect and localize the cup.",
+      "Move above peg and compute grasp pose.",
+      "Approach peg and execute grasp.",
+      "Verify grasp stability.",
+      "Move above cup (insertion target).",
+      "Insert the peg into the cup with precise alignment and low force.",
+      "Verify insertion.",
+      "Release peg and retreat."
+    ],
+    "success_criteria": [
+      "Peg is inserted inside the cup (not dropped or misaligned).",
+      "Grasp stable until release.",
+      "No collisions with workspace or cup during insertion."
+    ],
+    "failure_and_recovery": [
+      "If peg or cup not detected: retry scanning up to 3 times.",
+      "If grasp fails: restart grasp sequence.",
+      "If insertion not successful: retreat and retry insertion.",
+      "Perception errors addressed by fallback scanning."
+    ],
+    "termination": "Sequence completes after successful insertion and retreat; terminates if all steps finish or retries exhausted."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "insert the peg in the cup",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 800,
+    "tolerance": 0.002,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["peg", "cup"],
+  "objects_from_instruction": ["peg", "cup"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"peg"},"description":"Check if the peg is visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"peg","pattern":"spiral","max_attempts":3,"timeout_ms":1000},"description":"Search for peg using a spiral pattern."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"peg","timeout_ms":800},"description":"Detect and localize the peg."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"cup"},"description":"Check if the cup is visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"cup","timeout_ms":800},"description":"Detect and localize the cup."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"peg","offset_z":0.05,"timeout_ms":1500},"description":"Position above the peg."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"peg","strategy":"top","result_key":"std_top"},"description":"Compute top grasp pose for the peg."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"peg","tolerance":0.005,"timeout_ms":1500},"description":"Approach peg and align for grasp."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"std_top","strategy":"top","timeout_ms":1500},"description":"Grasp the peg with top strategy."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Check stability of grasp."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"cup","offset_z":0.10,"timeout_ms":1500},"description":"Position above the cup."},
+    {"id":"InsertInto","type":"Action","ports":{"target":"peg","slot_id":"receptacle_A","axis":"z","distance":0.05,"tolerance":0.002,"force_limit":5,"timeout_ms":1500},"description":"Insert peg into the cup receptacle."},
+    {"id":"Inserted","type":"Condition","ports":{"target":"peg","slot_id":"receptacle_A"},"description":"Verify peg inserted into cup."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Release peg by opening gripper."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":1200},"description":"Retract arm from cup area."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":500},"description":"Pause briefly after task completion."}
+  ],
+  "tree_stats": {"nodes_total": 17, "actions": 12, "conditions": 5, "depth": 3},
+  "failure_modes": [
+    "Peg or cup not detected due to occlusion.",
+    "Grasp fails or is unstable.",
+    "Peg misaligned over cup resulting in failed insertion.",
+    "Insertion force exceeds limit (peg jams or rotates).",
+    "Gripper fails to release."
+  ],
+  "recovery_strategy": [
+    "Retry ScanForTarget for missing objects up to 3 times.",
+    "Restart grasp approach on failure.",
+    "Retreat, realign, and retry InsertInto if insertion unsuccessful.",
+    "Issue second OpenGripper if needed."
+  ],
+  "assumptions": [
+    "Frame analysis confirms blue cup and black peg; ID mapping matches scene.",
+    "Only vertical insertion observed in image sequence.",
+    "No evidence of forceful or rapid movements; low force and tight tolerance inferred from unperturbed cup and slow arm motion.",
+    "No visible use of container open/close; cup assumed open.",
+    "Peg and cup have fixed symbolic IDs per node library mapping."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Peg inserted into cup with verified insertion condition.",
+      "Minimal cup movement during insertion.",
+      "Gripper opens after insertion, arm retreats safely."
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "DetectObject","attrs": {"target": "peg","timeout_ms": 800}},
+      "active_path_ids": ["DetectObject"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id": "MoveAbove","attrs": {"target": "peg","offset_z": 0.05,"timeout_ms": 1500}},
+      "active_path_ids": ["MoveAbove"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id": "ComputeGraspPose","attrs": {"target": "peg","strategy": "top","result_key": "std_top"}},
+      "active_path_ids": ["ComputeGraspPose"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id": "GraspAtPose","attrs": {"pose_key": "std_top","strategy": "top","timeout_ms": 1500}},
+      "active_path_ids": ["GraspAtPose"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id": "MoveAbove","attrs": {"target": "cup","offset_z": 0.10,"timeout_ms": 1500}},
+      "active_path_ids": ["MoveAbove"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id": "InsertInto","attrs": {"target": "peg","slot_id": "receptacle_A","axis": "z","distance": 0.05,"tolerance": 0.002,"force_limit": 5,"timeout_ms": 1500}},
+      "active_path_ids": ["InsertInto"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id": "Inserted","attrs": {"target": "peg","slot_id": "receptacle_A"}},
+      "active_path_ids": ["Inserted"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id": "OpenGripper","attrs": {"width": 0.06,"timeout_ms": 500}},
+      "active_path_ids": ["OpenGripper"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id": "Retreat","attrs": {"distance": 0.1,"timeout_ms": 1200}},
+      "active_path_ids": ["Retreat"]
+    }
+  ]
+}

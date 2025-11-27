@@ -1,0 +1,22 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="peg"/>
+      <Action ID="DetectObject" target="peg" timeout_ms="800"/>
+    </Fallback>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="cup"/>
+      <Action ID="DetectObject" target="cup" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="peg" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="peg" strategy="top" result_key="peg_grasp"/>
+    <Action ID="GraspAtPose" pose_key="peg_grasp" strategy="top" timeout_ms="1000"/>
+    <Condition ID="ObjectInGripper" target="peg"/>
+    <Action ID="MoveAbove" target="cup" offset_z="0.06" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="cup" tolerance="0.0" timeout_ms="1500"/>
+    <Action ID="InsertInto" target="peg" slot_id="receptacle_A" axis="z" distance="0.05" tolerance="0.0" force_limit="5" timeout_ms="1200"/>
+    <Condition ID="Inserted" target="peg" slot_id="receptacle_A"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.05" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

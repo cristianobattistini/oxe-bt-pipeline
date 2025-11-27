@@ -1,0 +1,17 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="blue_pen"/>
+      <Action ID="DetectObject" target="blue_pen" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="blue_pen" offset_z="0.05" timeout_ms="1500"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="obstacle"/>
+      <Action ID="DetectObject" target="obstacle" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="ApproachAndAlign" target="blue_pen" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="MoveDelta" axis="y" dist="0.10" timeout_ms="1000"/>
+    <Action ID="MoveTo" target="blue_pen" timeout_ms="1500"/>
+    <Condition ID="IsAt" target="blue_pen"/>
+  </Sequence>
+</BehaviorTree>

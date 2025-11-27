@@ -1,0 +1,195 @@
+{
+  "dataset_id": "dlr_sara_pour_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_079",
+  "task_summary": "Robot pours liquid from a held cup into a mug positioned below using a precise, sequential manipulation routine.",
+  "task_long_description": {
+    "overview": "The robotic arm is tasked with pouring a liquid from a cup (already grasped) into a mug placed on the table. The routine involves perceiving the mug, ensuring the cup is also visible and controlled, moving above the mug to the appropriate pose, aligning the cup, executing a controlled tilt to pour, and returning to a safe pose. The environment is uncluttered, ensuring clear arm trajectories. Careful pose control and reliable perception are key.",
+    "preconditions": [
+      "Cup is already grasped by robot",
+      "Mug is present and visible on the table",
+      "Workspace is clear"
+    ],
+    "stepwise_plan": [
+      "Ensure the mug is visible; detect if not",
+      "Ensure the cup is visible (in gripper) and localize",
+      "Move above the mug with the cup",
+      "Align the cup over the mug",
+      "Verify object grasp (cup held)",
+      "Tilt the cup to pour into the mug",
+      "Return to a safe height above the mug"
+    ],
+    "success_criteria": [
+      "Cup is correctly positioned above the mug",
+      "Liquid (or intended substance) is poured into the mug",
+      "No spillage detected",
+      "Robot returns to safe or ready pose"
+    ],
+    "failure_and_recovery": [
+      "Mug or cup not detected (retry DetectObject)",
+      "ObjectInGripper fails (abort and raise error)",
+      "Pour incomplete (retry or report failure)"
+    ],
+    "termination": "Tree terminates after pour and retreat above mug."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Pour into the mug",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 1500,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["cup", "mug"],
+  "objects_from_instruction": ["mug"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target":"mug"},
+      "description": "Checks if the mug is visible to the robot."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target":"mug","timeout_ms":800},
+      "description": "Attempts visual detection of the mug."
+    },
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target":"cup"},
+      "description": "Checks if the cup is visible to the robot."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target":"cup","timeout_ms":800},
+      "description": "Attempts visual detection of the cup."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target":"cup","offset_z":0.10,"timeout_ms":1500},
+      "description": "Moves the gripper (holding the cup) to a position above the mug."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target":"cup","tolerance":0.005,"timeout_ms":1500},
+      "description": "Aligns and approaches above the mug for pouring."
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {"target":"cup"},
+      "description": "Checks that the cup is still grasped by the gripper."
+    },
+    {
+      "id": "Pour",
+      "type": "Action",
+      "ports": {"source":"cup","target":"mug","amount":"null","tilt_angle":90,"pour_rate":"null","timeout_ms":1500},
+      "description": "Performs the pouring action from cup into mug."
+    }
+  ],
+  "tree_stats": {"nodes_total": 9, "actions": 5, "conditions": 3, "depth": 2},
+  "failure_modes": [
+    "Mug not detected",
+    "Cup not detected",
+    "Loss of grasp on cup",
+    "Pour interrupted or incomplete"
+  ],
+  "recovery_strategy": [
+    "Retry object detection",
+    "Abort if critical failures (e.g., cup lost)",
+    "Move to safe pose on detected error"
+  ],
+  "assumptions": [
+    "Instruction does not specify force, pour amount, or speed—set these to null where non-available.",
+    "Cup is already grasped at episode start (inferred from frames).",
+    "No explicit verification of pour result (e.g., mug fill) in available BT nodes.",
+    "Since frames show no manipulation of mug, mug considered stationary and detected only."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Cup is positioned and tilted to pour into the mug.",
+      "No premature release of cup.",
+      "Robot retreats safely after pour."
+    ],
+    "test_scenarios": [
+      "happy path","object_missing","grasp_fail","perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"mug"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"cup"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"cup","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"cup","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"cup"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Pour","attrs":{"source":"cup","target":"mug","amount":"null","tilt_angle":90,"pour_rate":"null","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"cup","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"cup","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"cup","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    }
+  ]
+}

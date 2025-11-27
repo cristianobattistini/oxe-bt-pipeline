@@ -1,0 +1,180 @@
+{
+  "dataset_id": "nyu_rot_dataset_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_009",
+  "task_summary": "Robot inserts a peg into a cup, following strict perception, grasp, alignment, insertion, and release procedure as documented in contact sheet frames 0–8.",
+  "task_long_description": {
+    "overview": "This episode features a robot arm tasked with inserting a peg into a blue cup positioned on a tabletop. The robot must perceive both objects, approach and grasp the peg, align it above the cup, and execute the insertion with gentle force and precise tolerance before releasing the peg and retreating. The scene is uncluttered and both peg and cup are clearly visible against a neutral background. Sequential phases are visually evident in the contact sheet, with care taken to avoid collision or misalignment.",
+    "preconditions": [
+      "Peg and cup present on table",
+      "Robot gripper is empty and operational",
+      "Workspace is clear of obstructions",
+      "Vision system functioning for object detection"
+    ],
+    "stepwise_plan": [
+      "Confirm visibility of peg and cup; retry scan if needed",
+      "Detect precise locations for peg and cup",
+      "Move above peg and align for grasp",
+      "Grasp peg using top strategy with gentle force",
+      "Verify stable grasp",
+      "Move above cup and align for insertion",
+      "Insert peg vertically into cup’s receptacle",
+      "Verify insertion success",
+      "Open gripper to release peg",
+      "Retreat above insertion zone"
+    ],
+    "success_criteria": [
+      "Peg completely inserted into cup",
+      "Gripper releases peg with no lateral displacement",
+      "No collisions or spills",
+      "Contact detected within force/tolerance limits"
+    ],
+    "failure_and_recovery": [
+      "Object not detected: retry scans up to 3 times",
+      "Grasp unstable: adjust and retry grasp phase",
+      "Misalignment: re-approach and re-align above cup",
+      "Insertion blocked: retreat and check for obstructions"
+    ],
+    "termination": "Tree terminates once peg is released inside cup and robot successfully retreats."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "insert the peg in the cup",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": null,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["peg","cup","table"],
+  "objects_from_instruction": ["peg","cup"],
+  "blackboard_keys": ["grasp_peg"],
+  "node_specs": [
+    {"id":"IsObjectVisible", "type":"Condition", "ports":{"target":"peg"}, "description":"Checks if peg is visible"},
+    {"id":"ScanForTarget", "type":"Action", "ports":{"target":"peg","pattern":"raster","max_attempts":3,"timeout_ms":800}, "description":"Scans workspace to locate peg"},
+    {"id":"IsObjectVisible", "type":"Condition", "ports":{"target":"cup"}, "description":"Checks if cup is visible"},
+    {"id":"ScanForTarget", "type":"Action", "ports":{"target":"cup","pattern":"raster","max_attempts":3,"timeout_ms":800}, "description":"Scans workspace to locate cup"},
+    {"id":"DetectObject", "type":"Action", "ports":{"target":"peg","timeout_ms":800}, "description":"Perceives precise peg pose"},
+    {"id":"DetectObject", "type":"Action", "ports":{"target":"cup","timeout_ms":800}, "description":"Perceives precise cup pose"},
+    {"id":"MoveAbove", "type":"Action", "ports":{"target":"peg","offset_z":0.05,"timeout_ms":1500}, "description":"Moves above peg for grasp"},
+    {"id":"ApproachAndAlign", "type":"Action", "ports":{"target":"peg","tolerance":0.005,"timeout_ms":1500}, "description":"Aligns TCP for grasping peg"},
+    {"id":"Grasp", "type":"Action", "ports":{"target":"peg","strategy":"top","force":5,"timeout_ms":800}, "description":"Performs grasp on peg"},
+    {"id":"IsGraspStable", "type":"Condition", "ports":{}, "description":"Verifies grip quality"},
+    {"id":"MoveAbove", "type":"Action", "ports":{"target":"cup","offset_z":0.05,"timeout_ms":1500}, "description":"Moves above cup for placement"},
+    {"id":"ApproachAndAlign", "type":"Action", "ports":{"target":"cup","tolerance":0.005,"timeout_ms":1500}, "description":"Aligns peg above cup opening"},
+    {"id":"InsertInto", "type":"Action", "ports":{"target":"peg","slot_id":"receptacle_A","axis":"z","distance":0.05,"tolerance":0.005,"force_limit":5,"timeout_ms":1000}, "description":"Inserts peg into cup"},
+    {"id":"Inserted", "type":"Condition", "ports":{"target":"peg","slot_id":"receptacle_A"}, "description":"Checks successful insertion"},
+    {"id":"OpenGripper", "type":"Action", "ports":{"width":0.06,"timeout_ms":500}, "description":"Opens gripper to release peg"},
+    {"id":"Retreat", "type":"Action", "ports":{"distance":0.05,"timeout_ms":800}, "description":"Retracts gripper from cup"}
+  ],
+  "tree_stats": {"nodes_total":17,"actions":11,"conditions":6,"depth":2},
+  "failure_modes": [
+    "peg or cup not detected",
+    "grasp failure or slip",
+    "misalignment before insertion",
+    "insertion blocked by collision or incorrect pose"
+  ],
+  "recovery_strategy": [
+    "scan up to 3 times if object not seen",
+    "retry grasp if unstable",
+    "re-approach and align if cup alignment off",
+    "retreat and try again if insertion fails"
+  ],
+  "assumptions": [
+    "Frames show top-down peg grasp and vertical insertion, no explicit cup holding",
+    "Mapping 'slot_id' as 'receptacle_A' for cup opening per standard RLDS schema",
+    "No explicit force or speed in instruction, but frames indicate gentle insertion; set to minimum allowed",
+    "Frames do not show errors; sequence aligned with visual evidence"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Peg fully seated inside cup after release",
+      "No observed collision or drop",
+      "Robot successfully retreats post-release"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"peg","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"cup","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"peg","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"peg","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"Grasp","attrs":{"target":"peg","strategy":"top","force":5,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"cup","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"cup","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"InsertInto","attrs":{"target":"peg","slot_id":"receptacle_A","axis":"z","distance":0.05,"tolerance":0.005,"force_limit":5,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.05,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="cap"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="cap" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="cap" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="cap" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="cap" strategy="top" result_key="grasp_cap"/>
+    <Action ID="GraspAtPose" pose_key="grasp_cap" strategy="top" timeout_ms="1000"/>
+    <Condition ID="IsGraspStable"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="bottle"/>
+      <Action ID="DetectObject" target="bottle" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="bottle" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="bottle" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="InsertInto" target="cap" slot_id="bottle" axis="z" distance="0.05" tolerance="0.005" force_limit="5" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.05" timeout_ms="1000"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,266 @@
+{
+  "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_052",
+  "task_summary": "Pick up the white box and place it inside the sink using a robotic manipulator, ensuring precise and secure placement.",
+  "task_long_description": {
+    "overview": "This task requires a robot arm to locate and identify a white box on a kitchen counter, grasp it securely, and place it within the sink compartment. The sequence involves visual detection, approach, stable grasp, transport to the sink, placement inside, and retreat. The apparatus is in a kitchen mockup with a white arm, box, sink, and surrounding objects. The robot must handle the box safely and avoid collisions with the sink or nearby items.",
+    "preconditions": [
+      "Robot is operational and at a safe starting pose.",
+      "White box is present and accessible on the counter.",
+      "Sink is visible and unobstructed.",
+      "Gripper is empty and fully open."
+    ],
+    "stepwise_plan": [
+      "Visually confirm the white box; rescan if necessary.",
+      "Open gripper and move above the box.",
+      "Compute and approach a grasp pose.",
+      "Lower, detect contact, and close gripper securely.",
+      "Verify grasp stability.",
+      "Confirm location of the sink; rescan if necessary.",
+      "Move above and align to the sink.",
+      "Lower until contact, release the box inside the sink.",
+      "Open gripper and retreat."
+    ],
+    "success_criteria": [
+      "White box is situated within the boundaries of the sink.",
+      "Box is no longer in the gripper.",
+      "No collision with other objects."
+    ],
+    "failure_and_recovery": [
+      "If box is not detected, rescan up to 3 times.",
+      "If grasp fails, repeat approach after repositioning.",
+      "If sink position is ambiguous, redetect before continuing.",
+      "If contact or placement is unstable, abort and retry placement."
+    ],
+    "termination": "Task terminates once the white box is released inside the sink and the gripper has retreated."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Put the white box into the sink",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 1200,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["white_box","sink","kitchen_table","green_carton"],
+  "objects_from_instruction": ["white_box","sink"],
+  "blackboard_keys": ["grasp_white_box"],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"white_box"},
+      "description":"Checks if the white box is visible to the sensors."
+    },
+    {
+      "id":"ScanForTarget",
+      "type":"Action",
+      "ports":{"target":"white_box", "pattern":"raster", "max_attempts":3, "timeout_ms":1200},
+      "description":"Performs a raster scan to detect the white box up to 3 times."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"white_box", "timeout_ms":800},
+      "description":"Performs object detection for the white box."
+    },
+    {
+      "id":"OpenGripper",
+      "type":"Action",
+      "ports":{"width":0.08,"timeout_ms":500},
+      "description":"Opens the gripper for grasping or releasing objects."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"white_box", "offset_z":0.08, "timeout_ms":1500},
+      "description":"Moves the gripper above the white box for pre-grasp."
+    },
+    {
+      "id":"ComputeGraspPose",
+      "type":"Action",
+      "ports":{"target":"white_box", "strategy":"top", "result_key":"grasp_white_box"},
+      "description":"Computes a top grasp pose for the white box."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"white_box", "tolerance":0.005, "timeout_ms":1200},
+      "description":"Approaches and aligns to the computed grasp pose with high precision."
+    },
+    {
+      "id":"LowerUntilContact",
+      "type":"Action",
+      "ports":{"speed":"slow", "max_depth":0.08, "force_threshold":5, "timeout_ms":1200},
+      "description":"Lowers gripper until contact detected above threshold."
+    },
+    {
+      "id":"CloseGripper",
+      "type":"Action",
+      "ports":{"force":10,"timeout_ms":800},
+      "description":"Closes the gripper with mild force to grasp."
+    },
+    {
+      "id":"IsGraspStable",
+      "type":"Condition",
+      "ports":{},
+      "description":"Checks whether the grasp is stable."
+    },
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"sink"},
+      "description":"Checks if the sink is visible in the workspace."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"sink", "timeout_ms":800},
+      "description":"Performs object detection for the sink."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"sink", "offset_z":0.10, "timeout_ms":1500},
+      "description":"Moves the gripper above the sink for placement."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"sink", "tolerance":0.005, "timeout_ms":1200},
+      "description":"Approaches and aligns to the sink with precision."
+    },
+    {
+      "id":"LowerUntilContact",
+      "type":"Action",
+      "ports":{"speed":"slow", "max_depth":0.08, "force_threshold":5, "timeout_ms":1200},
+      "description":"Lowers the white box toward the sink until contact."
+    },
+    {
+      "id":"PlaceDown",
+      "type":"Action",
+      "ports":{"target":"sink", "timeout_ms":1200},
+      "description":"Places the white box down into the sink."
+    },
+    {
+      "id":"OpenGripper",
+      "type":"Action",
+      "ports":{"width":0.08,"timeout_ms":500},
+      "description":"Opens the gripper to release the box."
+    },
+    {
+      "id":"Retreat",
+      "type":"Action",
+      "ports":{"distance":0.10, "timeout_ms":1200},
+      "description":"Retreats the arm after placement to avoid collision."
+    }
+  ],
+  "tree_stats": {"nodes_total":18, "actions":13, "conditions":2, "depth":5},
+  "failure_modes": [
+    "Object not detected due to occlusion or pose.",
+    "Failed grasp (misaligned/fumbled).",
+    "Sink not detected or occluded.",
+    "Collision with environment during approach or retreat.",
+    "Object dropped or misplaced."
+  ],
+  "recovery_strategy": [
+    "Retry scan for perception failures.",
+    "Repeat approach and grasp sequence if grasp isn't stable.",
+    "Redetect placement location if sink detection fails.",
+    "Abort or notify if repeated failures occur."
+  ],
+  "assumptions": [
+    "The white box and sink are correctly interpreted from visual frames.",
+    "Object placement in the sink is not physically blocked.",
+    "No conflicting object manipulation is required.",
+    "If the instruction refers to a different box or area than what is visually present, we ground to the contact-sheet evidence."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "White box is visually contained within the sink at task end.",
+      "No longer grasped by the robot.",
+      "No unintended disturbance to target surroundings."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"white_box"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget", "attrs":{"target":"white_box","pattern":"raster","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"white_box","offset_z":0.08,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"white_box","tolerance":0.005,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.08,"force_threshold":5,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"sink","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceDown","attrs":{"target":"sink","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
+}

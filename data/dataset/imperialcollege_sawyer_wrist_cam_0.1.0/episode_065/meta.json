@@ -1,0 +1,192 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_065",
+  "task_summary": "Swipe a small white disk-like object across a blue surface using the robot's end effector while maintaining perceptual tracking and alignment.",
+  "task_long_description": {
+    "overview": "This episode demonstrates a robot arm performing a 'swipe' action on a small white disk resting on a blue surface. The robot perceives the object's position, moves its end effector above and in alignment, gently approaches, then swipes (pushes) the disk forward by applying motion along the surface, and finally retreats. The robot leverages visual perception at multiple phases and carefully controls approach, alignment, and force, using low-force sweeping without picking up the object. The scene is focused entirely on object engagement and transfer.",
+    "preconditions": [
+      "White disk is present on blue surface",
+      "Gripper/end effector is empty and unobstructed",
+      "Robot has vision of workspace",
+      "No other objects obstruct the swipe path"
+    ],
+    "stepwise_plan": [
+      "Detect white disk via vision",
+      "Move end effector above disk",
+      "Align position and orientation to disk",
+      "Physically approach contact plane",
+      "Swipe/push disk across surface along intended direction",
+      "Retreat end effector to safe position"
+    ],
+    "success_criteria": [
+      "Disk translated along surface by intended distance",
+      "No unintended object displacement",
+      "Object left intact and on surface"
+    ],
+    "failure_and_recovery": [
+      "Failure: object not detected—recover by retrying scan",
+      "Failure: end effector misaligned—recover by realigning position and repeating approach",
+      "Failure: swipe fails to move disk—retry approach and push",
+      "Failure: disk jams against boundary—recover by attempting alternate direction or abort"
+    ],
+    "termination": "Task ends when disk is swiped the target distance or an unrecoverable failure occurs."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "swipe",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["white_disk", "end_effector", "blue_surface"],
+  "objects_from_instruction": ["white_disk"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target":"white_disk"},
+      "description": "Checks if the white disk is visible in the robot's camera."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target":"white_disk","pattern":"line","max_attempts":3,"timeout_ms":800},
+      "description": "Performs a line-pattern scan to locate the white disk, retries up to 3 times."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target":"white_disk","timeout_ms":800},
+      "description": "Locates the precise position of the white disk."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target":"white_disk","offset_z":0.05,"timeout_ms":1000},
+      "description": "Moves the end effector above the disk by 5cm."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target":"white_disk","tolerance":0.005,"timeout_ms":1000},
+      "description": "Aligns and approaches the disk within 5mm tolerance."
+    },
+    {
+      "id": "Push",
+      "type": "Action",
+      "ports": {"target":"white_disk","distance":0.15,"direction_deg":180,"timeout_ms":1000},
+      "description": "Pushes the disk forward by 15cm in the 180-degree direction."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance":0.10,"timeout_ms":800},
+      "description": "Retracts the end effector by 10cm after swipe."
+    }
+  ],
+  "tree_stats": {"nodes_total": 9, "actions": 6, "conditions": 1, "depth": 2},
+  "failure_modes": [
+    "Object not visible",
+    "Scan fails to locate disk",
+    "MoveAbove fails due to collision",
+    "Approach misaligned",
+    "Push fails to move object",
+    "Retreat blocked"
+  ],
+  "recovery_strategy": [
+    "Retry scan for object up to 3 times",
+    "Repeat alignment step if contact fails",
+    "Abort if persistent collision detected"
+  ],
+  "assumptions": [
+    "Instruction 'swipe' interpreted as push along surface; contact-sheet frames show a white disk and blue scoop.",
+    "Frames do not indicate grasp or pick; solely surface transfer. Swipe direction inferred as 180 degrees by workspace cues."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "White disk position changes along intended swipe vector",
+      "No grasp occurs",
+      "Action completes in minimal timeout"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"white_disk"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"white_disk","pattern":"line","max_attempts":3,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"white_disk","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"white_disk","offset_z":0.05,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"white_disk","tolerance":0.005,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"white_disk","distance":0.15,"direction_deg":180,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Push","attrs":{"target":"white_disk","distance":0.15,"direction_deg":180,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
+}

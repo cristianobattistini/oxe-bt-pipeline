@@ -1,0 +1,23 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="bowl"/>
+      <Action ID="ScanForTarget" target="bowl" pattern="spiral" max_attempts="3" timeout_ms="1000"/>
+    </Fallback>
+    <Action ID="DetectObject" target="bowl" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.10" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="bowl" offset_z="0.05" timeout_ms="1000"/>
+    <Action ID="ComputeGraspPose" target="bowl" strategy="side" result_key="grasp_bowl"/>
+    <Action ID="ApproachAndAlign" target="bowl" tolerance="0.005" timeout_ms="1000"/>
+    <Action ID="GraspAtPose" pose_key="grasp_bowl" strategy="side" timeout_ms="800"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="MoveAbove" target="cabinet" offset_z="0.10" timeout_ms="1200"/>
+    <Fallback>
+      <Condition ID="ContainerOpen" target="cabinet"/>
+      <Action ID="OpenContainer" target="cabinet" container_type="cabinet" timeout_ms="1500"/>
+    </Fallback>
+    <Action ID="InsertInto" target="bowl" slot_id="receptacle_A" axis="z" distance="0.10" tolerance="0.005" force_limit="10" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.10" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1000"/>
+  </Sequence>
+</BehaviorTree>

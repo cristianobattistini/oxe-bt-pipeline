@@ -1,0 +1,27 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="spam_can"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="spam_can" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="spam_can" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="spam_can" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="spam_can" strategy="top" result_key="grasp_spam"/>
+    <Action ID="ApproachAndAlign" target="spam_can" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.08" force_threshold="5" timeout_ms="1200"/>
+    <Action ID="CloseGripper" force="5" timeout_ms="800"/>
+    <Condition ID="IsGraspStable"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="sink"/>
+      <Action ID="DetectObject" target="sink" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="sink" offset_z="0.10" timeout_ms="1500"/>
+    <Action ID="PlaceOnSurface" target="spam_can" area_id="sink" yaw_deg="0" press_force="5" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="1200"/>
+    <Action ID="Wait" timeout_ms="500"/>
+  </Sequence>
+</BehaviorTree>

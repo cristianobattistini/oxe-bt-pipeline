@@ -1,0 +1,269 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_057",
+  "task_summary": "Pick up the apple and place it into the pot.",
+  "task_long_description": {
+    "overview": "This episode involves a robotic arm visually detecting, grasping, and transferring a red apple into a metal pot placed on a blue surface. The robot must perceive the locations of both the apple and the pot, perform a stable grasp from above, accurately transfer the apple over the pot, and place it inside without dropping or damaging the object. The sequence is constrained by the spatial arrangement and visibility, requiring perception validation at each stage.",
+    "preconditions": [
+      "Apple and pot must be present and visible on the workspace.",
+      "Gripper is initially open, and workspace is unobstructed."
+    ],
+    "stepwise_plan": [
+      "Check if apple is visible; if not, scan workspace.",
+      "Detect apple to refine location.",
+      "Open gripper to grasp width.",
+      "Move above apple.",
+      "Compute grasp (top-strategy).",
+      "Execute grasp at computed pose.",
+      "Verify apple is in gripper.",
+      "Check if pot is visible; else, detect pot.",
+      "Move above pot.",
+      "Lower and place apple into pot.",
+      "Release gripper to drop apple.",
+      "Retreat from pot."
+    ],
+    "success_criteria": [
+      "Apple is inside the pot.",
+      "No collision or dropped apple outside pot area."
+    ],
+    "failure_and_recovery": [
+      "If apple or pot not visible, scan to relocate.",
+      "If grasp fails, retry scan and grasp sequence (up to 3 times).",
+      "If object drops or is misplaced, abort and alert operator."
+    ],
+    "termination": "Tree completes when apple is released inside pot and arm retreats."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first clear motion toward placing apple above pot, showing correct spatial relation",
+        "predicts_next": "gripper will lower shortly to complete placement",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "put apple in pot",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 1200,
+    "tolerance": null,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["apple","pot"],
+  "objects_from_instruction": ["apple","pot"],
+  "blackboard_keys": ["grasp_apple"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "apple"},
+      "description": "Checks if the apple is visible to the robot's perception system."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "apple", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Scans the workspace for the apple using a raster pattern."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "apple", "timeout_ms": 800},
+      "description": "Performs object detection to locate the apple precisely."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width": 0.08, "timeout_ms": 500},
+      "description": "Opens the gripper to an appropriate width for grasping."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "apple", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Moves the gripper directly over the apple."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target": "apple", "strategy": "top", "result_key": "grasp_apple"},
+      "description": "Computes a top-down grasp pose for the apple."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key": "grasp_apple", "strategy": "top", "timeout_ms": 800},
+      "description": "Executes a grasp at the specified pose."
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {"target": "apple"},
+      "description": "Verifies the apple is held after grasp attempt."
+    },
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "pot"},
+      "description": "Checks if the pot is visible to the robot."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "pot", "timeout_ms": 800},
+      "description": "Performs detection for the pot if not already visible."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "pot", "offset_z": 0.10, "timeout_ms": 1500},
+      "description": "Moves the gripper with apple above the pot."
+    },
+    {
+      "id": "PlaceDown",
+      "type": "Action",
+      "ports": {"target": "pot", "timeout_ms": 1200},
+      "description": "Places the apple into the pot."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width": 0.08, "timeout_ms": 500},
+      "description": "Opens the gripper to release the apple."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance": 0.10, "timeout_ms": 1200},
+      "description": "Retreats the gripper away from the pot after placement."
+    }
+  ],
+  "tree_stats": {"nodes_total": 16, "actions": 10, "conditions": 3, "depth": 4},
+  "failure_modes": [
+    "Apple not detected or occluded.",
+    "Grasp unsuccessful (object not in gripper).",
+    "Pot not detected or occluded.",
+    "Collision during approach or placement."
+  ],
+  "recovery_strategy": [
+    "Retry object scan up to 3 times.",
+    "Fallback to re-detection if perception fails.",
+    "Abort and alert if grasp or placement cannot proceed."
+  ],
+  "assumptions": [
+    "Frames consistently show the sequence of grasping a red apple and placing it inside a metal pot as per instruction.",
+    "If either object is not visible at any stage (e.g., due to occlusion), the system performs scan/re-detect.",
+    "No explicit force or tolerance settings present in instruction or visually determinable; left null.",
+    "The episode matches the high-level task described by the instruction, though intermediate visual ambiguity exists in frames 0-2."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Apple ends inside pot and is no longer in gripper.",
+      "No apple left on workspace."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {"target": "apple", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {"target": "apple", "timeout_ms": 800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {"target": "apple", "offset_z": 0.05, "timeout_ms": 1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "GraspAtPose",
+        "attrs": {"pose_key": "grasp_apple", "strategy": "top", "timeout_ms": 800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {"target": "pot", "offset_z": 0.10, "timeout_ms": 1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {
+        "id": "PlaceDown",
+        "attrs": {"target": "pot", "timeout_ms": 1200}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {"width": 0.08, "timeout_ms": 500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {"distance": 0.10, "timeout_ms": 1200}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {"distance": 0.10, "timeout_ms": 1200}
+      },
+      "active_path_ids": []
+    }
+  ]
+}

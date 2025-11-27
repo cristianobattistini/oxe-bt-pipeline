@@ -1,0 +1,175 @@
+{
+  "dataset_id": "nyu_rot_dataset_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_004",
+  "task_summary": "Robot locates a mug, grasps it, approaches a hook, and hangs the mug securely, then releases and retreats.",
+  "task_long_description": {
+    "overview": "This episode features a robotic arm performing the task of hanging a mug onto a vertical metallic hook within a tabletop environment. The main objects are a blue mug and a tall metallic hook. The robot must identify and localize both objects, grasp the mug (by its side), align and approach the hook, perform a hanging action with proper orientation and approach angle, then release and retract. Constraints include gentle but stable grasping and precise placement on the hook.",
+    "preconditions": [
+      "Mug and hook are present and detectable in workspace",
+      "Robot gripper is empty and functional",
+      "No obstacles block approach paths"
+    ],
+    "stepwise_plan": [
+      "Verify mug visibility; scan if needed",
+      "Detect (localize) mug",
+      "Open gripper to pre-grasp width",
+      "Approach and align to mug",
+      "Grasp mug stably from side",
+      "Verify grasp stability",
+      "Verify hook visibility; scan if needed",
+      "Detect (localize) hook",
+      "Approach and align to hook",
+      "Hang mug onto hook with zero-degree approach angle",
+      "Open gripper (release mug)",
+      "Retreat to safe position"
+    ],
+    "success_criteria": [
+      "Mug is stably suspended on the hook and released",
+      "No object drops or collisions",
+      "Final retreat is clear"
+    ],
+    "failure_and_recovery": [
+      "Mug undetected: retry scan",
+      "Grasp unstable: retry approach/grasp",
+      "Hook undetected: re-scan and search",
+      "Hang fails: alert, retry hang (not explicit in tree)"
+    ],
+    "termination": "Process ends after mug is hung and gripper is retracted; mug remains on the hook."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "hang the mug on the hook",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["mug", "hook"],
+  "objects_from_instruction": ["mug", "hook"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"mug"},"description":"Check if mug is visible"},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"mug","pattern":"raster","max_attempts":3,"timeout_ms":1200},"description":"Scan for mug up to 3 times"},
+    {"id":"DetectObject","type":"Action","ports":{"target":"mug","timeout_ms":800},"description":"Detect mug location"},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Open gripper for mug grasp"},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"mug","tolerance":0.005,"timeout_ms":1500},"description":"Approach and align to mug"},
+    {"id":"Grasp","type":"Action","ports":{"target":"mug","strategy":"side","force":5,"timeout_ms":800},"description":"Side grasp mug with minimal force"},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verify grasp stability"},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"hook"},"description":"Check if hook is visible"},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"hook","pattern":"raster","max_attempts":2,"timeout_ms":800},"description":"Scan for hook up to 2 times"},
+    {"id":"DetectObject","type":"Action","ports":{"target":"hook","timeout_ms":800},"description":"Detect hook location"},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"hook","tolerance":0.005,"timeout_ms":1500},"description":"Approach and align to hook"},
+    {"id":"Hang","type":"Action","ports":{"target":"mug","hook_id":"hook","approach_angle":0,"timeout_ms":1200},"description":"Hang mug on hook with specified angle"},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.10,"timeout_ms":500},"description":"Release mug"},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.05,"timeout_ms":800},"description":"Retreat from hook"}
+  ],
+  "tree_stats": {
+    "nodes_total": 15,
+    "actions": 10,
+    "conditions": 3,
+    "depth": 6
+  },
+  "failure_modes": [
+    "Object detection failure",
+    "Grasp instability",
+    "Hang unsuccessful",
+    "Retreat blocked or collision"
+  ],
+  "recovery_strategy": [
+    "Use fallback scan for object visibility",
+    "Retry approach/grasp if instability detected",
+    "Reattempt scan for hook if not detected"
+  ],
+  "assumptions": [
+    "Instruction does not specify grasp type; frames show side approach and grasp",
+    "Mug and hook IDs taken directly from visualization; no ambiguity per visible scene",
+    "Approach angle set to 0 for vertical placement as seen in frames",
+    "No explicit timeouts in instruction; values chosen by referencing library bins"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Mug is hung securely on hook and released"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"mug"}},
+      "active_path_ids": ["MainTree","Sequence","Fallback","IsObjectVisible"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"mug","timeout_ms":800}},
+      "active_path_ids": ["MainTree","Sequence","DetectObject"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"mug","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": ["MainTree","Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"Grasp","attrs":{"target":"mug","strategy":"side","force":5,"timeout_ms":800}},
+      "active_path_ids": ["MainTree","Sequence","Grasp"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": ["MainTree","Sequence","IsGraspStable"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"hook","timeout_ms":800}},
+      "active_path_ids": ["MainTree","Sequence","DetectObject"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"hook","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": ["MainTree","Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"Hang","attrs":{"target":"mug","hook_id":"hook","approach_angle":0,"timeout_ms":1200}},
+      "active_path_ids": ["MainTree","Sequence","Hang"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.05,"timeout_ms":800}},
+      "active_path_ids": ["MainTree","Sequence","Retreat"]
+    }
+  ]
+}

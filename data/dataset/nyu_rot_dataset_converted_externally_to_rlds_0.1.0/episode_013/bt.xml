@@ -1,0 +1,27 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="cup_blue"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="cup_blue" pattern="grid" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="cup_blue" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="cup_blue" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="cup_blue" strategy="top" result_key="grasp_cup_blue"/>
+    <Action ID="GraspAtPose" pose_key="grasp_cup_blue" strategy="top" timeout_ms="1000"/>
+    <Condition ID="ObjectInGripper" target="cup_blue"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="cup_pink"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="cup_pink" pattern="grid" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="cup_pink" timeout_ms="800"/>
+    <Action ID="MoveAbove" target="cup_pink" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="Stack" target="cup_blue" on_top_of="cup_pink" alignment="center" press_force="5" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

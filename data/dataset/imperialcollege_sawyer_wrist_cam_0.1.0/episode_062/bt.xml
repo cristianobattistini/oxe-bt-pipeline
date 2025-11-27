@@ -1,0 +1,18 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="mug"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="mug" pattern="grid" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="mug" timeout_ms="800"/>
+    <Action ID="MoveAbove" target="mug" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="mug" strategy="top" result_key="std_top"/>
+    <Action ID="ApproachAndAlign" target="mug" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="CloseGripper" force="10" timeout_ms="800"/>
+    <Condition ID="IsGraspStable"/>
+    <Condition ID="ObjectInGripper" target="mug"/>
+    <Action ID="RaiseHeld" target="mug" distance="0.05" timeout_ms="800"/>
+  </Sequence>
+</BehaviorTree>

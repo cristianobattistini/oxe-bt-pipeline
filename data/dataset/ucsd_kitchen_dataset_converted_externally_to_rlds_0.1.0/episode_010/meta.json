@@ -1,0 +1,162 @@
+{
+  "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_010",
+  "task_summary": "The robot is tasked to open the cabinet door using its arm, following a sequence of perception, approach, grasp, actuation, and retreat, as shown in nine contact sheet frames.",
+  "task_long_description": {
+    "overview": "This episode documents a robot arm interacting with a kitchen cabinet. The arm starts away, verifies the cabinet door's location, approaches and aligns to the door handle, computes a side grasp, secures the door, opens it by actuation of its mechanism, and finally retreats after completion. The robot utilizes perception to ensure visibility of the cabinet door and retries scanning if needed. All manipulations and movements use robust strategies and confirmed alignments. Constraints include joint kinematics, force limitations, and reachability.",
+    "preconditions": [
+      "Cabinet door is closed and accessible.",
+      "Cabinet door handle is visible or can be detected.",
+      "Robot arm is operational and unobstructed.",
+      "No foreign objects blocking motion path."
+    ],
+    "stepwise_plan": [
+      "Verify visibility of the cabinet door.",
+      "Scan for the cabinet door if not immediately visible (up to 3 retries).",
+      "Detect cabinet door pose for manipulation.",
+      "Move above and near the cabinet door handle.",
+      "Compute a side grasp pose for the door.",
+      "Approach and align for grasping.",
+      "Grasp the cabinet door handle.",
+      "Confirm grasp by verifying the object is secured.",
+      "Open the cabinet door using actuation.",
+      "Retreat arm to safe position."
+    ],
+    "success_criteria": [
+      "Cabinet door opens fully.",
+      "No collisions or dropped objects.",
+      "Execution matches intended phases in the contact sheet frames."
+    ],
+    "failure_and_recovery": [
+      "Cabinet door not detected: retry ScanForTarget up to 3 times.",
+      "Unstable grasp: abort and re-align/grasp again.",
+      "OpenContainer action fails: retry from previous step if allowed."
+    ],
+    "termination": "Terminated once the cabinet door is open and the arm retreated."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Open the carbinet door",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["cabinet_door", "cabinet", "cabinet_handle", "robot_arm"],
+  "objects_from_instruction": ["carbinet door"],
+  "blackboard_keys": ["grasp_door"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"cabinet_door"},"description":"Check if the cabinet door is visible"},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"cabinet_door","pattern":"line","max_attempts":3,"timeout_ms":1200},"description":"Scan for the cabinet door along a line pattern"},
+    {"id":"DetectObject","type":"Action","ports":{"target":"cabinet_door","timeout_ms":800},"description":"Detect the cabinet door's pose"},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"cabinet_door","offset_z":0.05,"timeout_ms":1500},"description":"Move above the cabinet door handle with offset"},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"cabinet_door","strategy":"side","result_key":"grasp_door"},"description":"Compute side grasp pose for the cabinet door"},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"cabinet_door","tolerance":0.005,"timeout_ms":1500},"description":"Approach and align to cabinet door handle"},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_door","strategy":"side","timeout_ms":1000},"description":"Grasp the cabinet door at computed pose"},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"cabinet_door"},"description":"Verify cabinet door is held"},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"cabinet_door","container_type":"cabinet","timeout_ms":1500},"description":"Open the cabinet door"},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":800},"description":"Retreat arm after opening"}
+  ],
+  "tree_stats": {"nodes_total": 12, "actions": 8, "conditions": 2, "depth": 2},
+  "failure_modes": [
+    "Cabinet door not detected",
+    "Grasp pose computation fails",
+    "Unstable grasp or object not in gripper",
+    "Cabinet door stuck or blocked"
+  ],
+  "recovery_strategy": [
+    "Retry ScanForTarget if not visible",
+    "Recompute grasp pose and retry alignment/grasp steps",
+    "Abort or reset sequence on persistent grasp or actuation failure"
+  ],
+  "assumptions": [
+    "Instruction has typo: 'carbinet' interpreted as 'cabinet'.",
+    "Frames confirm cabinet door interaction; handle grasp used.",
+    "Contact sheet phases inferred strictly from frames; if frame actions diverge from natural language, tree favors visual evidence."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Cabinet door visibly opens by final frames.",
+      "Robot arm retreats safely."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "IsObjectVisible", "attrs": {"target": "cabinet_door"}},
+      "active_path_ids": ["Sequence","Fallback","IsObjectVisible"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id": "ScanForTarget", "attrs": {"target": "cabinet_door", "pattern": "line", "max_attempts": 3, "timeout_ms": 1200}},
+      "active_path_ids": ["Sequence","Fallback","RetryUntilSuccessful","ScanForTarget"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "cabinet_door", "timeout_ms": 800}},
+      "active_path_ids": ["Sequence","DetectObject"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id": "MoveAbove", "attrs": {"target": "cabinet_door", "offset_z": 0.05, "timeout_ms": 1500}},
+      "active_path_ids": ["Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id": "ComputeGraspPose", "attrs": {"target": "cabinet_door", "strategy": "side", "result_key": "grasp_door"}},
+      "active_path_ids": ["Sequence","ComputeGraspPose"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "cabinet_door", "tolerance": 0.005, "timeout_ms": 1500}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id": "GraspAtPose", "attrs": {"pose_key": "grasp_door", "strategy": "side", "timeout_ms": 1000}},
+      "active_path_ids": ["Sequence","GraspAtPose"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id": "ObjectInGripper", "attrs": {"target": "cabinet_door"}},
+      "active_path_ids": ["Sequence","ObjectInGripper"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id": "OpenContainer", "attrs": {"target": "cabinet_door", "container_type": "cabinet", "timeout_ms": 1500}},
+      "active_path_ids": ["Sequence","OpenContainer"]
+    }
+  ]
+}

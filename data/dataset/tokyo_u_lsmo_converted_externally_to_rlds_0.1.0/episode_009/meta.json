@@ -1,0 +1,195 @@
+{
+  "dataset_id": "tokyo_u_lsmo_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_009",
+  "task_summary": "Navigate to the blue pen while avoiding obstacles blocking a direct path.",
+  "task_long_description": {
+    "overview": "This episode depicts a robotic arm planning and executing a motion sequence to reach a blue pen that is partially occluded by books and a brown box. The task requires identifying the blue pen, perceiving the obstacles in front, planning an above-table approach to avoid these objects, and finally aligning and advancing to the goal position near the pen tip. The robot must adjust its path as obstructions are present, progressing through successive perception, approach, and checking steps.",
+    "preconditions": [
+      "Robot arm initialized and ready",
+      "Workspace: blue pen is visible and on the table",
+      "Obstacles (books, box) partially block direct path to pen"
+    ],
+    "stepwise_plan": [
+      "Check if blue pen is visible",
+      "If not visible, scan raster-wise up to three times",
+      "Detect precise pen location",
+      "Move above and near blue pen, avoiding obstacles",
+      "Approach and align toward the target position",
+      "Adjust path laterally (y-axis) if blocked",
+      "Move directly to blue pen for end-effector positioning"
+    ],
+    "success_criteria": [
+      "Robot end-effector arrives above and at the position of the blue pen",
+      "No collision with obstacles (books, box) during the approach"
+    ],
+    "failure_and_recovery": [
+      "Pen not initially visible: scan up to 3 times using raster",
+      "Failed approach/alignment due to obstruction: attempt lateral (y-axis) path adjustment"
+    ],
+    "termination": "Task ends when the robot has reached above and at the location of the blue pen or after retries are exhausted"
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "avoid obstacle and reach the blue pen",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"
+  ],
+  "objects": ["blue_pen", "books", "box"],
+  "objects_from_instruction": ["blue_pen"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports": {"target":"blue_pen"},
+      "description":"Returns SUCCESS if blue_pen is visible to robot sensors."
+    },
+    {
+      "id":"ScanForTarget",
+      "type":"Action",
+      "ports": {"target":"blue_pen", "pattern":"raster", "max_attempts":3, "timeout_ms": 1200},
+      "description":"Scans area using raster pattern to locate blue_pen up to 3 times."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports": {"target":"blue_pen", "timeout_ms":800},
+      "description":"Detects precise position of blue_pen with timeout."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports": {"target":"blue_pen", "offset_z":0.05, "timeout_ms":1500},
+      "description":"Moves end-effector to a position above pen, avoiding obstacles."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports": {"target":"blue_pen", "tolerance":0.005, "timeout_ms":1500},
+      "description":"Aligns approach to blue_pen precisely for final approach."
+    },
+    {
+      "id":"MoveDelta",
+      "type":"Action",
+      "ports": {"axis":"y", "dist":0.05, "timeout_ms":1000},
+      "description":"Shifts position laterally to clear obstacles."
+    },
+    {
+      "id":"MoveTo",
+      "type":"Action",
+      "ports": {"target":"blue_pen", "timeout_ms":1500},
+      "description":"Moves directly to blue_pen for task completion."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 8,
+    "actions": 6,
+    "conditions": 1,
+    "depth": 4
+  },
+  "failure_modes": [
+    "Blue pen not visible after scanning",
+    "Collision with obstacles during approach",
+    "Misalignment causing failed path"
+  ],
+  "recovery_strategy": [
+    "Scan up to 3 times for pen detection",
+    "Apply lateral movement if approach is blocked"
+  ],
+  "assumptions": [
+    "Assumed the blue pen is named 'blue_pen' in the perception/action system.",
+    "Obstacle avoidance is achieved structurally by sequencing MoveAbove and MoveDelta prior to MoveTo.",
+    "Frames show end-effector approaching via above-table then aligning, so blue pen grasp or pickup is not performed—only approach."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "End-effector is above blue pen without collision",
+      "Final pose is within tolerance of goal"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"blue_pen"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"blue_pen","pattern":"raster","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"blue_pen","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"blue_pen","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"blue_pen","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveDelta","attrs":{"axis":"y","dist":0.05,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id":"MoveTo","attrs":{"target":"blue_pen","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {"id":"MoveTo","attrs":{"target":"blue_pen","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {"id":"MoveTo","attrs":{"target":"blue_pen","timeout_ms":1500}},
+      "active_path_ids": []
+    }
+  ]
+}

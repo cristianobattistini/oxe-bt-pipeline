@@ -1,0 +1,215 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_075",
+  "task_summary": "Pick up a bottle from the current location, using incrementally refined perception and a top grasp.",
+  "task_long_description": {
+    "overview": "This episode centers on a robot identifying, approaching, and grasping a green translucent bottle placed against a blue background. The task requires reliable perception and precise motion as the manipulator moves closer to the bottle, culminating in a top-down grasp. Scene constraints include limited visual context, object isolation, and the expectation of careful approach.",
+    "preconditions": [
+      "Bottle is present and unobstructed on blue surface",
+      "Robot gripper is empty and ready",
+      "Visual sensors are operational"
+    ],
+    "stepwise_plan": [
+      "Check if bottle is visible; if not, scan up to 3 times",
+      "Confirm/refresh detection of bottle",
+      "Move above the bottle with a safe vertical offset",
+      "Approach and align with precise tolerance",
+      "Compute appropriate top grasp pose",
+      "Execute grasp action at computed pose",
+      "Verify grasp stability"
+    ],
+    "success_criteria": [
+      "Bottle is securely held by the gripper",
+      "No collision or slippage observed"
+    ],
+    "failure_and_recovery": [
+      "If bottle not visible, perform scan pattern up to 3 attempts",
+      "If grasp unstable, abort or retry from initial detection"
+    ],
+    "termination": "Task completes upon confirmed stable grasp of the bottle."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["bottle"],
+  "objects_from_instruction": ["bottle"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "bottle"},
+      "description": "Check if the bottle is currently visible to the robot."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "bottle", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Perform a raster-pattern scan to search for the bottle, repeating up to 3 times."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "bottle", "timeout_ms": 800},
+      "description": "Run bottle detection with an 800 ms timeout."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "bottle", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Move vertically above the bottle by 5 cm, with a 1500 ms cutoff."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "bottle", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Approach the bottle and align with a precise 0.005 m tolerance (5 mm), for up to 1500 ms."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target": "bottle", "strategy": "top", "result_key": "std_top"},
+      "description": "Compute a top grasp pose for the bottle and store as std_top."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key": "std_top", "strategy": "top", "timeout_ms": 1000},
+      "description": "Perform a grasp using the computed top pose (std_top), with a 1000 ms timeout."
+    },
+    {
+      "id": "IsGraspStable",
+      "type": "Condition",
+      "ports": {},
+      "description": "Confirm the stability of the executed grasp."
+    }
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 6, "conditions": 2, "depth": 7},
+  "failure_modes": [
+    "Bottle not found despite scan",
+    "Mis-detection or mistaken object",
+    "Approach misalignment",
+    "Failed or unstable grasp"
+  ],
+  "recovery_strategy": [
+    "Perform up to 3 scan attempts",
+    "Abort if grasp fails or stability not verified"
+  ],
+  "assumptions": [
+    "Bottle is present and unobstructed (verified via frames)",
+    "No direct place or retreat needed after grasp, as inferred from lack of post-grasp frames",
+    "Instruction covers only pick up, omitting transfer or placement phases"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Robot securely holds the bottle at task end",
+      "Bottle visible in gripper (if next scene were shown)"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "IsObjectVisible",
+        "attrs": {"target": "bottle"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {"target": "bottle", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {"target": "bottle", "timeout_ms": 800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {"target": "bottle", "offset_z": 0.05, "timeout_ms": 1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {"target": "bottle", "tolerance": 0.005, "timeout_ms": 1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ComputeGraspPose",
+        "attrs": {"target": "bottle", "strategy": "top", "result_key": "std_top"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "GraspAtPose",
+        "attrs": {"pose_key": "std_top", "strategy": "top", "timeout_ms": 1000}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "IsGraspStable",
+        "attrs": {}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "IsGraspStable",
+        "attrs": {}
+      },
+      "active_path_ids": []
+    }
+  ]
+}

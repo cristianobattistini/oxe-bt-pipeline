@@ -1,0 +1,162 @@
+{
+  "dataset_id": "ucsd_pick_and_place_dataset_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_001",
+  "task_summary": "The robot is instructed to pick up the red object from the table. The contact sheet shows a sequence where a robotic arm locates, approaches, and grasps a red cylindrical block lying on the tabletop.",
+  "task_long_description": {
+    "overview": "This episode involves a fixed-base robotic arm manipulating objects on a tabletop. The scene contains a red cylindrical object (the target) and blue blocks as distractors. Across nine sequential frames, the robot perceives the environment, approaches the red cylinder, aligns and opens its gripper, grasps the object using a top-down strategy, and then retreats, lifting the object. The plan is informed by both the instruction and visual evidence, ensuring each behavioral phase is mapped directly to the observed states in the episode.",
+    "preconditions": [
+      "Red cylindrical object (red_cylinder) present and unobstructed on table",
+      "Robot gripper is empty and operable",
+      "Robot arm is powered and initialized"
+    ],
+    "stepwise_plan": [
+      "Visually confirm presence of red_cylinder on table; retry perception if needed",
+      "Localize and detect the red_cylinder",
+      "Move arm above the red_cylinder at safe offset",
+      "Open gripper to accommodate object's width",
+      "Approach target and align with grasping axis",
+      "Compute optimal grasp pose (top strategy)",
+      "Execute grasp at pose and close gripper",
+      "Verify that red_cylinder is securely held",
+      "Retract and lift object from table"
+    ],
+    "success_criteria": [
+      "Red_cylinder is successfully lifted off the table and securely held by the gripper"
+    ],
+    "failure_and_recovery": [
+      "Object not detected: retry visual scan up to 3 times",
+      "Grasp fails: terminate if object not securely held",
+      "Collision risk: halt and retreat"
+    ],
+    "termination": "Behavior terminates once the red_cylinder is securely in the gripper and arm has retreated from the table surface."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up the red object from the table",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["red_cylinder", "blue_block_1", "blue_block_2", "table"],
+  "objects_from_instruction": ["red_object"],
+  "blackboard_keys": ["grasp_red_cylinder"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"red_cylinder"},"description":"Checks if the red cylinder is visible to the sensors"},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"red_cylinder","pattern":"grid","max_attempts":3,"timeout_ms":800},"description":"Actively scan for the red cylinder in a grid pattern"},
+    {"id":"DetectObject","type":"Action","ports":{"target":"red_cylinder","timeout_ms":800},"description":"Detects and localizes the red cylinder"},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"red_cylinder","offset_z":0.05,"timeout_ms":1500},"description":"Moves end-effector to a position above the red cylinder"},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Opens gripper to specified width"},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"red_cylinder","tolerance":0.005,"timeout_ms":1500},"description":"Approach and align to prepare for grasp"},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"red_cylinder","strategy":"top","result_key":"grasp_red_cylinder"},"description":"Computes grasp pose for the red cylinder using top strategy"},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_red_cylinder","strategy":"top","timeout_ms":1000},"description":"Executes grasp at computed pose"},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"red_cylinder"},"description":"Checks if the red cylinder is held in the gripper"},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1000},"description":"Retracts arm after grasp"}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 8, "conditions": 2, "depth": 2},
+  "failure_modes": [
+    "Perception failure: red object occluded or not visible",
+    "Grasp execution failure: slip or collision",
+    "Mechanical failure: gripper fails to open or close"
+  ],
+  "recovery_strategy": [
+    "Retry scan for up to 3 attempts on perception failure",
+    "Abort on unsuccessful grasp or unstable hold",
+    "Retreat arm on collision"
+  ],
+  "assumptions": [
+    "Frames show the robot consistently interacting with a red cylinder, assumed to be the 'red object' mentioned in instruction.",
+    "No placement is shown or required by instruction; sequence ends after pick and retreat.",
+    "Instruction does not specify force, tolerance, or timing, so defaults/bins are selected for safety and speed."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Robot lifts and holds the red cylinder free of the table at episode end"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"red_cylinder"}},
+      "active_path_ids": ["Sequence","Fallback","IsObjectVisible"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"red_cylinder","pattern":"grid","max_attempts":3,"timeout_ms":800}},
+      "active_path_ids": ["Sequence","Fallback","RetryUntilSuccessful","ScanForTarget"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_cylinder","timeout_ms":800}},
+      "active_path_ids": ["Sequence","DetectObject"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"red_cylinder","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": ["Sequence","OpenGripper"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_cylinder","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"red_cylinder","strategy":"top","result_key":"grasp_red_cylinder"}},
+      "active_path_ids": ["Sequence","ComputeGraspPose"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_red_cylinder","strategy":"top","timeout_ms":1000}},
+      "active_path_ids": ["Sequence","GraspAtPose"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": ["Sequence","Retreat"]
+    }
+  ]
+}

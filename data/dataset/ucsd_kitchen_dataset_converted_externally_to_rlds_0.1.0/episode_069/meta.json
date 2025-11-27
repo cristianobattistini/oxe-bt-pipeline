@@ -1,0 +1,236 @@
+{
+  "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_069",
+  "task_summary": "The robot turns on the faucet by identifying the faucet handle, approaching and grasping it, then rotating the handle to the open position.",
+  "task_long_description": {
+    "overview": "This episode shows a robot manipulating the handle of a faucet in a small kitchen setup. The robot must locate the faucet handle (knob type), approach and align for a secure side grasp, rotate it to the 'open' position, and confirm water flow has started. The workspace is a small sink and cabinet environment, requiring precise motion around obstacles. Visual detection and verification of actuation are needed, especially with occlusion risks or ambiguous handle states.",
+    "preconditions": [
+      "Robot is positioned before the sink",
+      "Faucet handle is visible or findable",
+      "Gripper is operational"
+    ],
+    "stepwise_plan": [
+      "Search for and visually acquire faucet handle",
+      "Verify detection; approach and align to handle",
+      "Grasp handle from side securely",
+      "Rotate knob by 45 degrees in 'open' direction",
+      "Verify faucet actuation",
+      "Retreat to safe position"
+    ],
+    "success_criteria": [
+      "Faucet handle rotated as intended",
+      "Water flow begins",
+      "Robot disengages safely"
+    ],
+    "failure_and_recovery": [
+      "Faucet handle not detected: rescan up to 3 times",
+      "Grasp fail: retry approach and grasp",
+      "Faucet does not actuate: repeat turn action"
+    ],
+    "termination": "Upon successful faucet actuation and robot retreat, or unrecoverable error."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Turn on the faucet",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"
+  ],
+  "objects": [
+    "faucet", "faucet_handle", "sink", "cabinet", "robot_arm", "gripper"
+  ],
+  "objects_from_instruction": [
+    "faucet", "faucet_handle"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "faucet_handle"},
+      "description": "Checks whether the faucet handle is visible in the scene."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "faucet_handle", "pattern": "arc", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Scans the area to find the faucet handle if not initially detected."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "faucet_handle", "timeout_ms": 800},
+      "description": "Performs precise detection of the faucet handle."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "faucet_handle", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Moves the end effector to align with the faucet handle with moderate precision."
+    },
+    {
+      "id": "Grasp",
+      "type": "Action",
+      "ports": {"target": "faucet_handle", "strategy": "side", "force": 5, "timeout_ms": 800},
+      "description": "Executes a gentle side grasp of the handle."
+    },
+    {
+      "id": "TurnKnob",
+      "type": "Action",
+      "ports": {"target": "faucet_handle", "knob_type": "knob", "angle_deg": 45, "direction": "open", "force_limit": 5, "timeout_ms": 1000},
+      "description": "Rotates the faucet handle in the 'open' direction to actuate the faucet."
+    },
+    {
+      "id": "ButtonPressed",
+      "type": "Condition",
+      "ports": {"target": "faucet"},
+      "description": "Checks whether the faucet has been activated."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance": 0.05, "timeout_ms": 800},
+      "description": "Moves the robot arm away from the faucet handle."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 11,
+    "actions": 6,
+    "conditions": 2,
+    "depth": 9
+  },
+  "failure_modes": [
+    "Faucet handle occluded from view",
+    "No stable grasp achieved",
+    "No faucet response after turn",
+    "Misalignment causes slippage"
+  ],
+  "recovery_strategy": [
+    "Rescan area up to three times",
+    "Retry approach and grasp on failure",
+    "Repeat turn knob action if no actuation"
+  ],
+  "assumptions": [
+    "Frames visually confirm presence and manipulation of faucet handle, presumed to be a knob.",
+    "No explicit water flow confirmation visible, but ButtonPressed on faucet assumed to signal actuation.",
+    "Instruction did not specify handle type or rotation degree; 45 degrees chosen from observed arm motion."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Faucet handle rotates in open direction",
+      "Water flow begins or proxy actuation detected",
+      "Robot does not damage fixture"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "IsObjectVisible",
+        "attrs": {"target": "faucet_handle"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {"target": "faucet_handle", "pattern": "arc", "max_attempts": 3, "timeout_ms": 1200}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {"target": "faucet_handle", "timeout_ms": 800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {"target": "faucet_handle", "tolerance": 0.005, "timeout_ms": 1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "Grasp",
+        "attrs": {"target": "faucet_handle", "strategy": "side", "force": 5, "timeout_ms": 800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "TurnKnob",
+        "attrs": {"target": "faucet_handle", "knob_type": "knob", "angle_deg": 45, "direction": "open", "force_limit": 5, "timeout_ms": 1000}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ButtonPressed",
+        "attrs": {"target": "faucet"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {"distance": 0.05, "timeout_ms": 800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {"distance": 0.05, "timeout_ms": 800}
+      },
+      "active_path_ids": []
+    }
+  ]
+}

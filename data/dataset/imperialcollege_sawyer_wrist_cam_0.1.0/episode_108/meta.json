@@ -1,0 +1,207 @@
+{
+  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
+  "episode_id": "episode_108",
+  "task_summary": "Pick up the mug: Locate the mug visually, approach, align, grasp from top and confirm object in gripper.",
+  "task_long_description": {
+    "overview": "A robotic manipulator is tasked to pick up a white mug placed on a blue surface. Using visual servoing and top-down grasping, the robot first ensures the mug is detected, approaches it, opens the gripper, aligns carefully, computes the grasp pose, executes a top grasp, and confirms a successful pick. Stable execution is necessary as the scene contains mainly the mug (no distractors); the blue surface offers visual contrast.",
+    "preconditions": [
+      "Mug is present and unobstructed on surface",
+      "Robot arm and gripper initialized and above workspace",
+      "Gripper empty; workspace clear of hazards"
+    ],
+    "stepwise_plan": [
+      "Check if mug is visible; scan up to 3 times if not",
+      "Detect mug accurately",
+      "Move above mug offset 5cm",
+      "Open gripper to 0.06m width",
+      "Approach and align with tight tolerance (0.005m)",
+      "Compute grasp pose (top strategy)",
+      "Execute grasp at computed pose",
+      "Verify mug is held in gripper"
+    ],
+    "success_criteria": [
+      "Mug securely held in gripper at end of episode",
+      "No collision or spillage observed"
+    ],
+    "failure_and_recovery": [
+      "Mug not found: scan up to 3 more times",
+      "Misalignment: approach and align step re-executed",
+      "Grasp failed: sequence re-initialized",
+      "Object not in gripper: full recovery cycle"
+    ],
+    "termination": "Task terminates once mug is securely held in gripper or all recovery attempts exhausted."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up mug",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["mug"],
+  "objects_from_instruction": ["mug"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "mug"},
+      "description": "Checks if the mug can be visually detected."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "mug","pattern":"raster","max_attempts":3,"timeout_ms":1200},
+      "description": "Scans workspace to find the mug if not initially visible."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "mug", "timeout_ms": 800},
+      "description": "Accurately detects and locates mug in the workspace."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target":"mug","offset_z":0.05,"timeout_ms":1500},
+      "description": "Moves the end-effector above the mug at a specified vertical offset."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width": 0.06, "timeout_ms": 500},
+      "description": "Opens the gripper to allow approach for grasping the mug."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target":"mug", "tolerance":0.005, "timeout_ms":1500},
+      "description": "Approaches and aligns the gripper with high accuracy to the mug."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target":"mug","strategy":"top","result_key":"std_top"},
+      "description": "Computes the pose for a top-down grasp of the mug."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key":"std_top","strategy":"top","timeout_ms":1000},
+      "description": "Executes the grasp at the computed pose using top strategy."
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {"target":"mug"},
+      "description": "Checks if the mug is currently held in the gripper."
+    }
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 7, "conditions": 2, "depth": 3},
+  "failure_modes": [
+    "Mug occluded or not visible",
+    "Perception failure (wrong detection)",
+    "Bad alignment (missed grasp point)",
+    "Grasp fails or gripper jams",
+    "Mug not actually grasped after action"
+  ],
+  "recovery_strategy": [
+    "Retry scan if mug not detected",
+    "Re-execute approach and align",
+    "Restart grasp sequence if object not held"
+  ],
+  "assumptions": [
+    "Frames confirm only the mug on a flat blue surface; no distractors or placements are required.",
+    "No evidence of moving or placing phase is visible in frames.",
+    "Timeouts and force are not specified by instruction; default/typical values assigned.",
+    "No explicit indication of need for high force or speed in either instruction or frames.",
+    "Top grasp is presumed due to direct overhead view of mug."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Robot picks up the mug and holds it in the gripper without dropping.",
+      "No collision with scene or spillage."
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"mug"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"mug","pattern":"raster","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"mug","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"mug","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"mug","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"mug","strategy":"top","result_key":"std_top"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"std_top","strategy":"top","timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"mug"}},
+      "active_path_ids": []
+    }
+  ]
+}
