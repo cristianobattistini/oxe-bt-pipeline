@@ -1,11 +1,173 @@
 {
   "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_014",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Put the bowl inside the kitchen cabinet",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0/episode_014",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot is tasked to place a bowl inside a kitchen cabinet by perceiving, grasping, and relocating the bowl onto the interior shelf, with correct opening and placement actions.",
+  "task_long_description": {
+    "overview": "In this episode, a robot arm performs a pick-and-place task in a kitchen scene, moving a bowl from the countertop into the interior shelf of the kitchen cabinet. The robot first locates and verifies the bowl visually, opens its gripper, approaches and computes a grasp, then picks up the bowl securely. Upon confirming the grasp, the robot ensures the cabinet is open (and opens it if needed), moves above the cabinet shelf, carefully places the bowl onto the shelf surface, releases it, and retreats. Key constraints are reliable perception, non-damaging grasp, and robust handling of the cabinet (open before place).",
+    "preconditions": [
+      "Bowl is present and visible on the counter.",
+      "Kitchen cabinet is accessible.",
+      "Gripper is functional and empty."
+    ],
+    "stepwise_plan": [
+      "Detect bowl via vision.",
+      "Open gripper to suitable width.",
+      "Move above bowl and compute grasp pose.",
+      "Grasp bowl using top approach.",
+      "Verify bowl is secured in gripper.",
+      "Check if kitchen cabinet is open; open if not.",
+      "Move above the cabinet shelf.",
+      "Place bowl inside cabinet on shelf.",
+      "Open gripper to release bowl.",
+      "Retreat the arm safely."
+    ],
+    "success_criteria": [
+      "Bowl is placed securely on the shelf inside the cabinet.",
+      "Cabinet is left open after placement."
+    ],
+    "failure_and_recovery": [
+      "Bowl not detected: retry scanning.",
+      "Grasp unstable: attempt retry or abort.",
+      "Cabinet closed: attempt to open."
+    ],
+    "termination": "Task ends when arm retreats after the bowl has been released inside the cabinet."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Put the bowl inside the kitchen cabinet",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["bowl", "kitchen_cabinet", "shelf", "countertop"],
+  "objects_from_instruction": ["bowl", "kitchen_cabinet"],
+  "blackboard_keys": ["grasp_bowl"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"bowl"},"description":"Checks if the bowl is visible in the scene."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"bowl","pattern":"raster","max_attempts":3,"timeout_ms":1200},"description":"Performs a raster scan for the bowl if not visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"bowl","timeout_ms":800},"description":"Detects exact pose of the bowl."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Opens the gripper to prepare for grasp."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"bowl","offset_z":0.05,"timeout_ms":1500},"description":"Moves the gripper above the bowl for grasping."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"bowl","strategy":"top","result_key":"grasp_bowl"},"description":"Computes a top-down grasp pose for the bowl."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_bowl","strategy":"top","timeout_ms":1000},"description":"Executes grasp at the computed pose."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"bowl"},"description":"Confirms the bowl is held by the gripper."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"kitchen_cabinet"},"description":"Checks if the cabinet is open."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"kitchen_cabinet","container_type":"cabinet","timeout_ms":1500},"description":"Opens the kitchen cabinet if needed."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"kitchen_cabinet","offset_z":0.10,"timeout_ms":1500},"description":"Moves the bowl above the cabinet shelf."},
+    {"id":"PlaceOnSurface","type":"Action","ports":{"target":"bowl","area_id":"shelf","yaw_deg":0,"press_force":10,"timeout_ms":1200},"description":"Places the bowl on the cabinet's shelf surface."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Releases the bowl by opening the gripper."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":1200},"description":"Retracts the arm from the cabinet after placing the bowl."}
+  ],
+  "tree_stats": {"nodes_total":15,"actions":10,"conditions":3,"depth":4},
+  "failure_modes": [
+    "Bowl not detected.",
+    "Failed to grasp bowl.",
+    "Cabinet not open.",
+    "Placement collides or bowl is dropped.",
+    "Release fails."
+  ],
+  "recovery_strategy": [
+    "Retry visual scan if bowl not found.",
+    "Attempt to re-grasp if bowl not stable.",
+    "Try opening cabinet again if not open.",
+    "Abort or reposition if placement fails."
+  ],
+  "assumptions": [
+    "Cabinet is present and accessible per instruction and frames.",
+    "Cabinet door open/close status not explicit in frames; assumed open unless checked.",
+    "Frames show no explicit grasp force tuning; mapped to default (null force).",
+    "Frames confirm bowl presence and manipulations matching instruction."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Bowl placed entirely on/in cabinet shelf.",
+      "Arm retreats with bowl released."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"bowl","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"bowl","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"bowl","strategy":"top","result_key":"grasp_bowl"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_bowl","strategy":"top","timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"kitchen_cabinet","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"bowl","area_id":"shelf","yaw_deg":0,"press_force":10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

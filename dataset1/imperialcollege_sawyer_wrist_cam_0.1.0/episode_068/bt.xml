@@ -1,5 +1,14 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="can"/>
+      <Action ID="DetectObject" target="can" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="can" offset_z="0.05" timeout_ms="1000"/>
+    <Action ID="ComputeGraspPose" target="can" strategy="top" result_key="std_top"/>
+    <Action ID="ApproachAndAlign" target="can" tolerance="0.005" timeout_ms="1000"/>
+    <Action ID="Grasp" target="can" strategy="top" force="5" timeout_ms="800"/>
+    <Condition ID="ObjectInGripper" target="can"/>
   </Sequence>
 </BehaviorTree>

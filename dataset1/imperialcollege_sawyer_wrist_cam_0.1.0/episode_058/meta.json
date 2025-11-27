@@ -1,11 +1,165 @@
 {
   "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
   "episode_id": "episode_058",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "put cup in dishwasher",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/imperialcollege_sawyer_wrist_cam_0.1.0/episode_058",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Sequentially pick up a cup and place it securely in the dishwasher, verifying perception and success at each phase.",
+  "task_long_description": {
+    "overview": "A robot arm equipped with a gripper and wrist camera is tasked with placing a cup into the dishwasher. The cup is initially on a blue surface and must be detected, grasped, then moved and positioned on the dish rack inside the dishwasher. The system verifies each step to ensure robust execution, including contingency handling for perception failures.",
+    "preconditions": [
+      "Cup is present and visible in workspace",
+      "Dishwasher is accessible and dish rack is exposed",
+      "Gripper mechanism operational"
+    ],
+    "stepwise_plan": [
+      "Detect cup position",
+      "Open gripper and position above cup",
+      "Compute grasp pose and grasp cup",
+      "Verify cup is held",
+      "Detect dishwasher and dish rack position",
+      "Move above dish rack",
+      "Place cup onto rack surface",
+      "Open gripper to release cup",
+      "Retreat arm"
+    ],
+    "success_criteria": [
+      "Cup placed securely on dishwasher rack",
+      "No objects dropped or misplaced",
+      "No collisions with environment"
+    ],
+    "failure_and_recovery": [
+      "Perception failure: retry cup or dishwasher scan up to 3 times",
+      "Grasp failure: repeat grasp after re-aligning",
+      "Placement error: ensure pose is available, retry if object not released"
+    ],
+    "termination": "After cup is placed and arm has retreated safely from dishwasher"
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "put cup in dishwasher",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["cup", "dishwasher", "dish_rack"],
+  "objects_from_instruction": ["cup", "dishwasher"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"cup"},"description":"Checks if cup is visible"},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"cup","pattern":"grid","max_attempts":3,"timeout_ms":1500},"description":"Scans to locate cup if not immediately visible"},
+    {"id":"DetectObject","type":"Action","ports":{"target":"cup","timeout_ms":800},"description":"Perceives cup using wrist camera"},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Opens gripper for pickup"},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"cup","offset_z":0.05,"timeout_ms":1500},"description":"Moves end effector directly above cup"},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"cup","strategy":"top","result_key":"std_top"},"description":"Calculates optimal top grasp for cup"},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"cup","tolerance":0.005,"timeout_ms":1500},"description":"Approaches and aligns above cup"},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"std_top","strategy":"top","timeout_ms":800},"description":"Executes grasp at computed pose"},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"cup"},"description":"Confirms object is held"},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"dishwasher"},"description":"Checks if dishwasher is visible"},
+    {"id":"DetectObject","type":"Action","ports":{"target":"dishwasher","timeout_ms":800},"description":"Detects dishwasher location"},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"dishwasher","offset_z":0.10,"timeout_ms":1500},"description":"Moves above dishwasher"},
+    {"id":"PlaceOnSurface","type":"Action","ports":{"target":"cup","area_id":"dish_rack","yaw_deg":0,"press_force":5,"timeout_ms":800},"description":"Places cup on rack"},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.10,"timeout_ms":500},"description":"Releases cup"},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1200},"description":"Moves arm back"}
+  ],
+  "tree_stats": {"nodes_total": 17, "actions": 13, "conditions": 4, "depth": 3},
+  "failure_modes": [
+    "Cup not detected",
+    "Grasp pose not stable",
+    "Dishwasher not detected",
+    "Cup not released"
+  ],
+  "recovery_strategy": [
+    "Retry perception up to 3 times",
+    "Verify and repeat grasp if unstable",
+    "Repeat place if not released"
+  ],
+  "assumptions": [
+    "Frames show the full scene with the cup and dish rack inside the dishwasher",
+    "Dishwasher is open, access clear, as shown in the frames",
+    "No direct evidence of the approach or grasp in the frames, so action sequence designed by logical inference",
+    "Instruction matches the frames; no significant conflicts"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Cup placed securely in dishwasher rack",
+      "Robot retreats without collision"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"cup","timeout_ms":800}},
+      "active_path_ids": ["Sequence","Fallback","DetectObject"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"cup","timeout_ms":800}},
+      "active_path_ids": ["Sequence","Fallback","DetectObject"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"cup","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"cup","strategy":"top","result_key":"std_top"}},
+      "active_path_ids": ["Sequence","ComputeGraspPose"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"std_top","strategy":"top","timeout_ms":800}},
+      "active_path_ids": ["Sequence","GraspAtPose"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"dishwasher","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"cup","area_id":"dish_rack","yaw_deg":0,"press_force":5,"timeout_ms":800}},
+      "active_path_ids": ["Sequence","PlaceOnSurface"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.10,"timeout_ms":500}},
+      "active_path_ids": ["Sequence","OpenGripper"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": ["Sequence","Retreat"]
+    }
+  ]
 }

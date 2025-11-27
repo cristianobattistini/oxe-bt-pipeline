@@ -1,11 +1,198 @@
 {
   "dataset_id": "nyu_rot_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_007",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "press the button",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/nyu_rot_dataset_converted_externally_to_rlds_0.1.0/episode_007",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "A robotic arm is instructed to press a button located on a blue base. The robot perceives, approaches, and actuates the button with a single press, verifying success before retreating.",
+  "task_long_description": {
+    "overview": "The task involves a stationary robot arm executing a 'press the button' behavior on a blue push-button resting atop a table against a wall. The robot starts at rest, visually locates the button, then moves into position above it. It aligns for optimal pressing, performs the actuation using minimal press force and depth, verifies the button is pressed, and withdraws. The process is sequential, requiring accurate perception and execution for successful completion.",
+    "preconditions": [
+      "Robot arm powered and initialized",
+      "Button present and accessible on table",
+      "Workspace clear around button"
+    ],
+    "stepwise_plan": [
+      "Locate visible button using perception",
+      "Move above button at a safe height",
+      "Approach and align with button for downward press",
+      "Press button with low force and sufficient depth",
+      "Confirm button is pressed",
+      "Retreat to clear workspace"
+    ],
+    "success_criteria": [
+      "Button is physically pressed as confirmed by sensor",
+      "No collateral damage or collisions",
+      "Retreat accomplished and arm clear of button"
+    ],
+    "failure_and_recovery": [
+      "Perception failure: Retry detection",
+      "Misalignment: Reapproach and align again",
+      "Button press not detected: Retry press action"
+    ],
+    "termination": "Tree ends after button successfully pressed and robot retreats."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "press the button",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["robot_arm", "button", "table"],
+  "objects_from_instruction": ["button"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target":"button"},
+      "description": "Checks if the button is visible to robot sensors"
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target":"button","timeout_ms":800},
+      "description": "Attempts detection of button using perception"
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target":"button","offset_z":0.05,"timeout_ms":1500},
+      "description": "Moves end effector directly above button"
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target":"button","tolerance":0.005,"timeout_ms":1500},
+      "description": "Aligns end effector with button for pressing"
+    },
+    {
+      "id": "PressButton",
+      "type": "Action",
+      "ports": {
+        "target":"button",
+        "button_type":"push_button",
+        "press_depth":0.010,
+        "press_force":5,
+        "timeout_ms":800
+      },
+      "description": "Presses the button with defined force and depth"
+    },
+    {
+      "id": "ButtonPressed",
+      "type": "Condition",
+      "ports": {"target":"button"},
+      "description": "Checks if the button has been pressed"
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance":0.05,"timeout_ms":800},
+      "description": "Retracts the robot arm clear of button"
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 7,
+    "actions": 5,
+    "conditions": 2,
+    "depth": 7
+  },
+  "failure_modes": [
+    "Button not detected",
+    "Misalignment before press",
+    "Insufficient force/depth for actuation",
+    "Retreat action blocked"
+  ],
+  "recovery_strategy": [
+    "Retry object detection on failure",
+    "Reapproach and align if misaligned",
+    "Retry press if not actuated"
+  ],
+  "assumptions": [
+    "Frames show a single button on the table and a robot pressing downward on it",
+    "No conflicting objects present, so 'button' is mapped unambiguously to the blue target",
+    "Press parameters set to minimum allowed values as no explicit gentle/quick requirements in instruction"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Robot presses and actuates button; button remains visibly pressed in final frame"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible", "attrs":{"target":"button"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject", "attrs":{"target":"button","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove", "attrs":{"target":"button","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign", "attrs":{"target":"button","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"PressButton", "attrs":{"target":"button","button_type":"push_button","press_depth":0.010,"press_force":5,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"ButtonPressed", "attrs":{"target":"button"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat", "attrs":{"distance":0.05,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat", "attrs":{"distance":0.05,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat", "attrs":{"distance":0.05,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }

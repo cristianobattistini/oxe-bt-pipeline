@@ -9,12 +9,18 @@ import shutil
 from pathlib import Path
 
 def augment_instruction_with_actions(instruction: str, actions_line: str) -> str:
-    """Append actions to instruction if not already present"""
+    """
+    Append actions to instruction if not already present and add a constraint reminder.
+    """
+    reminder = (
+        "\nCONSTRAINT: Only the actions listed in the array below "
+        "can be used in the behavior tree. Do NOT invent or add any other actions."
+    )
     if not actions_line or "actions=[" in instruction:
         return instruction
     if instruction.strip():
-        return instruction.rstrip() + "\n" + actions_line
-    return actions_line
+        return instruction.rstrip() + "\n" + actions_line + reminder
+    return actions_line + reminder
 
 def process_episode(ep_dir: Path, args, split_dir: Path, episodes_root: Path) -> list:
     samples = []
@@ -23,7 +29,6 @@ def process_episode(ep_dir: Path, args, split_dir: Path, episodes_root: Path) ->
     meta_path = ep_dir / args.meta_filename
     if not meta_path.exists():
         return samples
-
     try:
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
     except Exception:
@@ -33,7 +38,6 @@ def process_episode(ep_dir: Path, args, split_dir: Path, episodes_root: Path) ->
     xml_path = ep_dir / args.xml_filename
     if not xml_path.exists():
         return samples
-
     bt_xml = xml_path.read_text(encoding="utf-8").strip()
 
     # Get instruction from meta
@@ -58,66 +62,53 @@ def process_episode(ep_dir: Path, args, split_dir: Path, episodes_root: Path) ->
         "- Do NOT add explanations, comments, or markdown."
     )
 
-    # Process frames in locals/ subdirectories
-    locals_dir = ep_dir / args.locals_dirname
-    if not locals_dir.exists() or not locals_dir.is_dir():
-        return samples
+    # ------ ONLY TAKE THE INITIAL FRAME ------
+    sampled_frames_dir = ep_dir / "sampled_frames"
+    first_frame = sampled_frames_dir / "frame_0000.jpg"
+    if not sampled_frames_dir.exists() or not first_frame.exists():
+        return samples  # skip if missing
 
-    for local_subdir in sorted(locals_dir.iterdir()):
-        if not local_subdir.is_dir():
-            continue
-        
-        # Find frames in this local_X/ directory
-        frame_candidates = sorted(local_subdir.glob(args.frames_glob))
-        if not frame_candidates:
-            continue
-        
-        # Process each frame in this local directory
-        for frame_path in frame_candidates:
-            # Calculate output image path: images/rel_episode/locals/local_X/frame_XX.jpg
-            rel_episode = ep_dir.relative_to(episodes_root)
-            rel_img_path = rel_episode / args.locals_dirname / local_subdir.name / frame_path.name
-            dest_img_path = split_dir / "images" / rel_img_path
-            dest_img_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(frame_path, dest_img_path)
-            image_field = f"images/{rel_img_path.as_posix()}"
+    # Calculate output image path
+    rel_episode = ep_dir.relative_to(episodes_root)
+    rel_img_path = rel_episode / "sampled_frames" / "frame_0000.jpg"
+    dest_img_path = split_dir / "images" / rel_img_path
+    dest_img_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(first_frame, dest_img_path)
+    image_field = f"images/{rel_img_path.as_posix()}"
 
-            # Build single "text" block: always system_msg, then instruction (if)
-            parts = [system_msg]
-            if instruction.strip():
-                parts.append(f"INSTRUCTION: {instruction.strip()}")
-            user_text = "\n".join(parts)
+    # Build user text block
+    parts = [system_msg]
+    if instruction.strip():
+        parts.append(f"INSTRUCTION: {instruction.strip()}")
+    user_text = "\n".join(parts)
 
-            sample = {
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": user_text},
-                            {"type": "image", "image": image_field}
-                        ]
-                    },
-                    {
-                        "role": "assistant",
-                        "content": [
-                            {"type": "text", "text": bt_xml}
-                        ]
-                    }
+    sample = {
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_text},
+                    {"type": "image", "image": image_field}
+                ]
+            },
+            {
+                "role": "assistant",
+                "content": [
+                    {"type": "text", "text": bt_xml}
                 ]
             }
-            samples.append(sample)
-    
+        ]
+    }
+    samples.append(sample)
     return samples
 
 def main():
-    parser = argparse.ArgumentParser(description="Build JSONL dataset in Unsloth Vision style")
+    parser = argparse.ArgumentParser(description="Build JSONL dataset in Unsloth Vision style (initial frame only)")
     parser.add_argument("--episodes_root", type=str, required=True, help="Root directory with episodes and meta.json")
     parser.add_argument("--out_root", type=str, required=True, help="Output root dir for train/val splits")
     parser.add_argument("--meta_filename", type=str, default="meta.json")
     parser.add_argument("--xml_filename", type=str, default="bt.xml")
     parser.add_argument("--actions_filename", type=str, default="actions.txt")
-    parser.add_argument("--locals_dirname", type=str, default="locals", help="Directory containing local_X subdirs")
-    parser.add_argument("--frames_glob", type=str, default="frame_*.jpg")
     parser.add_argument("--jsonl_name", type=str, default="data.jsonl")
     parser.add_argument("--train_ratio", type=float, default=0.9)
     parser.add_argument("--shuffle_seed", type=int, default=42)

@@ -1,11 +1,30 @@
 {
-  "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
-  "episode_id": "episode_111",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pick up pan",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/imperialcollege_sawyer_wrist_cam_0.1.0/episode_111",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
-  },
-  "notes": "Fill after model generation."
-}
+    "overview": "This task consists of visually locating a white pan lying on a blue surface, approaching and aligning the gripper, and executing a controlled top grasp to pick up the pan. The robot relies on object detection, centering over the pan, lowering until contact, and closing the gripper with gentle force, before verifying a stable grasp. The scene shows a single pan dominant in all frames, with clear unobstructed access for the arm. The process is sequential, minimizing disturbances and ensuring a reliable pick-up. The episode appears free from obstacles or occlusions.",
+    "preconditions": [
+      "Pan is fully visible and isolated on the workspace surface",
+      "Robot gripper is initially open",
+      "Camera and perception systems operational"
+    ],
+    "stepwise_plan": [
+      "Check visibility of the pan in the workspace",
+      "If not visible, scan using raster pattern",
+      "Detect pan for pose estimation",
+      "Open gripper",
+      "Move TCP above the pan with an offset",
+      "Compute grasp pose using top-grasp strategy",
+      "Approach and align with tight tolerance",
+      "Lower until gentle contact with pan",
+      "Close gripper with light force",
+      "Verify grasp is stable and pan is held"
+    ],
+    "success_criteria": [
+      "Pan is firmly grasped and elevated by the robot",
+      "No accidental sliding or dropping upon lift"
+    ],
+    "failure_and_recovery": [
+      "If pan not detected: retry scan",
+      "If grasp not stable: repeat grasping sequence",
+      "If contact not made: realign and lower again"
+    ],
+    "termination": "Task terminates when pan is securely grasped, as confirmed by stability and object-in-gripper conditions."
+  }

@@ -1,11 +1,150 @@
 {
   "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
   "episode_id": "episode_080",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "open bottle",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/imperialcollege_sawyer_wrist_cam_0.1.0/episode_080",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot is required to open a bottle detected in its workspace, using sequential perceptual and manipulation actions.",
+  "task_long_description": {
+    "overview": "This episode captures a manipulator or wrist-equipped robot interacting with a bottle, as viewed from its wrist-mounted camera. The robot must visually locate the bottle, confirm its presence, approach and align relative to it, and execute the opening action. The bottle is the sole prominent object against a blue background, and the sequence of frames shows progressive opening from sealed to unsealed states. Constraints include single-object focus, occlusion avoidance, and stable alignment to enable reliable opening.",
+    "preconditions": [
+      "Bottle is present in the workspace",
+      "Robot gripper/tool is unobstructed",
+      "Lighting sufficient for visual detection"
+    ],
+    "stepwise_plan": [
+      "Scan for and confirm bottle visibility",
+      "Precisely detect bottle pose",
+      "Move above the bottle",
+      "Align with bottle for opening",
+      "Execute the container-opening action",
+      "Verify bottle is open",
+      "Wait briefly to ensure completion"
+    ],
+    "success_criteria": [
+      "Bottle visibly open in end frame",
+      "No tool occlusion or unexpected collision",
+      "Opening action completed smoothly"
+    ],
+    "failure_and_recovery": [
+      "Failure to detect bottle: repeat scan operation",
+      "Alignment error: retry approach and alignment",
+      "Container did not open: retry opening action"
+    ],
+    "termination": "Terminate after successful verification that the bottle is open, or after timeout/retry limits are reached."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "open bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["bottle"],
+  "objects_from_instruction": ["bottle"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"bottle"},"description":"Checks if the bottle is visible in the camera frame."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"bottle","pattern":"circle","max_attempts":3,"timeout_ms":1000},"description":"Scans workspace in a circular pattern to locate the bottle."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"bottle","timeout_ms":800},"description":"Performs detection or pose estimation of the bottle."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"bottle","offset_z":0.05,"timeout_ms":1000},"description":"Moves the tool to a position above the bottle."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"bottle","tolerance":0.005,"timeout_ms":1000},"description":"Approaches and aligns the tool with the bottle with a tight tolerance."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"bottle","container_type":"bottle","timeout_ms":1500},"description":"Performs the opening action for a bottle-type container."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"bottle"},"description":"Checks if the bottle is now open."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":500},"description":"Waits briefly to ensure completion and stabilization."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 6, "conditions": 3, "depth": 3},
+  "failure_modes": [
+    "Bottle not detected due to occlusion or camera error",
+    "Tool misalignment prevents opening",
+    "Opening action does not complete"
+  ],
+  "recovery_strategy": [
+    "Repeat ScanForTarget up to 3 times",
+    "Retry MoveAbove or ApproachAndAlign if alignment fails",
+    "Retry OpenContainer if bottle still closed after attempt"
+  ],
+  "assumptions": [
+    "The bottle is the prominent cylindrical object in all frames.",
+    "Contact sheet shows progressive opening (frames [0] sealed, [8] open).",
+    "The opening mechanism is automatic and accessible for bottle type.",
+    "Instruction matches frames; no clear grasp sequence seen, only direct opening."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "The bottle cap is visibly removed or open in the final frame.",
+      "Robot action does not damage bottle or workspace."
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"bottle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"bottle","pattern":"circle","max_attempts":3,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"bottle","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"bottle","offset_z":0.05,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"bottle","tolerance":0.005,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"bottle","container_type":"bottle","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id":"ContainerOpen","attrs":{"target":"bottle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":500}},
+      "active_path_ids": []
+    }
+  ]
 }

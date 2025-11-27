@@ -1,11 +1,163 @@
 {
   "dataset_id": "nyu_rot_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_003",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "open the box",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/nyu_rot_dataset_converted_externally_to_rlds_0.1.0/episode_003",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Robot detects, approaches, grasps the lid, and opens a small box using a top grasp and lid manipulation.",
+  "task_long_description": {
+    "overview": "This episode requires a robot arm to open a small storage box situated on a tabletop. The box has a hinged or removable lid. The robot must visually locate the box, approach and align above the lid, compute a suitable grasp pose (top grasp), execute the grasp, and actuate the lid opening action. Once open, the robot confirms success, retreats, and waits. Visual perception is used to guide actions and confirm progress.",
+    "preconditions": [
+      "Box present on table within reach",
+      "Box initially closed",
+      "Lid or opening mechanism accessible",
+      "No occlusions blocking box or lid"
+    ],
+    "stepwise_plan": [
+      "Check if box is visible; scan if not",
+      "Detect box and localize for approach",
+      "Align above the box",
+      "Compute grasp pose for box lid",
+      "Grasp box lid with top strategy",
+      "Open lid using container action",
+      "Verify box is open",
+      "Retreat to safe position",
+      "Wait for confirmation or next instruction"
+    ],
+    "success_criteria": [
+      "Box lid opened fully or sufficiently",
+      "No collision or dropped objects",
+      "Robot arm returns to neutral after opening"
+    ],
+    "failure_and_recovery": [
+      "Lid slip or failed grasp (retry or replan)",
+      "Box not detected (initiates scan)",
+      "Obstacle prevents opening (abort after timeout)"
+    ],
+    "termination": "Tree runs until box is open and robot safely retreats."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "open the box",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["box", "box_lid", "table"],
+  "objects_from_instruction": ["box"],
+  "blackboard_keys": ["grasp_lid"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"box"},"description":"checks if box is visible from current view"},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"box","pattern":"raster","max_attempts":3,"timeout_ms":1200},"description":"visually scan workspace to locate box"},
+    {"id":"DetectObject","type":"Action","ports":{"target":"box","timeout_ms":800},"description":"localized detection of box in view"},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"box","tolerance":0.005,"timeout_ms":1500},"description":"move robot above box and align gripper"},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"box_lid","strategy":"top","result_key":"grasp_lid"},"description":"compute an appropriate grasp pose for the box lid"},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_lid","strategy":"top","timeout_ms":1000},"description":"grasp box lid at computed pose"},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"box","container_type":"box_lid","timeout_ms":1500},"description":"actuate opening the box lid"},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"box"},"description":"verify box is open"},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1200},"description":"retreat arm from box after opening"},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":500},"description":"short static wait post actions"}
+  ],
+  "tree_stats": {"nodes_total": 12, "actions": 8, "conditions": 2, "depth": 3},
+  "failure_modes": [
+    "Box or lid not detected",
+    "Grasp pose computation fails",
+    "Lid slips or grasp unstable during opening",
+    "Timeout while opening lid",
+    "Obstacle or jammed box"
+  ],
+  "recovery_strategy": [
+    "Retry scan and detection (visual reacquisition)",
+    "Recompute grasp pose if unstable",
+    "Abort after repeated failures or excessive timeouts"
+  ],
+  "assumptions": [
+    "Frames show robot opening a box with a lid; box identified as 'box', lid as 'box_lid'",
+    "Instruction 'open the box' lacks specific parameters for force or timeouts, so defaults used",
+    "No explicit instruction for force, retries, or tolerance; snap to tree-recommended bins",
+    "If box opening style is unclear (hinged, removable), select 'box_lid' container_type"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Box lid visibly open following robot manipulation",
+      "No adverse motion or dropped lid",
+      "Robot arm posture neutral and clear of box after retreat"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"box"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"box","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"box","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"box_lid","strategy":"top","result_key":"grasp_lid"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_lid","strategy":"top","timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"box","container_type":"box_lid","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id":"ContainerOpen","attrs":{"target":"box"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":500}},
+      "active_path_ids": []
+    }
+  ]
 }

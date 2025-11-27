@@ -1,11 +1,200 @@
 {
   "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_026",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pick the green apple",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/dlr_edan_shared_control_converted_externally_to_rlds_0.1.0/episode_026",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot is tasked to pick up the green apple from a plate using a top grasp. The system must visually locate the apple, approach, align, grasp, verify the pick, and retreat safely.",
+  "task_long_description": {
+    "overview": "In this tabletop scene, a blue robotic manipulator interacts with a green apple resting on a plate, alongside white cubes and a flower vase. The robot must perceive the apple, approach from above, precisely grasp it, and retreat. The BT handles visual reacquisition retries, precise alignment using the top grasp strategy, and verifies successful pick before ending. Constraints include object visibility, grasp reliability, and collision avoidance with nearby obstacles.",
+    "preconditions": [
+      "Green apple present on plate",
+      "Robot arm initialized and ready",
+      "Gripper open",
+      "No major occlusions"
+    ],
+    "stepwise_plan": [
+      "Verify green apple visibility; re-scan up to 3 times if needed",
+      "Detect and localize green apple",
+      "Open gripper to target width",
+      "Move above apple with vertical offset",
+      "Compute top grasp pose",
+      "Approach and align with tight tolerance",
+      "Execute grasp using computed pose",
+      "Verify object in gripper",
+      "Retreat from grasp location"
+    ],
+    "success_criteria": [
+      "Green apple reliably detected",
+      "Apple securely held in gripper",
+      "Robot retreats without collisions",
+      "No significant drop/roll or disturbance of other objects"
+    ],
+    "failure_and_recovery": [
+      "Apple not visible: re-scan using grid pattern, up to three attempts",
+      "Initial grasp fails: re-attempt approach/alignment up to retry limit",
+      "Slippery or unstable grasp: abort and log for retry",
+      "Collision with environment: halt and plan retreat"
+    ],
+    "termination": "Sequence completes upon successful grasp and retreat; terminates if apple cannot be acquired after retries or collision is detected."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the green apple",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 800,
+    "tolerance": 0.002,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["green_apple", "plate", "white_cube_1", "white_cube_2", "vase"],
+  "objects_from_instruction": ["green_apple"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible", "type": "Condition",
+      "ports": {"target": "green_apple"},
+      "description": "Checks if the green apple is visible in the scene."
+    },
+    {
+      "id": "ScanForTarget", "type": "Action",
+      "ports": {"target": "green_apple", "pattern": "grid", "max_attempts": 3, "timeout_ms": 800},
+      "description": "Scans for the green apple using a grid pattern."
+    },
+    {
+      "id": "DetectObject", "type": "Action",
+      "ports": {"target": "green_apple", "timeout_ms": 800},
+      "description": "Detects the precise location of the green apple."
+    },
+    {
+      "id": "OpenGripper", "type": "Action",
+      "ports": {"width": 0.06, "timeout_ms": 500},
+      "description": "Opens the gripper to 0.06m."
+    },
+    {
+      "id": "MoveAbove", "type": "Action",
+      "ports": {"target": "green_apple", "offset_z": 0.05, "timeout_ms": 1000},
+      "description": "Moves manipulator above the apple with 5cm offset."
+    },
+    {
+      "id": "ComputeGraspPose", "type": "Action",
+      "ports": {"target": "green_apple", "strategy": "top", "result_key": "std_top"},
+      "description": "Computes top grasp pose for the green apple."
+    },
+    {
+      "id": "ApproachAndAlign", "type": "Action",
+      "ports": {"target": "green_apple", "tolerance": 0.002, "timeout_ms": 1000},
+      "description": "Approaches and aligns with tight tolerance to the apple."
+    },
+    {
+      "id": "GraspAtPose", "type": "Action",
+      "ports": {"pose_key": "std_top", "strategy": "top", "timeout_ms": 1000},
+      "description": "Executes grasp using computed pose."
+    },
+    {
+      "id": "ObjectInGripper", "type": "Condition",
+      "ports": {"target": "green_apple"},
+      "description": "Verifies apple is held in gripper."
+    },
+    {
+      "id": "Retreat", "type": "Action",
+      "ports": {"distance": 0.10, "timeout_ms": 1000},
+      "description": "Retreats arm after successful pick."
+    }
+  ],
+  "tree_stats": {"nodes_total": 10, "actions": 7, "conditions": 2, "depth": 4},
+  "failure_modes": [
+    "Green apple not visible on initial attempt",
+    "Apple detection fails",
+    "Gripper fails to open/close",
+    "Grasp fails due to misalignment",
+    "Apple slips or not secured after grasp"
+  ],
+  "recovery_strategy": [
+    "Retry ScanForTarget up to three times if not visible",
+    "Abort and report if grasp fails after alignment",
+    "Reset sequence and log errors if pick fails"
+  ],
+  "assumptions": [
+    "Green apple is present and visible in most frames, matching instruction",
+    "Grasp strategy chosen from BT library (top) is valid for apple's pose",
+    "Retreat distance set conservatively to minimize collision risk",
+    "Frames 0-8 show action progression consistent with the BT plan"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Apple detected and localized",
+      "Gripper successfully holds apple",
+      "Robot arm retreats post-grasp"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "IsObjectVisible", "attrs": {"target": "green_apple"}},
+      "active_path_ids": ["Sequence", "Fallback", "IsObjectVisible"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id": "ScanForTarget", "attrs": {"target": "green_apple", "pattern": "grid", "max_attempts": 3, "timeout_ms": 800}},
+      "active_path_ids": ["Sequence", "Fallback", "RetryUntilSuccessful", "ScanForTarget"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "green_apple", "timeout_ms": 800}},
+      "active_path_ids": ["Sequence", "DetectObject"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id": "OpenGripper", "attrs": {"width": 0.06, "timeout_ms": 500}},
+      "active_path_ids": ["Sequence", "OpenGripper"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id": "MoveAbove", "attrs": {"target": "green_apple", "offset_z": 0.05, "timeout_ms": 1000}},
+      "active_path_ids": ["Sequence", "MoveAbove"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id": "ComputeGraspPose", "attrs": {"target": "green_apple", "strategy": "top", "result_key": "std_top"}},
+      "active_path_ids": ["Sequence", "ComputeGraspPose"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "green_apple", "tolerance": 0.002, "timeout_ms": 1000}},
+      "active_path_ids": ["Sequence", "ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id": "GraspAtPose", "attrs": {"pose_key": "std_top", "strategy": "top", "timeout_ms": 1000}},
+      "active_path_ids": ["Sequence", "GraspAtPose"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id": "Retreat", "attrs": {"distance": 0.10, "timeout_ms": 1000}},
+      "active_path_ids": ["Sequence", "Retreat"]
+    }
+  ]
 }

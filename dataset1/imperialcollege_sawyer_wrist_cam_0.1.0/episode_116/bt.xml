@@ -1,5 +1,30 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="cup"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="cup" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="cup" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="cup" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="cup" strategy="top" result_key="std_top"/>
+    <Action ID="ApproachAndAlign" target="cup" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="LowerUntilContact" speed="slow" max_depth="0.05" force_threshold="5" timeout_ms="1200"/>
+    <Action ID="CloseGripper" force="10" timeout_ms="800"/>
+    <Condition ID="IsGraspStable"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="dishwasher"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="dishwasher" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="dishwasher" timeout_ms="800"/>
+    <Action ID="MoveAbove" target="dishwasher" offset_z="0.10" timeout_ms="1500"/>
+    <Action ID="PlaceDown" target="dishwasher" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1200"/>
+    <Action ID="Wait" timeout_ms="500"/>
   </Sequence>
 </BehaviorTree>

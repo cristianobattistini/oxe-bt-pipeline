@@ -1,11 +1,218 @@
 {
   "dataset_id": "ucsd_pick_and_place_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_073",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pick up the red object from the table",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_pick_and_place_dataset_converted_externally_to_rlds_0.1.0/episode_073",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Pick up the red cylindrical object from the table using a robotic gripper, following a contact‑driven grasp protocol as depicted in 9 sequential frames.",
+  "task_long_description": {
+    "overview": "In this task, a robot arm locates a red cylindrical object placed on a table (marked with blue tape as reference zones). The arm approaches, aligns, and grasps the object using its end-effector, monitoring contact and grasp stability. The visual sequence suggests a methodical transition from perception to grasp, without subsequent transfer or placement. The process emphasizes careful acquisition, using contact-sensing and visual verification, and employs recovery on perception failure. All actions correspond closely to the instruction and observed scene, which contains only one manipulable item (red cylinder) and no evidence of placing.",
+    "preconditions": [
+      "Red cylindrical object is present and detectable on the table.",
+      "Gripper is in an open state and positioned above the workspace.",
+      "Table reference markers are unobstructed."
+    ],
+    "stepwise_plan": [
+      "Visually check if the red object is visible.",
+      "Retry scanning with up to 3 attempts if not initially detected.",
+      "Detect the object's position.",
+      "Move the end-effector above the red object.",
+      "Approach and align with tight tolerance.",
+      "Open gripper to pre-grasp width.",
+      "Lower slowly until contact is sensed at defined force threshold.",
+      "Close gripper with defined force to grasp the object.",
+      "Verify grasp stability and confirm the object is held."
+    ],
+    "success_criteria": [
+      "Red object securely grasped in gripper.",
+      "Grasp stability detected.",
+      "Object detected as held after pick-up."
+    ],
+    "failure_and_recovery": [
+      "If object not detected: retry scan up to 3 times.",
+      "If unstable or missed grasp: terminate sequence.",
+      "Perception noise handled by condition fallback."
+    ],
+    "termination": "Sequence completes upon confirmation that the object is securely grasped in the gripper."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up the red object from the table",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["red_cylinder", "table", "blue_marker", "robot_gripper"],
+  "objects_from_instruction": ["red_object", "table"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "red_cylinder"},
+      "description": "Checks if the red cylindrical object is visible to sensors."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "red_cylinder", "pattern": "grid", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Performs a grid scan to locate the red cylinder if not initially visible."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "red_cylinder", "timeout_ms": 800},
+      "description": "Measures and localizes the position of the red cylinder on the table."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "red_cylinder", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Moves gripper above the red cylinder with height offset for vertical approach."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "red_cylinder", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Aligns the gripper to the target for precise positioning prior to grasp."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width": 0.06, "timeout_ms": 500},
+      "description": "Opens gripper to a width suitable for grasping the target."
+    },
+    {
+      "id": "LowerUntilContact",
+      "type": "Action",
+      "ports": {"speed": "slow", "max_depth": 0.05, "force_threshold": 5, "timeout_ms": 1200},
+      "description": "Lowers gripper until contact force threshold reached above the red cylinder."
+    },
+    {
+      "id": "CloseGripper",
+      "type": "Action",
+      "ports": {"force": 10, "timeout_ms": 800},
+      "description": "Closes gripper with defined force to grasp object."
+    },
+    {
+      "id": "IsGraspStable",
+      "type": "Condition",
+      "ports": {},
+      "description": "Checks if the grasp is stable after closure."
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {"target": "red_cylinder"},
+      "description": "Verifies that the red cylinder is held by the gripper."
+    }
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 7, "conditions": 4, "depth": 2},
+  "failure_modes": [
+    "Red object not visible or occluded",
+    "Failed scan/repeatedly missed detection",
+    "Object slips during grasp",
+    "Contact threshold not met",
+    "Gripper fails to close or does not achieve stable grasp"
+  ],
+  "recovery_strategy": [
+    "Retry visual scan up to 3 times if target undetected",
+    "Terminate if stable grasp cannot be achieved",
+    "Monitor gripper status for error codes"
+  ],
+  "assumptions": [
+    "Instruction specifies pick and place; frames show only pick (no place phase).",
+    "Red object interpreted as red_cylinder from visual evidence.",
+    "Placing step omitted as it is not visually represented in frames 0..8."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Red object is visually held by the gripper at end of sequence",
+      "Grasp is stable",
+      "Robot does not collide with table or blue markers"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"red_cylinder"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"red_cylinder","pattern":"grid","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_cylinder","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"red_cylinder","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_cylinder","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": []
+    }
+  ]
 }

@@ -1,5 +1,12 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Action ID="DetectObject" target="towel" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="ComputeGraspPose" target="towel" strategy="top" result_key="grasp_towel"/>
+    <Action ID="GraspAtPose" pose_key="grasp_towel" strategy="top" timeout_ms="1000"/>
+    <Condition ID="ObjectInGripper" target="towel"/>
+    <Action ID="Unfold" target="towel" strategy="pull" num_folds="2" timeout_ms="2000"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1000"/>
   </Sequence>
 </BehaviorTree>

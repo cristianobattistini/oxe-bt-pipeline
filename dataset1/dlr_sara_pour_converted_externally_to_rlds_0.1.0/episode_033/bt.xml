@@ -1,5 +1,16 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="cup"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="cup" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="cup" timeout_ms="800"/>
+    <Action ID="MoveAbove" target="cup" offset_z="0.10" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="cup" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="Pour" source="cup" target="mug" amount="full" tilt_angle="90" pour_rate="normal" timeout_ms="2000"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1200"/>
+    <Action ID="Wait" timeout_ms="500"/>
   </Sequence>
 </BehaviorTree>

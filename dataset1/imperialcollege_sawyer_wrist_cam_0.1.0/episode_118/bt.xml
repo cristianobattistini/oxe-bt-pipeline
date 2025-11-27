@@ -1,5 +1,24 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="apple"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="apple" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="apple" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="apple" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="apple" strategy="top" result_key="grasp_apple"/>
+    <Action ID="GraspAtPose" pose_key="grasp_apple" strategy="top" timeout_ms="800"/>
+    <Condition ID="IsGraspStable"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="pot"/>
+      <Action ID="DetectObject" target="pot" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="pot" offset_z="0.10" timeout_ms="1500"/>
+    <Action ID="PlaceDown" target="pot" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.05" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>

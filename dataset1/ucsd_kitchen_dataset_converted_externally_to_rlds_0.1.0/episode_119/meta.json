@@ -1,11 +1,232 @@
 {
   "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_119",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Turn on the faucet",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0/episode_119",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "A robot arm must turn on the faucet by locating, approaching, grasping, and rotating the faucet knob to the open position.",
+  "task_long_description": {
+    "overview": "The scenario unfolds in a compact kitchen workspace. A robot arm interacts with a sink fixture, tasked to turn on the faucet by manipulating the faucet knob. The approach involves first perceiving and localizing the faucet knob, moving above and aligning the end effector, computing and executing a grasp suited for rotation, and finally twisting the knob to activate water flow. Recovery mechanisms, like re-scanning for the knob or retrying actions, address perception or manipulation failures. Success is confirmed when the faucet knob is rotated and water is presumed to flow.",
+    "preconditions": [
+      "Robot is powered on and able to move its arm.",
+      "Faucet knob is accessible and visible.",
+      "No obstacles impede manipulation."
+    ],
+    "stepwise_plan": [
+      "Check if faucet knob is visible; scan if necessary.",
+      "Detect and precisely locate faucet knob.",
+      "Move and align the arm above the knob.",
+      "Compute and execute a grasp optimized for rotation.",
+      "Rotate the faucet knob to the open direction.",
+      "Confirm that the faucet was activated.",
+      "Retreat the arm safely."
+    ],
+    "success_criteria": [
+      "Faucet knob has been rotated in open direction.",
+      "Physical interaction was robust (grasp, twist, release).",
+      "No collisions or dropped objects."
+    ],
+    "failure_and_recovery": [
+      "If knob not visible: scan and retry detection.",
+      "If grasp or rotation fails: attempt again up to 3 times.",
+      "Retreat if unsafe contact or failure occurs."
+    ],
+    "termination": "Ends when faucet knob rotation is confirmed and arm has retreated."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": [
+      "frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Turn on the faucet",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 1500,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"
+  ],
+  "objects": [
+    "faucet_knob","sink","robot_arm"
+  ],
+  "objects_from_instruction": [
+    "faucet"
+  ],
+  "blackboard_keys": [
+    "grasp_faucet_knob"
+  ],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "faucet_knob"},
+      "description": "Checks if the faucet knob is in view."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "faucet_knob", "pattern": "arc", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Scans the workspace to locate the faucet knob."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "faucet_knob", "timeout_ms": 800},
+      "description": "Performs detailed object detection on the faucet knob."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "faucet_knob", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Moves end effector above the faucet knob."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "faucet_knob", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Approaches and aligns precisely with the faucet knob."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target": "faucet_knob", "strategy": "twist", "result_key": "grasp_faucet_knob"},
+      "description": "Computes pose for a twist grasp suitable for turning the knob."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key": "grasp_faucet_knob", "strategy": "twist", "timeout_ms": 1500},
+      "description": "Executes grasp at computed pose using twist strategy."
+    },
+    {
+      "id": "TurnKnob",
+      "type": "Action",
+      "ports": {"target": "faucet_knob", "knob_type": "knob", "angle_deg": 45, "direction": "open", "force_limit": 5, "timeout_ms": 1500},
+      "description": "Turns the faucet knob 45 degrees to open position with minimum force."
+    },
+    {
+      "id": "ButtonPressed",
+      "type": "Condition",
+      "ports": {"target": "faucet_knob"},
+      "description": "Checks if the faucet has been activated."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance": 0.10, "timeout_ms": 800},
+      "description": "Safely retracts the arm after manipulation."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 11,
+    "actions": 8,
+    "conditions": 3,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Faucet knob not detected",
+    "Grasp unsuccessful",
+    "Rotation blocked or excessive force detected",
+    "Robot arm collision"
+  ],
+  "recovery_strategy": [
+    "Rescan and retry detection up to 3 times",
+    "Retry approach/grasp if unstable",
+    "Abort and retreat if force limit exceeded"
+  ],
+  "assumptions": [
+    "Frames show a twist knob, not a lever; mapped action accordingly.",
+    "Instruction does not specify actuation direction or confirmation—direction inferred visually.",
+    "No water flow visibly confirmed; success relies on knob rotation."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Knob reaches open position",
+      "Robot arm withdraws without incident"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"faucet_knob"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"faucet_knob","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"faucet_knob","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"faucet_knob","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"faucet_knob","strategy":"twist","result_key":"grasp_faucet_knob"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_faucet_knob","strategy":"twist","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"TurnKnob","attrs":{"target":"faucet_knob","knob_type":"knob","angle_deg":45,"direction":"open","force_limit":5,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {"id":"ButtonPressed","attrs":{"target":"faucet_knob"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": []
+    }
+  ]
 }

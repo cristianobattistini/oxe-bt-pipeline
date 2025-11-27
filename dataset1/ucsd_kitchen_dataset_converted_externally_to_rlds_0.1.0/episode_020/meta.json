@@ -1,11 +1,166 @@
 {
   "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_020",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Put the green box into the sink",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0/episode_020",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Pick up the green box and place it into the sink.",
+  "task_long_description": {
+    "overview": "The task involves a robot arm in a small kitchen scene, required to locate a green box, grasp it using a parallel gripper, and transfer it precisely into a sink basin. The robot must visually acquire the object, execute stable grasping, avoid collisions, and complete the place action in a single uninterrupted episode.",
+    "preconditions": [
+      "Green box is present and visible in the scene",
+      "Sink is empty and clearly accessible",
+      "Gripper is open and no object is currently held"
+    ],
+    "stepwise_plan": [
+      "Visually acquire and localize the green box",
+      "Approach and align above the green box",
+      "Grasp the green box securely",
+      "Visually acquire the sink",
+      "Move and align above the sink",
+      "Place the green box onto the sink surface",
+      "Release and retreat"
+    ],
+    "success_criteria": [
+      "Green box stably resting in the sink",
+      "No drop or collision during transfer",
+      "Gripper released and robot clear of sink"
+    ],
+    "failure_and_recovery": [
+      "Object not visible: retry scan up to 3 times",
+      "Unstable grasp: abort and retry from perception",
+      "Sink not detected: perform visual scan",
+      "Collisions: immediate halt and retreat"
+    ],
+    "termination": "Episode ends after the green box is placed in the sink and the gripper is fully open above the target, or after recovery actions are exhausted."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Put the green box into the sink",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 1200,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["green_box","sink"],
+  "objects_from_instruction": ["green_box","sink"],
+  "blackboard_keys": ["grasp_green_box"],
+  "node_specs": [
+    {"id":"IsObjectVisible", "type":"Condition", "ports":{"target":"green_box"}, "description":"Checks if green box is visible"},
+    {"id":"ScanForTarget", "type":"Action", "ports":{"target":"green_box", "pattern":"raster", "max_attempts":3, "timeout_ms":1200}, "description":"Raster scan to find green box"},
+    {"id":"DetectObject", "type":"Action", "ports":{"target":"green_box", "timeout_ms":800}, "description":"Detects and localizes the green box"},
+    {"id":"OpenGripper", "type":"Action", "ports":{"width":0.06, "timeout_ms":500}, "description":"Opens gripper to receive green box"},
+    {"id":"MoveAbove", "type":"Action", "ports":{"target":"green_box","offset_z":0.05,"timeout_ms":1500}, "description":"Moves gripper above green box"},
+    {"id":"ComputeGraspPose", "type":"Action", "ports":{"target":"green_box", "strategy":"top", "result_key":"grasp_green_box"}, "description":"Computes a top grasp for the green box"},
+    {"id":"ApproachAndAlign", "type":"Action", "ports":{"target":"green_box","tolerance":0.005,"timeout_ms":1500}, "description":"Approaches and aligns to green box for grasp"},
+    {"id":"LowerUntilContact", "type":"Action", "ports":{"speed":"slow", "max_depth":0.05, "force_threshold":5, "timeout_ms":1200}, "description":"Lowers gripper until contact detected for grasp"},
+    {"id":"CloseGripper", "type":"Action", "ports":{"force":10, "timeout_ms":800}, "description":"Closes gripper on green box"},
+    {"id":"IsGraspStable", "type":"Condition", "ports":{}, "description":"Checks for stable grasp"},
+    {"id":"IsObjectVisible", "type":"Condition", "ports":{"target":"sink"}, "description":"Checks if sink is visible"},
+    {"id":"DetectObject", "type":"Action", "ports":{"target":"sink", "timeout_ms":800}, "description":"Detects and localizes sink"},
+    {"id":"MoveAbove", "type":"Action", "ports":{"target":"sink", "offset_z":0.10, "timeout_ms":1500}, "description":"Moves gripper with box above the sink"},
+    {"id":"PlaceOnSurface", "type":"Action", "ports":{"target":"green_box", "area_id":"sink", "yaw_deg":0, "press_force":10, "timeout_ms":1200}, "description":"Places green box onto sink surface with specified force"},
+    {"id":"OpenGripper", "type":"Action", "ports":{"width":0.08, "timeout_ms":500}, "description":"Opens gripper to release box"},
+    {"id":"Retreat", "type":"Action", "ports":{"distance":0.1, "timeout_ms":1200}, "description":"Retracts gripper from sink"},
+    {"id":"Wait", "type":"Action", "ports":{"timeout_ms":500}, "description":"Waits briefly to confirm completion"}
+  ],
+  "tree_stats": {"nodes_total":18, "actions":13, "conditions":3, "depth":3},
+  "failure_modes": [
+    "Object not visible; scan fails",
+    "Grasp instability or slippage",
+    "Sink not detected",
+    "Placement collision",
+    "Gripper fails to open"
+  ],
+  "recovery_strategy": [
+    "Rescan for object/sink up to 3 attempts",
+    "Abort and alert on repeated instability",
+    "Halt and retract on collision detection"
+  ],
+  "assumptions": [
+    "Green box and sink are always present but object/sink may be occluded; visual feedback in frames matches symbolic targets",
+    "Timeouts and forces chosen per port_value_spaces; all actions grounded to visible arm and object motion in frames",
+    "No major discrepancy observed between instruction and contact sheet"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Green box is fully released over and inside the sink after episode",
+      "No unintended collision or drop during the transfer"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"green_box"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"green_box","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "grasp",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"green_box","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"green_box","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"sink","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"green_box","area_id":"sink","yaw_deg":0,"press_force":10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

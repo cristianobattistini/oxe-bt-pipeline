@@ -1,11 +1,166 @@
 {
   "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_068",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Open the oven door",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0/episode_068",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot must open the oven door using a structured sequence involving perception, approach, alignment, actuation, verification, and retreat.",
+  "task_long_description": {
+    "overview": "This task involves a robotic arm operating in a kitchen environment. The main goal is to open the oven door. The robot begins with locating and verifying the oven door, plans a safe approach above it, aligns with the handle or activation zone, actuates the opening maneuver, checks that the door is indeed open, and finally retreats from the workspace. This task requires careful perception, motion planning, robust interaction, and post-actuation verification. Constraints include accurate oven door localization and avoiding collision with the environment.",
+    "preconditions": [
+      "Robot arm is calibrated and able to reach oven area.",
+      "Oven door handle or front is unobstructed.",
+      "Vision system functioning and able to detect oven door."
+    ],
+    "stepwise_plan": [
+      "Check if oven door is visible; scan if required.",
+      "Detect precise pose of the oven door.",
+      "Move above the oven door.",
+      "Approach and align with the oven door.",
+      "Open container (oven door) using appropriate actuation.",
+      "Verify that oven door is open.",
+      "Safely retreat from oven."
+    ],
+    "success_criteria": [
+      "Oven door status: open.",
+      "No collision/bumping during approach/open.",
+      "Robot returns to a safe pose."
+    ],
+    "failure_and_recovery": [
+      "Door not detected: re-scan.",
+      "Obstacle encountered: abort or replan.",
+      "OpenContainer fails: retry or abort.",
+      "Verification (door not open): retry or flag error."
+    ],
+    "termination": "Tree terminates when oven door is open and robot has retreated."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Open the oven door",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["oven_door", "oven", "cabinet", "gripper", "kitchen_counter"],
+  "objects_from_instruction": ["oven_door"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"oven_door"},"description":"Checks if oven door is visible in robot's perception."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"oven_door","pattern":"raster","max_attempts":3,"timeout_ms":1200},"description":"Actively scans for oven door if not visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"oven_door","timeout_ms":800},"description":"Detects precise pose of oven door."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"oven_door","offset_z":0.05,"timeout_ms":1500},"description":"Moves gripper above oven door with safe vertical offset."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"oven_door","tolerance":0.005,"timeout_ms":1500},"description":"Approaches and aligns with target oven door within tight tolerance."},
+    {"id":"OpenContainer","type":"Action","ports":{"target":"oven_door","container_type":"door","timeout_ms":1200},"description":"Opens the oven door through container actuation."},
+    {"id":"ContainerOpen","type":"Condition","ports":{"target":"oven_door"},"description":"Verifies that the oven door is open."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":1200},"description":"Retreats to a safe distance after opening oven door."}
+  ],
+  "tree_stats": {"nodes_total": 10, "actions": 6, "conditions": 2, "depth": 4},
+  "failure_modes": [
+    "Oven door not in view",
+    "Batch perception fails",
+    "Incorrect alignment with oven door",
+    "Mechanical failure during opening",
+    "Container open verification fails"
+  ],
+  "recovery_strategy": [
+    "Re-scan for oven door if perception fails",
+    "Retry opening with correct alignment",
+    "Abort and retreat if collision risk detected"
+  ],
+  "assumptions": [
+    "Instruction 'Open the oven door' matches visual evidence in frames: oven door is present and featured.",
+    "Oven door interaction is possible with given gripper; no complex handle required.",
+    "No explicit 'force' parameter observed/set in library or visual sequence.",
+    "Frames are strictly followed row-major; no skipped or ambiguous actions."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Oven door visually open in last frames",
+      "ContainerOpen condition passes",
+      "Retreat action completed post-opening"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"oven_door"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"oven_door","pattern":"raster","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"oven_door","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"oven_door","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"oven_door","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"oven_door","container_type":"door","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id":"ContainerOpen","attrs":{"target":"oven_door"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.1,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

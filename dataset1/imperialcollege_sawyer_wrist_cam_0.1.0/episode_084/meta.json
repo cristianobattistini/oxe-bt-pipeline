@@ -1,11 +1,160 @@
 {
   "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
   "episode_id": "episode_084",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pick up pan",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/imperialcollege_sawyer_wrist_cam_0.1.0/episode_084",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "A robot arm locates, approaches, grasps, and lifts a white-handled pan from a surface using visual cues and a top grasp strategy.",
+  "task_long_description": {
+    "overview": "This episode involves a robot manipulator performing a 'pick up pan' task in a controlled tabletop scene. The target object is a white pan with a black handle, initially resting on a blue background. The robot first visually locates the pan, approaches from above, computes a grasp, aligns and closes its gripper, then lifts the pan off the surface. The tree includes visual reacquisition and grasp verification steps, with actions binned by evidence from the contact sheet.",
+    "preconditions": [
+      "Pan is accessible and visible on the workspace surface.",
+      "Robot gripper is initially open.",
+      "No obstructions around pan."
+    ],
+    "stepwise_plan": [
+      "Check visibility of pan.",
+      "Scan scene if pan not visible.",
+      "Detect precise pan position.",
+      "Open gripper to preconfigured width.",
+      "Move above pan with safe offset.",
+      "Compute top grasp pose for pan.",
+      "Approach and align with tolerance.",
+      "Close gripper with moderate force.",
+      "Verify pan in gripper.",
+      "Lift pan above surface."
+    ],
+    "success_criteria": [
+      "Pan securely held in gripper.",
+      "Pan lifted clear of surface."
+    ],
+    "failure_and_recovery": [
+      "Pan not detected: rescan up to 3 times.",
+      "Grip failure: re-attempt closure or abort.",
+      "Grasp unstable: retry or abort."
+    ],
+    "termination": "Task terminates when pan is stably suspended in gripper above surface."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up pan",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["pan"],
+  "objects_from_instruction": ["pan"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"pan"},"description":"Checks if pan is visible to sensors."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"pan","pattern":"raster","max_attempts":3,"timeout_ms":1200},"description":"Performs raster scan to locate pan if not visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"pan","timeout_ms":800},"description":"Detect pan position precisely."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Open gripper to prepared width."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"pan","offset_z":0.05,"timeout_ms":1500},"description":"Move to position above pan."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"pan","strategy":"top","result_key":"std_top"},"description":"Compute top grasp pose for pan."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"pan","tolerance":0.005,"timeout_ms":1500},"description":"Approach and align to grasp pose."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":10,"timeout_ms":800},"description":"Close gripper with moderate force."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"pan"},"description":"Verify pan is securely picked."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"pan","distance":0.05,"timeout_ms":1200},"description":"Lift pan to confirm pickup."}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 8, "conditions": 3, "depth": 2},
+  "failure_modes": [
+    "Pan occluded or out of view.",
+    "Grasp failure due to alignment.",
+    "Insufficient grip force.",
+    "Pan slips after closure."
+  ],
+  "recovery_strategy": [
+    "Rescan scene up to 3 times if pan not detected.",
+    "Retry grasping after alignment correction.",
+    "Abort if repeated grasp instability."
+  ],
+  "assumptions": [
+    "Instruction implies pan pickup; frames confirm object identity and sequence.",
+    "Contact sheet shows top grasp feasible (pan orientation consistent).",
+    "No evidence for need to place object: BT omits any place action per frames."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Pan lifted in gripper and clear of surface.",
+      "No collision or slip observed."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"pan"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"pan","pattern":"raster","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"pan","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"pan","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"pan","strategy":"top","result_key":"std_top"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"pan","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"pan","distance":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

@@ -1,11 +1,166 @@
 {
   "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_077",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Put the canned spam into the sink",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0/episode_077",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot must pick up the canned spam and place it into the sink as observed in the sequence of frames.",
+  "task_long_description": {
+    "overview": "A single-arm robot is tasked with perceiving, grasping, and transferring a canned spam object into the sink in a controlled kitchen environment. The sequence involves object detection, precise grasping using a side approach, and transferring the item over to the sink area. Visual verification ensures accurate placement, and a release followed by a retreat completes the action. The scene consists of a compact kitchen mockup with the spam can and sink clearly visible and accessible.",
+    "preconditions": [
+      "Spam can is present and within the robot's reachable workspace.",
+      "The sink is empty and accessible.",
+      "Robot gripper is initially open and ready."
+    ],
+    "stepwise_plan": [
+      "Check if the spam can is visible; scan if not.",
+      "Detect precise location of the spam can.",
+      "Open the gripper and move above the can.",
+      "Compute and approach a side grasp pose.",
+      "Perform the grasp and verify stability.",
+      "Check for visibility of the sink.",
+      "Move above the sink.",
+      "Place the can on the sink surface.",
+      "Open the gripper to release.",
+      "Retreat to clear the workspace."
+    ],
+    "success_criteria": [
+      "Spam can is securely placed inside the sink.",
+      "No objects are dropped during transport.",
+      "Robot successfully retreats post-placement."
+    ],
+    "failure_and_recovery": [
+      "Spam can not detected: rescan up to 3 times.",
+      "Grasp not stable: abort or retry approach.",
+      "Placement surface (sink) not visible: rescan.",
+      "Release failure: attempt gripper open."
+    ],
+    "termination": "BT terminates after robot releases the spam can in the sink and retreats."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Put the canned spam into the sink",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 1200,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["spam_can", "sink", "robot_arm", "kitchen_cabinet"],
+  "objects_from_instruction": ["spam_can", "sink"],
+  "blackboard_keys": ["std_side"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"spam_can"},"description":"Checks if spam can is visible to sensors."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"spam_can","pattern":"raster","max_attempts":3,"timeout_ms":1200},"description":"Performs focused scan for spam can."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"spam_can","timeout_ms":800},"description":"Localizes spam can with perception."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Opens gripper for grasping."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"spam_can","offset_z":0.05,"timeout_ms":1500},"description":"Moves end effector above spam can."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"spam_can","strategy":"side","result_key":"std_side"},"description":"Computes a side grasp pose for the can."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"spam_can","tolerance":0.005,"timeout_ms":1500},"description":"Aligns gripper for precise grasp."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"std_side","strategy":"side","timeout_ms":800},"description":"Closes gripper using computed pose."},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Checks if the grasp is secure."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"sink"},"description":"Checks if sink is visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"sink","timeout_ms":800},"description":"Locates the sink."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"sink","offset_z":0.05,"timeout_ms":1500},"description":"Moves above the sink."},
+    {"id":"PlaceOnSurface","type":"Action","ports":{"target":"spam_can","area_id":"sink","yaw_deg":0,"press_force":10,"timeout_ms":1200},"description":"Places canned spam on sink surface with light force."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Opens gripper to release can in sink."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.1,"timeout_ms":1200},"description":"Robot retreats from sink area."}
+  ],
+  "tree_stats": {"nodes_total": 17, "actions": 12, "conditions": 3, "depth": 4},
+  "failure_modes": [
+    "Spam can or sink not detected",
+    "Failed grasp or dropped object during approach or transfer",
+    "Release failure (gripper not open)",
+    "Retreat motion blocked"
+  ],
+  "recovery_strategy": [
+    "Rescan up to 3 times for spam can or sink",
+    "Repeat approach sequence if grasp unstable",
+    "Retry gripper operation on open failure"
+  ],
+  "assumptions": [
+    "Assumed the can in the image is 'spam_can' per task instruction.",
+    "Sink location deduced from visual evidence of workspace.",
+    "Side grasp pose selected due to visible can access.",
+    "Instruction and frames are aligned; no major conflicts."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Can stably in sink, gripper open, arm retracted"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible", "attrs":{"target":"spam_can"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject", "attrs":{"target":"spam_can","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "grasp",
+      "active_leaf": {"id":"OpenGripper", "attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"MoveAbove", "attrs":{"target":"spam_can","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"ComputeGraspPose", "attrs":{"target":"spam_can","strategy":"side","result_key":"std_side"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"ApproachAndAlign", "attrs":{"target":"spam_can","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"GraspAtPose", "attrs":{"pose_key":"std_side","strategy":"side","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"MoveAbove", "attrs":{"target":"sink","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceOnSurface", "attrs":{"target":"spam_can","area_id":"sink","yaw_deg":0,"press_force":10,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

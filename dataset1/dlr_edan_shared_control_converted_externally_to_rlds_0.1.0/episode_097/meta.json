@@ -1,11 +1,217 @@
 {
   "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_097",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pick the disk",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/dlr_edan_shared_control_converted_externally_to_rlds_0.1.0/episode_097",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot arm must pick up a white disk from a black shelving unit. The tree sequences perception, approach, grasp, and pick actions.",
+  "task_long_description": {
+    "overview": "The scene involves a blue robotic arm approaching and picking a white disk from the top of a dark cuboid shelf situated in a kitchen-like room with clear tabletop and floor. The robot must visually perceive the disk, approach it from above, align, lower, grasp firmly, verify grasp stability, and finally pick the disk. The task requires robustness to slight pose variances and clear object identification.",
+    "preconditions": [
+      "Disk is visible and reachable on the shelf.",
+      "Robot gripper is empty and open.",
+      "No obstacles block path to disk."
+    ],
+    "stepwise_plan": [
+      "Confirm disk visibility or visually search.",
+      "Open gripper.",
+      "Move to a position above the disk.",
+      "Compute a top-grasp pose.",
+      "Approach disk and align gripper.",
+      "Lower until contact detected.",
+      "Close gripper to grasp disk.",
+      "Verify grasp is stable.",
+      "Pick disk off surface."
+    ],
+    "success_criteria": [
+      "Disk securely gripped and lifted by robot.",
+      "No collision or dropped object during pick.",
+      "Object cleared from support surface."
+    ],
+    "failure_and_recovery": [
+      "Failure to see disk: retry perception.",
+      "Failure to grasp: re-open gripper, retry approach.",
+      "Grasp unstable: retry approach/grasp."
+    ],
+    "termination": "Pick action executed with stable grasp, disk removed from shelf."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the disk",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 1000,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["disk", "shelf"],
+  "objects_from_instruction": ["disk"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target":"disk"},
+      "description": "Checks if the disk is visible to the perception system."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target":"disk","timeout_ms":800},
+      "description": "Actively attempts to detect the disk."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width":0.06,"timeout_ms":500},
+      "description": "Opens the gripper to the required width."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target":"disk","offset_z":0.05,"timeout_ms":1000},
+      "description": "Positions the gripper above the disk, ready for grasp."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target":"disk","strategy":"top","result_key":"std_top"},
+      "description": "Computes the grasp pose above the disk using a top grasp."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target":"disk","tolerance":0.005,"timeout_ms":1000},
+      "description": "Moves gripper toward disk with fine alignment."
+    },
+    {
+      "id": "LowerUntilContact",
+      "type": "Action",
+      "ports": {"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1000},
+      "description": "Lowers gripper until contact is detected."
+    },
+    {
+      "id": "CloseGripper",
+      "type": "Action",
+      "ports": {"force":10,"timeout_ms":800},
+      "description": "Closes gripper with minimal force to grasp disk."
+    },
+    {
+      "id": "IsGraspStable",
+      "type": "Condition",
+      "ports": {},
+      "description": "Checks if the grasp on the disk is stable before lifting."
+    },
+    {
+      "id": "Pick",
+      "type": "Action",
+      "ports": {"grasp_key":"std_top","timeout_ms":1000},
+      "description": "Lifts the disk using the computed grasp."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 10,
+    "actions": 7,
+    "conditions": 3,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Disk not detected",
+    "Unable to approach due to kinematic constraints",
+    "Gripper does not close fully",
+    "Grasp not stable"
+  ],
+  "recovery_strategy": [
+    "Retry perception",
+    "Retry open gripper and approach",
+    "Adjust approach pose and retry"
+  ],
+  "assumptions": [
+    "Object in instruction interpreted as 'disk' matches visual evidence (white round object on shelf, frame_0–2).",
+    "No instruction for post-grasp actions; only pick is performed.",
+    "Frames support a pick action but do not require a place or transfer.",
+    "Instruction does not specify force, so minimum stable force chosen from allowed set."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Robot securely grasps and removes the disk from the shelf."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"disk"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"disk","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"disk","offset_z":0.05,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"disk","strategy":"top","result_key":"std_top"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"disk","tolerance":0.005,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": {"id":"IsGraspStable","attrs":{}},
+      "active_path_ids": []
+    }
+  ]
 }

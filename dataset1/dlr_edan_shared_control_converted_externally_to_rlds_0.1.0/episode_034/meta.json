@@ -1,11 +1,214 @@
 {
   "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_034",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pick the orange",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/dlr_edan_shared_control_converted_externally_to_rlds_0.1.0/episode_034",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Robot arm picks a visible orange off a shelf, performing top-down grasp and verifying acquisition.",
+  "task_long_description": {
+    "overview": "This episode involves a robot arm tasked with picking an orange from a group of assorted fruits placed atop a shelving unit. The orange is identified visually; the arm approaches, aligns for a top-down grasp, gently closes the gripper, and holds the object. The behavior tree includes steps for visual verification, robust scanning with retries, precise positioning, and grasp confirmation. Visual evidence confirms the object identity, task progression, and action sequence.",
+    "preconditions": [
+      "Orange and other fruits present and accessible.",
+      "Robot arm operational and gripper empty.",
+      "Camera or sensors enabled for object detection."
+    ],
+    "stepwise_plan": [
+      "1. Verify orange is visible; if not retry visual scan.",
+      "2. Detect and localize the orange.",
+      "3. Open gripper to pre-grasp width.",
+      "4. Move end effector above orange.",
+      "5. Compute grasp pose (top-down strategy).",
+      "6. Approach and align over orange with fine tolerance.",
+      "7. Lower gripper until light contact.",
+      "8. Close gripper with gentle force and confirm object is held."
+    ],
+    "success_criteria": [
+      "Orange is securely grasped and lifted from surface.",
+      "Gripper closes with adequate force without damaging fruit.",
+      "Robot confirms object presence in gripper."
+    ],
+    "failure_and_recovery": [
+      "Failure to detect orange: retry scan.",
+      "Failed grasp: reopen gripper and reattempt alignment and grasp.",
+      "Slippage or dropped fruit: restart from scan/approach step."
+    ],
+    "termination": "Task terminates successfully when orange is held stably in gripper after lift phase, or aborts after maximum retries or unrecoverable failure."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the orange",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["orange","green_apple","red_apple","fruit_bowl","table","shelf"],
+  "objects_from_instruction": ["orange"],
+  "blackboard_keys": ["grasp_orange"],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"orange"},
+      "description":"Checks if the orange is visible from the robot's sensors."
+    },
+    {
+      "id":"ScanForTarget",
+      "type":"Action",
+      "ports":{"target":"orange","pattern":"raster","max_attempts":3,"timeout_ms":1200},
+      "description":"Scans the area to locate the orange if not initially detected."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"orange","timeout_ms":800},
+      "description":"Localizes the orange position in the workspace."
+    },
+    {
+      "id":"OpenGripper",
+      "type":"Action",
+      "ports":{"width":0.06,"timeout_ms":500},
+      "description":"Opens gripper to a suitable width for pre-grasp."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"orange","offset_z":0.05,"timeout_ms":1500},
+      "description":"Moves robot end effector above the orange fruit."
+    },
+    {
+      "id":"ComputeGraspPose",
+      "type":"Action",
+      "ports":{"target":"orange","strategy":"top","result_key":"grasp_orange"},
+      "description":"Calculates suitable pose for top-down grasp."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"orange","tolerance":0.005,"timeout_ms":1500},
+      "description":"Approaches orange with fine alignment."
+    },
+    {
+      "id":"LowerUntilContact",
+      "type":"Action",
+      "ports":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1200},
+      "description":"Lowers gripper gently until contact with orange surface."
+    },
+    {
+      "id":"CloseGripper",
+      "type":"Action",
+      "ports":{"force":10,"timeout_ms":800},
+      "description":"Closes gripper to grasp orange with gentle force."
+    },
+    {
+      "id":"ObjectInGripper",
+      "type":"Condition",
+      "ports":{"target":"orange"},
+      "description":"Confirms if orange is securely held by gripper."
+    }
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 8, "conditions": 3, "depth": 3},
+  "failure_modes": [
+    "Orange not detected.",
+    "Grasp slip/fail.",
+    "Contact not registered.",
+    "Object not held after attempt."
+  ],
+  "recovery_strategy": [
+    "Retry scan up to 3 times.",
+    "Reopen gripper and reattempt approach.",
+    "Restart from approach and alignment."
+  ],
+  "assumptions": [
+    "Instruction implies pick action; visual frames confirm an orange is available on right side of fruit cluster.",
+    "Other fruits present (apples), but tree targets only orange as per instruction and visual evidence.",
+    "Grasp is performed with top strategy per geometry in frames (no evidence for side or suction needed)."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Orange is picked and held stably after grasp."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"orange"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"orange","pattern":"raster","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"orange","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"orange","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"orange","strategy":"top","result_key":"grasp_orange"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"orange","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "approach",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"orange"}},
+      "active_path_ids": []
+    }
+  ]
 }

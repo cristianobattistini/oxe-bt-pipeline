@@ -1,11 +1,263 @@
 {
   "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_012",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pick the disk",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/dlr_edan_shared_control_converted_externally_to_rlds_0.1.0/episode_012",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Pick the disk object from the shelf using a robot arm, as shown in the frames. The BT first locates the disk, approaches, grasps, and retreats.",
+  "task_long_description": {
+    "overview": "This episode illustrates a robot arm tasked with picking up a white disk from a shelf unit. The sequence involves detecting the disk, opening the gripper, approaching and aligning above it, computing a top grasp pose, executing the grasp, and verifying success via gripper sensors. Scene includes a disk in the lower shelf and a supportive environment with good visibility. No extraneous obstacles or distractor objects are present. Success depends on reliable disk detection, precise approach, and stable grasp.",
+    "preconditions": [
+      "Disk object is placed visibly in the shelf compartment",
+      "Robot arm is operational and gripper is functional",
+      "Scene is not obstructed; disk is accessible"
+    ],
+    "stepwise_plan": [
+      "Scan and verify disk visibility",
+      "Detect disk precisely",
+      "Open gripper to pre-set width",
+      "Move above the disk at a safe offset",
+      "Compute grasp pose (top grasp)",
+      "Approach and align with tight tolerance",
+      "Grasp disk at computed pose",
+      "Verify disk held in gripper",
+      "Retreat from shelf area"
+    ],
+    "success_criteria": [
+      "Disk is securely grasped in the gripper",
+      "No collision or misalignment",
+      "Robot successfully retreats with disk"
+    ],
+    "failure_and_recovery": [
+      "Disk not detected: retry scan 3 times",
+      "Grasp unsuccessful: re-approach and retry possible",
+      "Misalignment: adjust pose and retry approach"
+    ],
+    "termination": "Task terminates after disk is grasped and robot retreats a set distance."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the disk",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": ["robot_arm", "disk", "shelf", "gripper"],
+  "objects_from_instruction": ["disk"],
+  "blackboard_keys": ["grasp_disk"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "disk"},
+      "description": "Checks if the disk is visible to sensors"
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "disk", "pattern": "grid", "max_attempts": 3, "timeout_ms": 800},
+      "description": "Actively searches for the disk in a grid pattern"
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "disk", "timeout_ms": 800},
+      "description": "Locates the disk precisely in the workspace"
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width": 0.06, "timeout_ms": 500},
+      "description": "Opens the gripper to preset width for grasping"
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "disk", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Moves directly above the disk at safe offset"
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target": "disk", "strategy": "top", "result_key": "grasp_disk"},
+      "description": "Computes grasp pose for top grasp on disk"
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "disk", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Aligns gripper with disk for grasping"
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key": "grasp_disk", "strategy": "top", "timeout_ms": 800},
+      "description": "Executes grasp motion at computed pose"
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {"target": "disk"},
+      "description": "Checks if disk is held in gripper"
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance": 0.10, "timeout_ms": 1200},
+      "description": "Moves arm back to clear area after grasp"
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 11,
+    "actions": 7,
+    "conditions": 2,
+    "depth": 3
+  },
+  "failure_modes": [
+    "disk not visible",
+    "disk detection fails",
+    "grasp pose computation error",
+    "grasp actuation fails",
+    "object not held after grasp"
+  ],
+  "recovery_strategy": [
+    "fallback scan for disk up to 3 attempts",
+    "repeat approach if misaligned",
+    "verify disk held, else abort and notify"
+  ],
+  "assumptions": [
+    "Instruction does not specify grasp mode or force; top grasp used as best fit from frames.",
+    "Assumed detection and interaction is with disk identified in lower shelf, consistent throughout frames.",
+    "No placement or transfer phase required—only pick and retreat.",
+    "Port 'force' not specified in the instruction or deducible from frames."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Robot grasps disk and clears shelf.",
+      "Disk is not dropped during retreat."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "IsObjectVisible",
+        "attrs": {"target": "disk"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {"target": "disk", "pattern": "grid", "max_attempts": 3, "timeout_ms": 800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {"target": "disk", "timeout_ms": 800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {"width": 0.06, "timeout_ms": 500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {"target": "disk", "offset_z": 0.05, "timeout_ms": 1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ComputeGraspPose",
+        "attrs": {"target": "disk", "strategy": "top", "result_key": "grasp_disk"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {"target": "disk", "tolerance": 0.005, "timeout_ms": 1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "GraspAtPose",
+        "attrs": {"pose_key": "grasp_disk", "strategy": "top", "timeout_ms": 800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {"distance": 0.10, "timeout_ms": 1200}
+      },
+      "active_path_ids": []
+    }
+  ]
 }

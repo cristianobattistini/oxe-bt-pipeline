@@ -1,11 +1,208 @@
 {
   "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_011",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pick the cube",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/dlr_edan_shared_control_converted_externally_to_rlds_0.1.0/episode_011",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Pick up the cube from the shelf using a robot arm; perception, approach, and grasp are guided stepwise as shown in the frames.",
+  "task_long_description": {
+    "overview": "The robot arm is tasked with locating and grasping a white cube placed in a cubby shelf. The workspace includes a distinct cube, shelf furniture, and an uncluttered surface. The robot's gripper is initially open and approaches the cube from the front at table level. The BT supports perception retries, careful alignment, and top-down grasp with verification before declaring success.",
+    "preconditions": [
+      "Cube object present and visible on shelf",
+      "Robot arm in starting pose with open workspace",
+      "No obstructions between robot base and object",
+      "Gripper is initially open"
+    ],
+    "stepwise_plan": [
+      "Verify object (cube) visibility and retry scan if needed",
+      "Detect precise cube location",
+      "Open gripper in preparation for grasp",
+      "Move above cube with a safe vertical offset",
+      "Compute top-down grasp pose",
+      "Approach and align with precise tolerance",
+      "Grasp cube at computed pose",
+      "Verify that cube is held in the gripper"
+    ],
+    "success_criteria": [
+      "Cube is securely held in the gripper",
+      "No collision or object slippage is visible",
+      "No damage to object or environment during manipulation"
+    ],
+    "failure_and_recovery": [
+      "Gripper does not close correctly or cube is missed: retry scan or restart sequence",
+      "Object not detected: scan up to 3 times",
+      "Cube slips after grasp: recovery requires sequence restart"
+    ],
+    "termination": "Sequence completes successfully when the cube is detected in the gripper after grasp."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the cube",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["cube","shelf","gripper","arm"],
+  "objects_from_instruction": ["cube"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"cube"},
+      "description":"Checks if the cube is visible to the perception system."
+    },
+    {
+      "id":"ScanForTarget",
+      "type":"Action",
+      "ports":{"target":"cube","pattern":"raster","max_attempts":3,"timeout_ms":1200},
+      "description":"Scans for the cube using a raster motion when it is not visible."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"cube","timeout_ms":800},
+      "description":"Detects and localizes the cube using the vision system."
+    },
+    {
+      "id":"OpenGripper",
+      "type":"Action",
+      "ports":{"width":0.06,"timeout_ms":500},
+      "description":"Opens the gripper to 6cm prior to approach."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"cube","offset_z":0.05,"timeout_ms":1500},
+      "description":"Moves the end-effector above the cube before grasping."
+    },
+    {
+      "id":"ComputeGraspPose",
+      "type":"Action",
+      "ports":{"target":"cube","strategy":"top","result_key":"std_top"},
+      "description":"Computes a top-down grasp pose for the cube."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"cube","tolerance":0.005,"timeout_ms":1500},
+      "description":"Approaches and aligns with the cube with 5mm tolerance."
+    },
+    {
+      "id":"GraspAtPose",
+      "type":"Action",
+      "ports":{"pose_key":"std_top","strategy":"top","timeout_ms":800},
+      "description":"Executes the grasp at the computed top-down pose."
+    },
+    {
+      "id":"ObjectInGripper",
+      "type":"Condition",
+      "ports":{"target":"cube"},
+      "description":"Checks if the cube is now held in the gripper."
+    }
+  ],
+  "tree_stats": {"nodes_total": 10, "actions": 7, "conditions": 2, "depth": 3},
+  "failure_modes": [
+    "Cube not detected due to occlusion or poor lighting",
+    "Approach or alignment fails due to kinematic constraints",
+    "Grasp slips or does not complete",
+    "Cube not present at expected location"
+  ],
+  "recovery_strategy": [
+    "Re-scan for the cube up to 3 times if not initially visible",
+    "Restart grasp sequence if object is not found in gripper"
+  ],
+  "assumptions": [
+    "The cube is the small white block visible in shelf cubby in frames 0–8",
+    "No container opening is required",
+    "No explicit 'pick' composite node exists; picking is decomposed to perceive, align, and grasp actions"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Cube held in the gripper at end of sequence"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "IsObjectVisible", "attrs": {"target": "cube"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id": "ScanForTarget", "attrs": {"target": "cube", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "cube", "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id": "OpenGripper", "attrs": {"width": 0.06, "timeout_ms": 500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id": "MoveAbove", "attrs": {"target": "cube", "offset_z": 0.05, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id": "ComputeGraspPose", "attrs": {"target": "cube", "strategy": "top", "result_key": "std_top"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "cube", "tolerance": 0.005, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id": "GraspAtPose", "attrs": {"pose_key": "std_top", "strategy": "top", "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": {"id": "ObjectInGripper", "attrs": {"target": "cube"}},
+      "active_path_ids": []
+    }
+  ]
 }

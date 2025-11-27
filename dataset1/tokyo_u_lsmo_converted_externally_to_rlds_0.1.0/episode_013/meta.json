@@ -1,11 +1,156 @@
 {
   "dataset_id": "tokyo_u_lsmo_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_013",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "avoid obstacle and reach the scissors",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/tokyo_u_lsmo_converted_externally_to_rlds_0.1.0/episode_013",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot must reach the scissors by navigating around a visible obstacle, using perception and waypoint maneuvering to avoid collisions.",
+  "task_long_description": {
+    "overview": "This task involves a robotic arm operating in a tabletop environment with multiple objects, notably a pair of scissors placed on the table. The robot starts at rest, identifies and localizes the scissors, then plans a trajectory to reach them while avoiding an adjacent obstacle, likely represented by a mug or container. The role of the robot is perception-driven manipulation, constrained by obstacle avoidance and target approach accuracy.",
+    "preconditions": [
+      "Robot powered on and homed",
+      "Workspace clear except for defined objects",
+      "Scissors and obstacle present/visible",
+      "No occlusion of target"
+    ],
+    "stepwise_plan": [
+      "Check if scissors are visible; scan if needed",
+      "Detect exact scissors location",
+      "Move above scissors to preapproach position",
+      "Perceive/verify obstacle location",
+      "Laterally shift/end-effector to avoid obstacle (Y axis)",
+      "Approach and align with scissors",
+      "Pause for confirmation"
+    ],
+    "success_criteria": [
+      "Scissors reached without collision",
+      "Obstacle avoided during approach",
+      "Final position aligns with scissors"
+    ],
+    "failure_and_recovery": [
+      "Obstacle too close: rescan and retry MoveDelta",
+      "Scissors not detected: repeat ScanForTarget",
+      "Unexpected contact: retreat and retry"
+    ],
+    "termination": "Task ends when scissors are reached and robot pauses for confirmation."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "avoid obstacle and reach the scissors",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["robot_arm","scissors","obstacle","mug","container","books"],
+  "objects_from_instruction": ["scissors","obstacle"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"scissors"},"description":"Checks visibility of scissors."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"scissors","pattern":"line","max_attempts":3,"timeout_ms":1200},"description":"Scans workspace for scissors using a line pattern."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"scissors","timeout_ms":800},"description":"Runs detection algorithm for scissors."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"scissors","offset_z":0.05,"timeout_ms":1500},"description":"Moves end-effector above scissors at specified z-offset."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"obstacle"},"description":"Checks visibility of obstacle for avoidance."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"obstacle","timeout_ms":800},"description":"Detects obstacle location via sensors."},
+    {"id":"MoveDelta","type":"Action","ports":{"axis":"y","dist":0.10,"timeout_ms":1000},"description":"Moves robot by 0.10m along Y to bypass obstacle."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"scissors","tolerance":0.005,"timeout_ms":1500},"description":"Smartly approaches and aligns to scissors with tight tolerance."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":500},"description":"Waits briefly for confirmation."}
+  ],
+  "tree_stats": {"nodes_total": 12, "actions": 7, "conditions": 3, "depth": 4},
+  "failure_modes": [
+    "Scissors occluded or undetectable",
+    "Obstacle interferes with path",
+    "Misalignment in approach phase",
+    "Timeout during ScanForTarget or MoveDelta"
+  ],
+  "recovery_strategy": [
+    "Retry scan up to 3 times for scissors",
+    "Detect and retry obstacle bypass",
+    "Pause and re-align if approach fails"
+  ],
+  "assumptions": [
+    "Obstacle interpreted from visible mugs/containers in frames",
+    "No explicit grasp action as endpoint is reach/pause, matching frame sequence",
+    "Instruction does not mention grasp/pick; design grounded in approach only"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Robot end-effector at scissors, obstacle not contacted"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"scissors"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"scissors","pattern":"line","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"scissors","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"scissors","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"obstacle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"obstacle","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveDelta","attrs":{"axis":"y","dist":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"scissors","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":500}},
+      "active_path_ids": []
+    }
+  ]
 }

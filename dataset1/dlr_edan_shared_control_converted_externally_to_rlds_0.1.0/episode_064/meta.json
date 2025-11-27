@@ -1,11 +1,164 @@
 {
   "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_064",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pick the orange",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/dlr_edan_shared_control_converted_externally_to_rlds_0.1.0/episode_064",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "A robotic arm is tasked to pick an orange from a table using visual guidance and a structured pick routine.",
+  "task_long_description": {
+    "overview": "This episode documents a robot arm performing an object picking task: selecting and grasping an orange from a table. The workspace includes distractor objects and clear approach access. The robot sequentially searches for the orange, opens its gripper, aligns above the object, descends, grasps with moderate force, verifies grasp stability, and finally retreats with the orange securely held. The process emphasizes reliable perception, approach accuracy, and a robust grasp cycle using allowed BT nodes.",
+    "preconditions": [
+      "The orange is placed on the table within workspace.",
+      "Robot arm is powered, calibrated, and initialized.",
+      "No obstructions in robot path or gripper.",
+      "All BT actions available and configured."
+    ],
+    "stepwise_plan": [
+      "Verify visual detection of the orange.",
+      "If not visible, scan workspace with raster pattern.",
+      "Detect/refine orange position for approach.",
+      "Open gripper to pre-grasp width.",
+      "Move robot's end effector above orange at a defined offset.",
+      "Align and approach with precision tolerance.",
+      "Close gripper with safe force to grasp orange.",
+      "Verify object is held within gripper.",
+      "Retreat a set distance, completing pick."
+    ],
+    "success_criteria": [
+      "Orange securely grasped in gripper after retreat.",
+      "No collision with environment or dropped object.",
+      "All phases completed without error."
+    ],
+    "failure_and_recovery": [
+      "Perception failure – re-scan workspace up to 3 times.",
+      "Grasp failure – abort or retry sequence if permitted.",
+      "Unexpected collision – halt and alert operator."
+    ],
+    "termination": "Tree terminates when orange is stably held in gripper and robot has retreated from original pick pose."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the orange",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["orange","table","white_cube","white_cylinder","flower_pot"],
+  "objects_from_instruction": ["orange"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"orange"},"description":"Checks if the orange is visible to robot's sensors."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"orange","pattern":"raster","max_attempts":3,"timeout_ms":1200},"description":"Performs a raster scan to locate the orange if not initially detected."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"orange","timeout_ms":800},"description":"Refines position of the orange for subsequent approach."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Opens the gripper to prepare for grasping the orange."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"orange","offset_z":0.10,"timeout_ms":1500},"description":"Positions the gripper above the orange with a 10cm offset."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"orange","tolerance":0.005,"timeout_ms":1500},"description":"Aligns and approaches the orange with fine tolerance."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":10,"timeout_ms":800},"description":"Closes the gripper to grasp the orange with suitable force."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"orange"},"description":"Verifies that the orange is stably held in the gripper."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1200},"description":"Moves robot away from the table after successful pick."}
+  ],
+  "tree_stats": {
+    "nodes_total": 9,
+    "actions": 6,
+    "conditions": 2,
+    "depth": 4
+  },
+  "failure_modes": [
+    "Perception error leading to scan retries.",
+    "Gripper fails to grasp orange.",
+    "Pose estimation error.",
+    "Collision with adjacent objects."
+  ],
+  "recovery_strategy": [
+    "Re-attempt scan for orange if not visible.",
+    "Abort if gripper cannot grasp after approach.",
+    "Manual intervention for persistent failures."
+  ],
+  "assumptions": [
+    "Instruction matches frames and object identifiability (orange present and isolated).",
+    "No place or transfer step is performed (instruction is 'pick', but BT and frames only show pick and retreat).",
+    "No phase regression observed; all frames represent progressions of pick routine."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Orange is securely held by the gripper after retreat step.",
+      "No object drop or collision through action phases."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"orange"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"orange","pattern":"raster","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"orange","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"orange","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"orange","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"orange"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

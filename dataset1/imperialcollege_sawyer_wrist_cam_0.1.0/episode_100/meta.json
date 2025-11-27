@@ -1,11 +1,174 @@
 {
   "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
   "episode_id": "episode_100",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "insert cap in bottle",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/imperialcollege_sawyer_wrist_cam_0.1.0/episode_100",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Insert a cap into the mouth of a bottle by grasping the cap, approaching the bottle, and performing the insertion with release and retreat.",
+  "task_long_description": {
+    "overview": "The task involves a manipulator robot that must detect a cap and a bottle, grasp the cap, and insert it into the bottle opening. Visual perception is used to locate both cap and bottle. The robot uses top-down grasp strategies and verifies object possession before insertion. Low force and high positioning precision are required for successful insertion without damaging or missing the target.",
+    "preconditions": [
+      "Cap and bottle present on reachable surface.",
+      "Robot gripper is clear and operational.",
+      "Workspace is free of obstructions."
+    ],
+    "stepwise_plan": [
+      "Perceive the cap and the bottle using visual sensing.",
+      "Open the gripper.",
+      "Move above the cap and compute a top grasp pose.",
+      "Approach and grasp the cap.",
+      "Verify cap is held.",
+      "Move over the bottle mouth.",
+      "Align and insert the cap into the bottle along the z-axis.",
+      "Open the gripper to release the cap.",
+      "Retreat to clear the bottle."
+    ],
+    "success_criteria": [
+      "Cap is fully inserted and released inside the bottle mouth.",
+      "Gripper is empty after placement.",
+      "No objects are dropped or damaged."
+    ],
+    "failure_and_recovery": [
+      "If cap or bottle not detected, retry scanning up to 3 times.",
+      "If grasp fails, recompute and retry.",
+      "If insertion fails, retreat and retry alignment and insertion."
+    ],
+    "termination": "Tree completes once the cap is released inside the bottle and gripper is clear."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "insert cap in bottle",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": null,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["cap","bottle"],
+  "objects_from_instruction": ["cap","bottle"],
+  "blackboard_keys": ["cap_grasp"],
+  "node_specs": [
+    {"id":"IsObjectVisible", "type":"Condition", "ports":{"target":"cap"}, "description":"Check if cap is visible"},
+    {"id":"ScanForTarget", "type":"Action", "ports":{"target":"cap","pattern":"raster","max_attempts":3,"timeout_ms":1200}, "description":"Scan workspace for cap"},
+    {"id":"DetectObject", "type":"Action", "ports":{"target":"cap","timeout_ms":800}, "description":"Detect the cap object"},
+    {"id":"IsObjectVisible", "type":"Condition", "ports":{"target":"bottle"}, "description":"Check if bottle is visible"},
+    {"id":"ScanForTarget", "type":"Action", "ports":{"target":"bottle","pattern":"raster","max_attempts":3,"timeout_ms":1200}, "description":"Scan workspace for bottle"},
+    {"id":"DetectObject", "type":"Action", "ports":{"target":"bottle","timeout_ms":800}, "description":"Detect the bottle object"},
+    {"id":"OpenGripper", "type":"Action", "ports":{"width":0.04,"timeout_ms":500}, "description":"Open gripper for initial grasp"},
+    {"id":"MoveAbove", "type":"Action", "ports":{"target":"cap","offset_z":0.05,"timeout_ms":1500}, "description":"Move gripper above cap"},
+    {"id":"ComputeGraspPose", "type":"Action", "ports":{"target":"cap","strategy":"top","result_key":"cap_grasp"}, "description":"Compute top grasp of cap"},
+    {"id":"ApproachAndAlign", "type":"Action", "ports":{"target":"cap","tolerance":0.005,"timeout_ms":1500}, "description":"Align with cap"},
+    {"id":"GraspAtPose", "type":"Action", "ports":{"pose_key":"cap_grasp","strategy":"top","timeout_ms":800}, "description":"Execute top grasp on cap"},
+    {"id":"ObjectInGripper", "type":"Condition", "ports":{"target":"cap"}, "description":"Check if cap is in gripper"},
+    {"id":"MoveAbove", "type":"Action", "ports":{"target":"bottle","offset_z":0.08,"timeout_ms":1500}, "description":"Move above bottle mouth"},
+    {"id":"ApproachAndAlign", "type":"Action", "ports":{"target":"bottle","tolerance":0.005,"timeout_ms":1500}, "description":"Align with bottle top"},
+    {"id":"InsertInto", "type":"Action", "ports":{"target":"cap","slot_id":"bottle","axis":"z","distance":0.05,"tolerance":0.005,"force_limit":5,"timeout_ms":1200}, "description":"Insert cap into bottle mouth"},
+    {"id":"OpenGripper", "type":"Action", "ports":{"width":0.08,"timeout_ms":500}, "description":"Release cap in bottle"},
+    {"id":"Retreat", "type":"Action", "ports":{"distance":0.05,"timeout_ms":1200}, "description":"Move away from bottle after placement"}
+  ],
+  "tree_stats": {"nodes_total":17,"actions":13,"conditions":4,"depth":3},
+  "failure_modes": [
+    "Object not detected",
+    "Grasp unstable or empty",
+    "Insertion fails due to misalignment",
+    "Object dropped",
+    "Force exceeds safe threshold"
+  ],
+  "recovery_strategy": [
+    "Rescan for missing objects",
+    "Retry up to 3 times if objects not seen",
+    "Retry grasp or insertion if failures detected"
+  ],
+  "assumptions": [
+    "The cap and bottle shape and pose are consistent with image frames",
+    "No contradictory evidence between frames and task; both objects are present and manipulation is feasible"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Cap successfully inserted and released in bottle",
+      "No object remains in gripper",
+      "No visible misalignment or force-induced error"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible", "attrs":{"target":"cap"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject", "attrs":{"target":"cap","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible", "attrs":{"target":"bottle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove", "attrs":{"target":"cap","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose", "attrs":{"pose_key":"cap_grasp","strategy":"top","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove", "attrs":{"target":"bottle","offset_z":0.08,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"InsertInto", "attrs":{"target":"cap","slot_id":"bottle","axis":"z","distance":0.05,"tolerance":0.005,"force_limit":5,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"OpenGripper", "attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat", "attrs":{"distance":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

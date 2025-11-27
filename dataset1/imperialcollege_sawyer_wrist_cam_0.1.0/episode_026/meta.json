@@ -1,11 +1,182 @@
 {
   "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
   "episode_id": "episode_026",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "open lid",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/imperialcollege_sawyer_wrist_cam_0.1.0/episode_026",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Open a lid using visual perception, aligning for actuation and verifying that the lid is open.",
+  "task_long_description": {
+    "overview": "The task involves opening a white circular lid against a blue background, likely on a container. The robot must first visually locate and verify the presence of the lid, approach and align to it precisely, actuate an opening operation suitable for a lid, and confirm success. No handles are visible, and the opening is a direct lift or rotation. Robust detection and careful manipulation are essential considering possible occlusions or partial visibility during the process.",
+    "preconditions": [
+      "Lid is present and visible in the workspace",
+      "Robot is operational and has access to end-effector capable of manipulating lids"
+    ],
+    "stepwise_plan": [
+      "Check if lid is visible; scan if not",
+      "Detect precise lid position",
+      "Approach and align to the lid",
+      "Open the lid using the suitable actuation for a 'lid'",
+      "Verify the lid is open"
+    ],
+    "success_criteria": [
+      "Lid is confirmed open as per ContainerOpen condition",
+      "No significant misalignment or dropped lid",
+      "Final state matches expected open orientation (frames 7/8)"
+    ],
+    "failure_and_recovery": [
+      "Lid not detected: initiate scanning behavior",
+      "Approach misalignment: repeat approach/align step",
+      "Actuation fails: abort and flag for human intervention"
+    ],
+    "termination": "Tree terminates when ContainerOpen condition passes for target 'lid'."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "open lid",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["lid"],
+  "objects_from_instruction": ["lid"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "lid"},
+      "description": "Checks if the lid is visible to the perception system"
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "lid", "pattern": "spiral", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Scans workspace in spiral pattern up to 3 tries to find the lid"
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "lid", "timeout_ms": 800},
+      "description": "Detects and localizes the lid precisely"
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "lid", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Robot moves and aligns to the lid with tight positional constraint"
+    },
+    {
+      "id": "OpenContainer",
+      "type": "Action",
+      "ports": {"target": "lid", "container_type": "lid", "timeout_ms": 1500},
+      "description": "Performs the actuation to open the lid container"
+    },
+    {
+      "id": "ContainerOpen",
+      "type": "Condition",
+      "ports": {"target": "lid"},
+      "description": "Checks if the lid is now open"
+    }
+  ],
+  "tree_stats": {"nodes_total": 7, "actions": 4, "conditions": 2, "depth": 2},
+  "failure_modes": [
+    "Lid not detected",
+    "Approach/alignment failed",
+    "Opening action unsuccessful",
+    "Lid not verified open"
+  ],
+  "recovery_strategy": [
+    "Retry scanning if lid not visible",
+    "Abort mission and signal if actuation fails",
+    "Re-align and retry approach on misalignment"
+  ],
+  "assumptions": [
+    "The object is correctly classified as 'lid' based on visual properties from all frames.",
+    "No visible handle suggests direct actuation (not via handle); using 'lid' container_type in OpenContainer.",
+    "No explicit force or timeout provided in instruction; using library defaults.",
+    "Frames support a direct 'pop-off' style lid, not a screw or hinged type."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Lid appears displaced in frame 7/8",
+      "ContainerOpen returns true",
+      "Lid location visibly changed versus initial frames"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"lid"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"lid"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"lid","pattern":"spiral","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"lid","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"lid","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"lid","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"lid","container_type":"lid","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"ContainerOpen","attrs":{"target":"lid"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "place",
+      "active_leaf": {"id":"ContainerOpen","attrs":{"target":"lid"}},
+      "active_path_ids": []
+    }
+  ]
 }

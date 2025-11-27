@@ -1,11 +1,219 @@
 {
   "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_089",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Open the oven door",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0/episode_089",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Robot arm opens the oven door by approaching its handle, grasping, pulling to open, confirming door state, releasing, and retreating.",
+  "task_long_description": {
+    "overview": "In a kitchen scene, a robot arm interacts with an oven. The arm must locate, approach, grasp the oven door handle, and pull to open the door. The sequence requires precise perception, controlled force, and confirmation that the door is open before releasing and retreating. Constraints include safe force application and completion within reasonable time, as visually reflected by the arm’s progressive movement and oven state in the contact sheet.",
+    "preconditions": [
+      "Robot arm is ready/untasked",
+      "Oven door is closed",
+      "Oven door handle is visible or detectable",
+      "Environment safe for manipulation"
+    ],
+    "stepwise_plan": [
+      "Check visibility of oven door handle",
+      "Detect precise location of handle",
+      "Approach and align with handle",
+      "Grasp handle securely with low force",
+      "Pull handle to open oven door",
+      "Verify oven door is open",
+      "Release handle",
+      "Retreat from oven"
+    ],
+    "success_criteria": [
+      "Oven door is fully open",
+      "Handle released safely",
+      "Arm retreated from oven"
+    ],
+    "failure_and_recovery": [
+      "Handle not detected: re-scan for target",
+      "Failed grasp: retry approach and grasp",
+      "Door not confirmed open: repeat pull"
+    ],
+    "termination": "Process ends when oven door is confirmed open, handle released, and robot arm retreated"
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Open the oven door",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": [
+    "oven_door",
+    "oven_door_handle"
+  ],
+  "objects_from_instruction": [
+    "oven_door"
+  ],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "oven_door_handle"},
+      "description": "Checks if oven door handle is visible"
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target":"oven_door_handle", "pattern":"raster", "max_attempts":3, "timeout_ms":1200},
+      "description": "Scans for oven door handle using raster pattern"
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target":"oven_door_handle", "timeout_ms":800},
+      "description": "Detects oven door handle location"
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target":"oven_door_handle", "tolerance":0.005, "timeout_ms":1500},
+      "description": "Approaches and aligns gripper with handle"
+    },
+    {
+      "id": "Grasp",
+      "type": "Action",
+      "ports": {"target":"oven_door_handle", "strategy":"side", "force":5, "timeout_ms":800},
+      "description": "Grasps oven door handle using side strategy"
+    },
+    {
+      "id": "Pull",
+      "type": "Action",
+      "ports": {"target":"oven_door_handle", "distance":0.10, "direction_deg":90, "timeout_ms":1200},
+      "description": "Pulls oven door handle to open"
+    },
+    {
+      "id": "ContainerOpen",
+      "type": "Condition",
+      "ports": {"target":"oven_door"},
+      "description": "Checks if oven door is open"
+    },
+    {
+      "id": "Release",
+      "type": "Action",
+      "ports": {"target":"oven_door_handle", "timeout_ms":500},
+      "description": "Releases oven door handle"
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance":0.10,"timeout_ms":1200},
+      "description": "Retreats robot arm"
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 11,
+    "actions": 7,
+    "conditions": 2,
+    "depth": 6
+  },
+  "failure_modes": [
+    "Handle detection failure",
+    "Failed to align with handle",
+    "Unstable grasp",
+    "Door not opening after pull",
+    "Grip not released cleanly"
+  ],
+  "recovery_strategy": [
+    "Retry scanning for handle up to 3 times",
+    "Repeat approach if alignment fails",
+    "Retry grasp if unstable",
+    "Repeat pull if door not open"
+  ],
+  "assumptions": [
+    "Oven door handle exposed and reachable; no obstruction is present",
+    "Robot can grip handle using side grasp; force snap=5 is sufficient for gentle opening",
+    "No direct indication in frames of oven door moving wide open, but arm movement and handle contact interpreted as actuation attempt",
+    "Release action inferred for safe disengagement; visual confirmation in last frames supports retreat phase"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Door visibly open at end of episode (frame_6)",
+      "Arm retreats after release (frame_7, frame_8)"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"oven_door_handle"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"oven_door_handle","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"oven_door_handle","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"Grasp","attrs":{"target":"oven_door_handle","strategy":"side","force":5,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"Pull","attrs":{"target":"oven_door_handle","distance":0.10,"direction_deg":90,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"ContainerOpen","attrs":{"target":"oven_door"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"Release","attrs":{"target":"oven_door_handle","timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

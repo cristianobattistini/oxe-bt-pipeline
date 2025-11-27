@@ -1,5 +1,15 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="blue_pen"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="blue_pen" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="blue_pen" timeout_ms="800"/>
+    <Action ID="MoveAbove" target="obstacle" offset_z="0.10" timeout_ms="1500"/>
+    <Action ID="MoveDelta" axis="y" dist="0.20" timeout_ms="1500"/>
+    <Action ID="MoveTo" target="blue_pen" timeout_ms="1500"/>
+    <Condition ID="IsAt" target="blue_pen"/>
   </Sequence>
 </BehaviorTree>

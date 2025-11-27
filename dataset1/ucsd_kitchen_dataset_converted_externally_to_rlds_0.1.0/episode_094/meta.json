@@ -1,11 +1,262 @@
 {
   "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_094",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Open the oven door",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0/episode_094",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot locates and pulls open the oven door using an arm, verifying success.",
+  "task_long_description": {
+    "overview": "This episode captures a robot arm opening a toy oven door in a kitchen mockup. The arm uses visual perception to locate the oven door, aligns for actuation, pulls the door open along its handle axis, and verifies the final open state. Scene objects include the oven (with a swing-down door), gripper, and background kitchen items; the robot must avoid collisions and ensure sufficient opening.",
+    "preconditions": [
+      "Robot is positioned in front of the oven",
+      "Oven door is closed",
+      "Robot arm and gripper are unobstructed"
+    ],
+    "stepwise_plan": [
+      "Check if oven door is visible; scan if not.",
+      "Detect precise oven door pose.",
+      "Approach and align with the oven door/handle.",
+      "Pull the oven door open by 0.10m perpendicular to oven front.",
+      "Verify oven door is open."
+    ],
+    "success_criteria": [
+      "Oven door is visibly and physically open",
+      "No collisions or dropped objects",
+      "Arm returns to safe pose"
+    ],
+    "failure_and_recovery": [
+      "If oven door not detected, re-scan up to 3 times.",
+      "If approach misaligns, task aborts with error.",
+      "If pull is obstructed, recovery not attempted in this BT."
+    ],
+    "termination": "Behavior tree completes when oven door is verified open or upon irrecoverable failure."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Open the oven door",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["robot_arm","oven_door","handle","countertop","sink"],
+  "objects_from_instruction": ["oven_door"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {
+        "target": "oven_door",
+        "pattern": "raster",
+        "max_attempts": 3,
+        "timeout_ms": 1200
+      },
+      "description": "Visually scans for the oven door if not immediately visible."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {
+        "target": "oven_door",
+        "timeout_ms": 800
+      },
+      "description": "Refine perception and pose estimation of oven door."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {
+        "target": "oven_door",
+        "tolerance": 0.005,
+        "timeout_ms": 1500
+      },
+      "description": "Approaches and makes fine alignment with the oven door for manipulation."
+    },
+    {
+      "id": "Pull",
+      "type": "Action",
+      "ports": {
+        "target": "oven_door",
+        "distance": 0.10,
+        "direction_deg": 90,
+        "timeout_ms": 1200
+      },
+      "description": "Pulls the oven door open 0.10 meters perpendicular to the oven front."
+    },
+    {
+      "id": "ContainerOpen",
+      "type": "Condition",
+      "ports": {
+        "target": "oven_door"
+      },
+      "description": "Checks whether the oven door is now open."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 8,
+    "actions": 4,
+    "conditions": 2,
+    "depth": 3
+  },
+  "failure_modes": [
+    "Oven door not detected in field-of-view after retries",
+    "Approach or alignment fails (e.g., collision or occlusion)",
+    "Pull fails (door jam/blocked/insufficient force)",
+    "Door does not register 'open' after pull"
+  ],
+  "recovery_strategy": [
+    "Retry scanning for oven door visibility up to 3 times",
+    "Abort upon approach/alignment or pull failures"
+  ],
+  "assumptions": [
+    "Instruction requests opening the oven door; this matches visual evidence.",
+    "Exact handle pose is inferred from frames (no direct grasp in action set).",
+    "The frames suggest a vertical pull (direction_deg=90).",
+    "No explicit force/tolerance constraints in instruction; default bins used.",
+    "Contact sheet frames show opening action (no conflict)."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Oven door visibly in open state (as in frame_6)",
+      "Robot does not drop or collide during execution"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {
+          "target": "oven_door",
+          "pattern": "raster",
+          "max_attempts": 3,
+          "timeout_ms": 1200
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {
+          "target": "oven_door",
+          "timeout_ms": 800
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {
+          "target": "oven_door",
+          "tolerance": 0.005,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {
+          "target": "oven_door",
+          "tolerance": 0.005,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "Pull",
+        "attrs": {
+          "target": "oven_door",
+          "distance": 0.10,
+          "direction_deg": 90,
+          "timeout_ms": 1200
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "Pull",
+        "attrs": {
+          "target": "oven_door",
+          "distance": 0.10,
+          "direction_deg": 90,
+          "timeout_ms": 1200
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ContainerOpen",
+        "attrs": {
+          "target": "oven_door"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "ContainerOpen",
+        "attrs": {
+          "target": "oven_door"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "ContainerOpen",
+        "attrs": {
+          "target": "oven_door"
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
 }

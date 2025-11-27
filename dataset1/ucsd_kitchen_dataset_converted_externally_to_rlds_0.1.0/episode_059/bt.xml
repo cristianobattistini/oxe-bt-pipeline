@@ -1,5 +1,14 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="faucet_handle"/>
+      <Action ID="DetectObject" target="faucet_handle" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="faucet_handle" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="faucet_handle" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="Grasp" target="faucet_handle" strategy="top" force="5" timeout_ms="800"/>
+    <Action ID="TurnKnob" target="faucet_handle" knob_type="knob" angle_deg="45" direction="open" force_limit="5" timeout_ms="1000"/>
+    <Action ID="ReleaseGripper" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

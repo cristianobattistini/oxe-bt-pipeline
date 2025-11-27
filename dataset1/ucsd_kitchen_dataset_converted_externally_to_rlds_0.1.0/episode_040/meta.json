@@ -1,11 +1,228 @@
 {
   "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_040",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Put the canned spam into the sink",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0/episode_040",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot is tasked to pick up a can of spam and place it into the sink. The tree handles perception, grasping, transfer, and final placement/release of the object as observed in the episode's frames.",
+  "task_long_description": {
+    "overview": "This sequence involves a robotic arm in a kitchen scenario identifying, grasping, and moving a canned spam object, ultimately releasing it into a visible sink. The robot utilizes visual and tactile sensors for object localization and manipulation. The scene contains a kitchen set with sink, counter, and shelves. The main objects are the canned spam and the sink; proper grasp and placement (not dropping) are assumed constraints. The robot must avoid collisions with the environment and maintain stable grasp until the release phase.",
+    "preconditions": [
+      "Canned spam object is present and visible or locatable.",
+      "Sink is accessible and its position is known or detectable.",
+      "Robot gripper is initially open and ready for action."
+    ],
+    "stepwise_plan": [
+      "Verify or reacquire visibility of canned spam.",
+      "Detect its location precisely.",
+      "Open the gripper.",
+      "Approach and align with the canned spam.",
+      "Grasp the object from the top using minimal force.",
+      "Confirm canned spam is held.",
+      "Locate the sink, reacquiring visibility if necessary.",
+      "Move above the sink.",
+      "Place the canned spam down onto/into the sink.",
+      "Release the object by opening the gripper.",
+      "Retreat safely from the placement zone."
+    ],
+    "success_criteria": [
+      "Canned spam securely placed inside the sink.",
+      "No drops or misplacements.",
+      "No collisions or environmental interference."
+    ],
+    "failure_and_recovery": [
+      "If object not visible, re-scan until detected.",
+      "If grasp fails, retry from pre-grasp alignment.",
+      "If sink not detected, re-scan to reacquire.",
+      "Abort if repeated failures, else report error."
+    ],
+    "termination": "Tree completes once object is released in sink and arm retreats, or after repeated irrecoverable failures."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Put the canned spam into the sink",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 1200,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["canned_spam", "sink"],
+  "objects_from_instruction": ["canned_spam", "sink"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target":"canned_spam"},
+      "description": "Checks for visual presence of canned spam."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target":"canned_spam","pattern":"raster","max_attempts":3,"timeout_ms":1200},
+      "description": "Reacquires visual location of canned spam if needed."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target":"canned_spam","timeout_ms":800},
+      "description": "Confirms canned spam location for manipulation."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width":0.08,"timeout_ms":500},
+      "description": "Opens gripper to allow grasping or releasing object."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target":"canned_spam","tolerance":0.005,"timeout_ms":1500},
+      "description": "Moves and aligns end-effector above canned spam."
+    },
+    {
+      "id": "Grasp",
+      "type": "Action",
+      "ports": {"target":"canned_spam","strategy":"top","force":5,"timeout_ms":1000},
+      "description": "Attempts grasp from above with minimum force."
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {"target":"canned_spam"},
+      "description": "Verifies canned spam is held by gripper."
+    },
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target":"sink"},
+      "description": "Checks for visual presence of sink."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target":"sink","timeout_ms":800},
+      "description": "Confirms sink location for placement."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target":"sink","offset_z":0.10,"timeout_ms":1500},
+      "description": "Moves held object above sink at fixed height."
+    },
+    {
+      "id": "PlaceDown",
+      "type": "Action",
+      "ports": {"target":"sink","timeout_ms":1200},
+      "description": "Places the canned spam into sink."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width":0.08,"timeout_ms":500},
+      "description": "Releases object by opening gripper in sink."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance":0.10,"timeout_ms":1200},
+      "description": "Moves arm away from sink after placement."
+    }
+  ],
+  "tree_stats": {"nodes_total": 15, "actions": 10, "conditions": 3, "depth": 2},
+  "failure_modes": [
+    "canned spam not detected",
+    "sink not detected",
+    "failed grasp (slip or inadequate force)",
+    "misplacement outside sink",
+    "gripper fails to open/close"
+  ],
+  "recovery_strategy": [
+    "Scan again for object/sink if not visible",
+    "Retry grasp after re-approach",
+    "Abort if repeated attempts unsuccessful"
+  ],
+  "assumptions": [
+    "Visual evidence indicates a can-hand grasp and transfer sequence; instruction matches frame content.",
+    "Sink is clearly identifiable in scene; canned spam is graspable without further manipulation.",
+    "No container opening/closing required; no mismatch between instruction and visible steps."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Object released stably within kitchen sink.",
+      "No collision with surroundings.",
+      "Retreat completed after placement."
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"canned_spam","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"canned_spam","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"Grasp","attrs":{"target":"canned_spam","strategy":"top","force":5,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"canned_spam"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"sink","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceDown","attrs":{"target":"sink","timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.08,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

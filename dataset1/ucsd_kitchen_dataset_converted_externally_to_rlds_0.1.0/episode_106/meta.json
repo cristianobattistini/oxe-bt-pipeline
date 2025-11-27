@@ -1,11 +1,196 @@
 {
   "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_106",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Open the oven door",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0/episode_106",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot locates and grasps the oven door, then pulls it open and verifies that it is open.",
+  "task_long_description": {
+    "overview": "This scenario depicts a robotic manipulator operating in a kitchen-like environment. The main object is the oven door, which the robot must open by first locating it visually, approaching and aligning with it, computing a grasp suitable for pulling, executing the grasp, and then pulling until the door is open. The robot finally verifies success by confirming the oven door is indeed open, and retreats safely. Physical alignment, perception, and gentle actuation are essential for safe manipulation.",
+    "preconditions": ["Oven door closed", "Robot ready at scene", "No obstructions near oven", "Oven door visually accessible"],
+    "stepwise_plan": [
+      "Check existence and visibility of oven door",
+      "Detect oven door if not already visible",
+      "Approach and align end effector with oven door handle",
+      "Compute grasp pose with pull strategy",
+      "Grasp at computed pose",
+      "Pull oven door open",
+      "Verify container is open",
+      "Retreat from oven door"
+    ],
+    "success_criteria": [
+      "Oven door visually and mechanically confirmed open",
+      "No collisions or damage to door",
+      "Robot safely returns to a neutral position"
+    ],
+    "failure_and_recovery": [
+      "Door not detected: retry detection",
+      "Failed to grasp: recompute pose and retry",
+      "Door stuck/doesn't open: abort, alert operator",
+      "Unexpected collision: stop, retreat"
+    ],
+    "termination": "Tree terminates when oven door is detected as open and robot has retreated from direct contact."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Open the oven door",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["oven_door", "oven_door_handle"],
+  "objects_from_instruction": ["oven_door"],
+  "blackboard_keys": ["grasp_oven_door"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "oven_door"},
+      "description": "Checks if the oven door is visible to the robot's sensors."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "oven_door", "timeout_ms": 800},
+      "description": "Runs detection algorithm to localize the oven door."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "oven_door", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Moves and aligns robot end effector to the oven door handle."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target": "oven_door", "strategy": "pull", "result_key": "grasp_oven_door"},
+      "description": "Computes grasp pose for the oven door using a pull strategy."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key": "grasp_oven_door", "strategy": "pull", "timeout_ms": 800},
+      "description": "Executes the grasp at the computed pose."
+    },
+    {
+      "id": "Pull",
+      "type": "Action",
+      "ports": {"target": "oven_door", "distance": 0.20, "direction_deg": 90, "timeout_ms": 1000},
+      "description": "Pulls the oven door open by 20cm, perpendicular to the door."
+    },
+    {
+      "id": "ContainerOpen",
+      "type": "Condition",
+      "ports": {"target": "oven_door"},
+      "description": "Checks if the oven door is open."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance": 0.10, "timeout_ms": 800},
+      "description": "Retracts the arm from the oven door."
+    }
+  ],
+  "tree_stats": {"nodes_total": 9, "actions": 6, "conditions": 2, "depth": 2},
+  "failure_modes": [
+    "Oven door not detected by sensors",
+    "Failure to grasp oven door handle securely",
+    "Oven door fails to open (mechanical jam or collision)",
+    "Robot collision with environment"
+  ],
+  "recovery_strategy": [
+    "Retry detection if oven door not visible",
+    "Recompute grasp pose if grasp not stable",
+    "Abort and alert if unable to open door after retries",
+    "Immediate retreat and halt in case of collision"
+  ],
+  "assumptions": [
+    "The visual evidence shows side-pull on oven door handle, not a downward or twisting grasp",
+    "Instruction matches observed sequence in all frames (no mismatch)",
+    "Direction_deg=90 (sideways) inferred from handle orientation in images",
+    "Handle is present and accessible—no obstacles detected"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Oven door open and robot disengaged",
+      "No failed grasp or collision",
+      "All relevant steps executed sequentially"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"oven_door"}},
+      "active_path_ids": ["Sequence","Fallback","IsObjectVisible"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"oven_door","timeout_ms":800}},
+      "active_path_ids": ["Sequence","Fallback","DetectObject"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"oven_door","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"oven_door","strategy":"pull","result_key":"grasp_oven_door"}},
+      "active_path_ids": ["Sequence","ComputeGraspPose"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_oven_door","strategy":"pull","timeout_ms":800}},
+      "active_path_ids": ["Sequence","GraspAtPose"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Pull","attrs":{"target":"oven_door","distance":0.20,"direction_deg":90,"timeout_ms":1000}},
+      "active_path_ids": ["Sequence","Pull"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"ContainerOpen","attrs":{"target":"oven_door"}},
+      "active_path_ids": ["Sequence","ContainerOpen"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": ["Sequence","Retreat"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":800}},
+      "active_path_ids": ["Sequence","Retreat"]
+    }
+  ]
 }

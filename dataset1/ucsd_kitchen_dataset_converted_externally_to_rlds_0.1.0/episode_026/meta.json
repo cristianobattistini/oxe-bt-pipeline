@@ -1,11 +1,286 @@
 {
   "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_026",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Open the carbinet door",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0/episode_026",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Open the lower cabinet door in a kitchen setting using a robot arm to locate, grasp, and pull the door by its handle.",
+  "task_long_description": {
+    "overview": "This episode takes place in a kitchen environment, where a robot arm is tasked to open the cabinet door beneath the countertop. The robot must first visually detect the cabinet handle, then approach and precisely align over it. The system opens the gripper, computes a side grasp pose, safely executes a grasp, then pulls the door open by moving in the correct direction. The sequence assumes a known handle location and door type; it is constrained by available visual cues and the presence of a gripper with adequate width.",
+    "preconditions": [
+      "Cabinet door is closed",
+      "Cabinet handle is unobstructed and within field of view",
+      "No obstacles blocking arm approach",
+      "Robot is initialized and at home/start position"
+    ],
+    "stepwise_plan": [
+      "Check handle is visible; scan if not",
+      "Detect handle precisely",
+      "Move above handle",
+      "Align to the handle with tight tolerance",
+      "Open gripper in preparation for grasping",
+      "Compute grasp pose for handle (side strategy)",
+      "Execute grasp on handle",
+      "Pull cabinet door in correct direction by 0.15 meters",
+      "Verify cabinet door is open"
+    ],
+    "success_criteria": [
+      "Cabinet door is confirmed open",
+      "No damage to door or handle",
+      "Robot is no longer grasping handle (post-pull, if required)"
+    ],
+    "failure_and_recovery": [
+      "Failure to detect handle: retry scan up to 3 times",
+      "Failed grasp: abort mission or retry from approach",
+      "No gripper contact detected: retry align/grasp",
+      "Obstruction or collision: stop execution"
+    ],
+    "termination": "Task completes when the cabinet door is verified as open or upon unrecoverable failure."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Open the carbinet door",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "cabinet_handle",
+    "cabinet_door"
+  ],
+  "objects_from_instruction": [
+    "cabinet_door"
+  ],
+  "blackboard_keys": [
+    "grasp_handle"
+  ],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "cabinet_handle"},
+      "description": "Checks if the cabinet handle is visible in current frame."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {
+        "target": "cabinet_handle",
+        "pattern": "raster",
+        "max_attempts": 3,
+        "timeout_ms": 1200
+      },
+      "description": "Scans for the cabinet handle if not initially visible; up to 3 attempts."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "cabinet_handle", "timeout_ms": 800},
+      "description": "Runs precise detection/localization of the cabinet handle."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "cabinet_handle", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Moves robot end-effector above cabinet handle with 5cm offset."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "cabinet_handle", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Approaches and aligns to handle with tight (5mm) tolerance."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width": 0.08, "timeout_ms": 500},
+      "description": "Opens gripper to 8cm to prepare for grasping the handle."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target": "cabinet_handle", "strategy": "side", "result_key": "grasp_handle"},
+      "description": "Computes a side-grasp pose on the handle and places it in the blackboard."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key": "grasp_handle", "strategy": "side", "timeout_ms": 1000},
+      "description": "Executes grasp at the previously computed pose with side strategy."
+    },
+    {
+      "id": "Pull",
+      "type": "Action",
+      "ports": {"target": "cabinet_door", "distance": 0.15, "direction_deg": 90, "timeout_ms": 2000},
+      "description": "Pulls the cabinet door open by 15cm in the +y direction."
+    },
+    {
+      "id": "ContainerOpen",
+      "type": "Condition",
+      "ports": {"target": "cabinet_door"},
+      "description": "Checks if the cabinet door is open."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 10,
+    "actions": 7,
+    "conditions": 3,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Cabinet handle not detected after allowed scans",
+    "Handle approach blocked",
+    "Grasp fails or slips",
+    "Pull does not open door",
+    "Robot collision or out-of-reach"
+  ],
+  "recovery_strategy": [
+    "Retry scan up to 3 times on visibility loss",
+    "Abort task if scan fails",
+    "Abort if persistent grasp or alignment failure"
+  ],
+  "assumptions": [
+    "The instruction refers to a 'carbinet door', assumed to mean the visible cabinet's lower door",
+    "cabinet_handle is distinct and graspable",
+    "Door pulls open at ~90 degrees to robot, consistent with visual frames",
+    "No error in door type"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "cabinet door visually and physically open at end of sequence"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "IsObjectVisible",
+        "attrs": {"target": "cabinet_handle"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {"target": "cabinet_handle", "timeout_ms": 800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {"target": "cabinet_handle", "offset_z": 0.05, "timeout_ms": 1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {"target": "cabinet_handle", "tolerance": 0.005, "timeout_ms": 1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {"width": 0.08, "timeout_ms": 500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "ComputeGraspPose",
+        "attrs": {"target": "cabinet_handle", "strategy": "side", "result_key": "grasp_handle"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "GraspAtPose",
+        "attrs": {"pose_key": "grasp_handle", "strategy": "side", "timeout_ms": 1000}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "Pull",
+        "attrs": {"target": "cabinet_door", "distance": 0.15, "direction_deg": 90, "timeout_ms": 2000}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ContainerOpen",
+        "attrs": {"target": "cabinet_door"}
+      },
+      "active_path_ids": []
+    }
+  ]
 }

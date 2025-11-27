@@ -1,11 +1,211 @@
 {
   "dataset_id": "dlr_sara_pour_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_050",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Pour into the mug",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/dlr_sara_pour_converted_externally_to_rlds_0.1.0/episode_050",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot pours the contents of a cup into a mug, using a sequence of target detection, alignment, pouring, and retreat actions.",
+  "task_long_description": {
+    "overview": "A robotic arm equipped with a two-finger gripper manipulates a cup to pour its contents precisely into a mug placed on a table. The sequence begins with perceiving and localizing the mug, then moving above and aligning to it. Once in correct position, the robot tilts the cup, pouring into the mug before retreating to a safe position. The process prioritizes target detection, minimizing spillage, and safe, repeatable execution.",
+    "preconditions": [
+      "Cup is firmly grasped by the robot.",
+      "Mug is present and reachable on the workspace.",
+      "Robot arm is operational and collision-free.",
+      "No obstructing objects between the cup and mug."
+    ],
+    "stepwise_plan": [
+      "Verify mug visibility or scan to find it.",
+      "Detect and localize mug accurately.",
+      "Move above the mug with appropriate offset.",
+      "Approach and align to pouring position with precision.",
+      "Execute the Pour action from the cup into the mug (tilt 90°).",
+      "Retreat after pouring to avoid collisions.",
+      "Wait briefly to ensure pour completion."
+    ],
+    "success_criteria": [
+      "Contents are successfully transferred from cup to mug.",
+      "Minimal or no spillage observed."
+    ],
+    "failure_and_recovery": [
+      "If mug not visible, perform up to 3 scans.",
+      "If approach or alignment fails, retries/aborts.",
+      "If pouring is obstructed, retreat and alert."
+    ],
+    "termination": "Tree ends after pour and retreat; success based on visual/physical confirmation of liquid transfer."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Pour into the mug",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["cup", "mug"],
+  "objects_from_instruction": ["mug"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"mug"},
+      "description":"Checks if the mug is visible to the perception system."
+    },
+    {
+      "id":"ScanForTarget",
+      "type":"Action",
+      "ports":{"target":"mug","pattern":"raster","max_attempts":3,"timeout_ms":1200},
+      "description":"Performs a raster scan to search for the mug, retrying up to 3 times."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"mug","timeout_ms":800},
+      "description":"Detects and localizes the mug after initial visibility."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"mug","offset_z":0.10,"timeout_ms":1500},
+      "description":"Moves the grasped cup above the mug at a safe pouring height."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"mug","tolerance":0.005,"timeout_ms":1500},
+      "description":"Precisely aligns the cup with the mug for an accurate pour."
+    },
+    {
+      "id":"Pour",
+      "type":"Action",
+      "ports":{"source":"cup","target":"mug","amount":"null","tilt_angle":90,"pour_rate":"null","timeout_ms":1500},
+      "description":"Tilts and pours from the cup into the mug (90° tilt, default amount/rate)."
+    },
+    {
+      "id":"Retreat",
+      "type":"Action",
+      "ports":{"distance":0.10,"timeout_ms":1200},
+      "description":"Moves arm away from the mug after pouring to clear the workspace."
+    },
+    {
+      "id":"Wait",
+      "type":"Action",
+      "ports":{"timeout_ms":500},
+      "description":"Pauses briefly after pouring to allow any residual flow."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 10,
+    "actions": 6,
+    "conditions": 1,
+    "depth": 3
+  },
+  "failure_modes": [
+    "Mug not visible or occluded",
+    "Inaccurate approach/position misalignment",
+    "Pour blocked or spills",
+    "Scan fails all attempts"
+  ],
+  "recovery_strategy": [
+    "Scan up to 3 times if mug not visible",
+    "Retry detection or abort if persistent failure",
+    "Retreat arm safely on error"
+  ],
+  "assumptions": [
+    "Frames show cup pre-grasped; target mug clearly visible.",
+    "No instruction about amount/rate; set to null for Pour.",
+    "Using closest allowed bins for approach and retreat.",
+    "No explicit force/press needed for this task."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Cup contents appear in mug with minimal spillage",
+      "All actions execute in shown temporal order"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "IsObjectVisible", "attrs": {"target": "mug"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id": "ScanForTarget", "attrs": {"target": "mug", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "mug", "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id": "MoveAbove", "attrs": {"target": "mug", "offset_z": 0.10, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "mug", "tolerance": 0.005, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id": "Pour", "attrs": {"source": "cup", "target": "mug", "tilt_angle": 90, "amount": "null", "pour_rate": "null", "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {"id": "Retreat", "attrs": {"distance": 0.10, "timeout_ms": 1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id": "Wait", "attrs": {"timeout_ms": 500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id": "Wait", "attrs": {"timeout_ms": 500}},
+      "active_path_ids": []
+    }
+  ]
 }

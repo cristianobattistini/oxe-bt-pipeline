@@ -1,11 +1,225 @@
 {
   "dataset_id": "ucsd_pick_and_place_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_107",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pick up the red object from the table",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_pick_and_place_dataset_converted_externally_to_rlds_0.1.0/episode_107",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Pick up the red object from the table using the robot arm by detecting, approaching, and grasping.",
+  "task_long_description": {
+    "overview": "The scene shows a robot arm and a tabletop with a red cylindrical object and a blue tray. The robot's goal is to pick up the red object from the table. The task progresses through perception, approach, grasp, and lifting phases using visual and force feedback to ensure reliable execution with moderate precision. The system adapts if the red object is not immediately visible by rescanning before proceeding to manipulation steps.",
+    "preconditions": [
+      "Red object is located and reachable on the table surface.",
+      "Robot gripper is free and operable.",
+      "Scene is unobstructed and lighting sufficient for visual detection."
+    ],
+    "stepwise_plan": [
+      "Check if the red object is visible.",
+      "If not visible, scan to locate the red object.",
+      "Detect and localize the red object.",
+      "Open gripper in preparation for grasping.",
+      "Move arm above the red object.",
+      "Approach and align to the red object with moderate precision.",
+      "Lower gripper until contact with the object is detected.",
+      "Close gripper to secure the red object.",
+      "Verify the red object is held.",
+      "Lift the red object from the table surface.",
+      "Wait briefly to confirm completion."
+    ],
+    "success_criteria": [
+      "Red object is detected and picked up securely.",
+      "Gripper successfully encloses and lifts the red object.",
+      "Object remains held and is above the table at task end."
+    ],
+    "failure_and_recovery": [
+      "Failure to see object: Re-scan area up to three times.",
+      "Failure to detect object: Abort grasp sequence.",
+      "Unstable grasp: Retry or abort after drop."
+    ],
+    "termination": "Task terminates after the red object is lifted and held securely above the table for a short duration."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up the red object from the table",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["red_object","table","blue_tray"],
+  "objects_from_instruction": ["red_object","table"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"red_object"},
+      "description":"Checks whether the red object is visible to the camera"
+    },
+    {
+      "id":"ScanForTarget",
+      "type":"Action",
+      "ports":{"target":"red_object","pattern":"raster","max_attempts":3,"timeout_ms":1200},
+      "description":"Scans the workspace to locate the red object if not yet visible"
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"red_object","timeout_ms":800},
+      "description":"Performs object detection and localization for the red object"
+    },
+    {
+      "id":"OpenGripper",
+      "type":"Action",
+      "ports":{"width":0.06,"timeout_ms":500},
+      "description":"Opens the gripper to a moderate width in preparation for grasp"
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"red_object","offset_z":0.05,"timeout_ms":1500},
+      "description":"Moves the gripper above the red object by 5cm"
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"red_object","tolerance":0.005,"timeout_ms":1500},
+      "description":"Approaches and aligns the gripper to the red object with moderate precision"
+    },
+    {
+      "id":"LowerUntilContact",
+      "type":"Action",
+      "ports":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1200},
+      "description":"Lowers the gripper until contact with the red object is detected"
+    },
+    {
+      "id":"CloseGripper",
+      "type":"Action",
+      "ports":{"force":10,"timeout_ms":800},
+      "description":"Closes the gripper with low force to grasp the red object"
+    },
+    {
+      "id":"ObjectInGripper",
+      "type":"Condition",
+      "ports":{"target":"red_object"},
+      "description":"Checks that the red object is held in the gripper"
+    },
+    {
+      "id":"RaiseHeld",
+      "type":"Action",
+      "ports":{"target":"red_object","distance":0.10,"timeout_ms":1200},
+      "description":"Lifts the red object by 10cm"
+    },
+    {
+      "id":"Wait",
+      "type":"Action",
+      "ports":{"timeout_ms":500},
+      "description":"Waits briefly to confirm the lift"
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 12,
+    "actions": 9,
+    "conditions": 3,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Red object not visible due to occlusion or lighting",
+    "Red object position not detected correctly",
+    "Gripper fails to open/close",
+    "No contact detected when lowering",
+    "Object slips or is not stably grasped"
+  ],
+  "recovery_strategy": [
+    "Retry scanning for the object up to three times",
+    "Abort grasp if detection fails",
+    "Attempt regrasp if object not held (not implemented here)"
+  ],
+  "assumptions": [
+    "Instruction and frames are consistent: the red object is always present on the table and there is no visible evidence of it being moved in this episode.",
+    "No placing action is present as the full pick-and-place sequence is not visible (lifting only); the task stops after picking up."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Object reliably detected and grasped.",
+      "Object lifted and held above table."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"red_object"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"red_object","pattern":"raster","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_object","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"red_object","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_object","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"red_object","distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

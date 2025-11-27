@@ -1,5 +1,17 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="kettle"/>
+      <RetryUntilSuccessful num_attempts="2">
+        <Action ID="ScanForTarget" target="kettle" pattern="grid" max_attempts="2" timeout_ms="800"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="kettle" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="kettle" offset_z="0.05" timeout_ms="1000"/>
+    <Action ID="ComputeGraspPose" target="kettle" strategy="top" result_key="std_top"/>
+    <Action ID="ApproachAndAlign" target="kettle" tolerance="0.005" timeout_ms="1000"/>
+    <Action ID="GraspAtPose" pose_key="std_top" strategy="top" timeout_ms="1000"/>
+    <Condition ID="ObjectInGripper" target="kettle"/>
   </Sequence>
 </BehaviorTree>

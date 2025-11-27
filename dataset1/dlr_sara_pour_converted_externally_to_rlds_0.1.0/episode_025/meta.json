@@ -1,11 +1,203 @@
 {
   "dataset_id": "dlr_sara_pour_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_025",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Pour into the mug",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/dlr_sara_pour_converted_externally_to_rlds_0.1.0/episode_025",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot arm pours the contents from the cup into the mug, following a perception-to-action sequence and retreating when finished.",
+  "task_long_description": {
+    "overview": "This task involves a robot arm with a two-finger gripper pouring liquid (or simulated contents) from a handled cup into a mug positioned on a table. The sequence follows perception of both source (cup) and target (mug), approach and alignment over the mug, execution of a pouring motion by tilting the cup with a controlled angle over the mug, and retreating once pouring is complete. Visual alignment and verification steps are implied by the frames.",
+    "preconditions": [
+      "Cup is grasped by robot gripper",
+      "Cup contains pourable contents",
+      "Mug is present and correctly positioned"
+    ],
+    "stepwise_plan": [
+      "Detect target mug and confirm visibility",
+      "Approach the mug with the cup",
+      "Align the cup over the mug",
+      "Pour from cup into mug with a controlled tilt",
+      "Retract the cup after pouring"
+    ],
+    "success_criteria": [
+      "Cup is positioned properly above mug",
+      "Pour action is executed with tilt angle",
+      "Contents are transferred into mug",
+      "No spillage outside mug"
+    ],
+    "failure_and_recovery": [
+      "Cup or mug not detected: re-attempt perception",
+      "Misalignment: abort pour, retry approach",
+      "Pour incomplete: repeat pour if possible",
+      "Collision during approach: retreat and realign"
+    ],
+    "termination": "Task terminates after the retreat action post-pour and upon safe separation of cup from mug."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Pour into the mug",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["cup", "mug", "table", "robot_arm"],
+  "objects_from_instruction": ["cup", "mug"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"cup"},
+      "description":"Checks if the source cup is visible for manipulation."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"cup", "timeout_ms":800},
+      "description":"Detects the cup using visual sensors within a set timeout."
+    },
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"mug"},
+      "description":"Checks if the target mug is visible for pouring."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"mug", "timeout_ms":800},
+      "description":"Detects the mug using visual sensors within a set timeout."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"cup","offset_z":0.05,"timeout_ms":1500},
+      "description":"Moves the cup above the mug at a specified height."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"cup","tolerance":0.005,"timeout_ms":1500},
+      "description":"Precise approach and alignment of the cup (held in gripper) to target position over mug."
+    },
+    {
+      "id":"Pour",
+      "type":"Action",
+      "ports":{"source":"cup","target":"mug","amount":"null","tilt_angle":90,"pour_rate":"null","timeout_ms":1500},
+      "description":"Pours the contents from the cup to the mug with a 90-degree tilt."
+    },
+    {
+      "id":"Retreat",
+      "type":"Action",
+      "ports":{"distance":0.10,"timeout_ms":1200},
+      "description":"Retracts the cup after the pouring operation."
+    }
+  ],
+  "tree_stats": {"nodes_total":9,"actions":6,"conditions":2,"depth":3},
+  "failure_modes": [
+    "Object not detected",
+    "Misalignment during approach",
+    "Pour fails due to improper tilt",
+    "Collision or spillage",
+    "Failed retreat after pour"
+  ],
+  "recovery_strategy": [
+    "Retry perception step on cup/mug loss",
+    "Abort and retry approach on failed alignment",
+    "Abort pour if stability is lost; replan",
+    "Safe retreat if collision detected"
+  ],
+  "assumptions": [
+    "The instruction lacks details about amount and pour_rate; assumed null.",
+    "Frames [0]-[8] show that the robot is already grasping the cup at all times.",
+    "The cup is poured into an object visually confirmed to be a mug.",
+    "No explicit grasp or place action used, as hand never releases object.",
+    "All poses, angles, durations, and action IDs inferred visually, not named in the instruction."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Cup is positioned and tilted appropriately above mug",
+      "Contents are transferred into mug with minimal to no spillage",
+      "Cup retracts after pour and is clear of mug"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": { "id": "DetectObject", "attrs": {"target": "cup", "timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": { "id": "DetectObject", "attrs": {"target": "mug", "timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": { "id": "MoveAbove", "attrs": {"target":"cup", "offset_z":0.05, "timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": { "id": "ApproachAndAlign", "attrs": {"target":"cup", "tolerance":0.005, "timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": { "id": "ApproachAndAlign", "attrs": {"target":"cup", "tolerance":0.005, "timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": { "id": "Pour", "attrs": {"source":"cup", "target":"mug", "amount":"null", "tilt_angle":90, "pour_rate":"null", "timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": { "id": "Pour", "attrs": {"source":"cup", "target":"mug", "amount":"null", "tilt_angle":90, "pour_rate":"null", "timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": { "id": "Retreat", "attrs": {"distance":0.10, "timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": { "id": "Retreat", "attrs": {"distance":0.10, "timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

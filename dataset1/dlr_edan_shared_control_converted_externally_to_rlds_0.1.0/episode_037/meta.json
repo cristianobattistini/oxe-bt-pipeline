@@ -1,11 +1,199 @@
 {
   "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_037",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pick the die",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/dlr_edan_shared_control_converted_externally_to_rlds_0.1.0/episode_037",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot is instructed to pick the die by locating it, preparing its gripper, approaching, aligning, computing a grasp, executing the grasp, and verifying the die is held.",
+  "task_long_description": {
+    "overview": "In an indoor environment, a robot arm is tasked to pick up a die placed on a shelf. The scene features a black shelving unit, a plant, and a white die. The robot approaches, visually detects the die, opens its gripper, moves above the die, precisely aligns, computes and executes a top grasp, then verifies secure holding. No explicit time or force constraints are present in the instruction, but frames show careful, precise execution.",
+    "preconditions": [
+      "Die is present and accessible on the shelf.",
+      "Robot is powered and has free workspace.",
+      "Gripper is operable and empty."
+    ],
+    "stepwise_plan": [
+      "Visually acquire the die and verify it is visible.",
+      "Open the gripper in preparation for grasp.",
+      "Move the gripper above and near the die.",
+      "Approach and align to the die with tight tolerance.",
+      "Compute a suitable top grasp pose.",
+      "Execute the grasp with the computed pose.",
+      "Verify the die is securely held in the gripper."
+    ],
+    "success_criteria": [
+      "Die is firmly held in the gripper after execution.",
+      "No collisions with furniture or plant.",
+      "Precise alignment and secure grasp achieved."
+    ],
+    "failure_and_recovery": [
+      "Fail: Object not detected—retry detection.",
+      "Fail: Grasp fails—allow reattempt if possible.",
+      "Fail: Die slips—re-align and re-grasp."
+    ],
+    "termination": "Either die is detected in gripper, or failed after all retries/detection attempts."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the die",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": 0.002,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["die","shelf","plant"],
+  "objects_from_instruction": ["die"],
+  "blackboard_keys": ["grasp_die"],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"die"},
+      "description":"Checks if the die is visually detected."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"die", "timeout_ms":800},
+      "description":"Actively detects the die."
+    },
+    {
+      "id":"OpenGripper",
+      "type":"Action",
+      "ports":{"width":0.06, "timeout_ms":500},
+      "description":"Opens gripper to appropriate width for die."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"die","offset_z":0.05,"timeout_ms":1500},
+      "description":"Moves the gripper above the die, preparing for grasp."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"die","tolerance":0.002,"timeout_ms":1500},
+      "description":"Robot approaches and aligns to die with high precision."
+    },
+    {
+      "id":"ComputeGraspPose",
+      "type":"Action",
+      "ports":{"target":"die","strategy":"top","result_key":"grasp_die"},
+      "description":"Computes an optimal top grasp pose for die."
+    },
+    {
+      "id":"GraspAtPose",
+      "type":"Action",
+      "ports":{"pose_key":"grasp_die","strategy":"top","timeout_ms":800},
+      "description":"Executes grasp at computed pose using top strategy."
+    },
+    {
+      "id":"ObjectInGripper",
+      "type":"Condition",
+      "ports":{"target":"die"},
+      "description":"Verifies that the die is in the gripper."
+    }
+  ],
+  "tree_stats": {"nodes_total": 8, "actions": 6, "conditions": 2, "depth": 9},
+  "failure_modes": [
+    "Die not detected visually",
+    "Gripper fails to open or close",
+    "Die not grasped after approach",
+    "Alignment too loose, missed grasp"
+  ],
+  "recovery_strategy": [
+    "Retry DetectObject action",
+    "Repeat grasp with re-alignment",
+    "Abort if die persistently not detected"
+  ],
+  "assumptions": [
+    "Instruction lacked grasp force and time constraints; set to null.",
+    "Die is accessible atop shelf; confirmed by contact sheet frames.",
+    "No visible interference from plant or other objects.",
+    "All phases visually supported by contact sheet, frame order reflects real-world progression."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Die held securely by gripper at task end",
+      "Precise alignment and no collisions"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"die"}},
+      "active_path_ids": ["Sequence","Fallback","IsObjectVisible"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"die","timeout_ms":800}},
+      "active_path_ids": ["Sequence","Fallback","DetectObject"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": ["Sequence","OpenGripper"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"die","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"die","tolerance":0.002,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"die","strategy":"top","result_key":"grasp_die"}},
+      "active_path_ids": ["Sequence","ComputeGraspPose"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_die","strategy":"top","timeout_ms":800}},
+      "active_path_ids": ["Sequence","GraspAtPose"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"die"}},
+      "active_path_ids": ["Sequence","ObjectInGripper"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"die"}},
+      "active_path_ids": ["Sequence","ObjectInGripper"]
+    }
+  ]
 }

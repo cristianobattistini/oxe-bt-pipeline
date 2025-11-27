@@ -1,11 +1,215 @@
 {
   "dataset_id": "tokyo_u_lsmo_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_025",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "avoid obstacle and reach the scissors",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/tokyo_u_lsmo_converted_externally_to_rlds_0.1.0/episode_025",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot must detect, approach, and avoid any obstacles while moving toward the scissors, as seen in the contact sheet.",
+  "task_long_description": {
+    "overview": "A tabletop robot arm identifies the position of a pair of scissors among other objects, then moves toward it while avoiding obstruction by carefully navigating and aligning above the scissors. The robot's sequence leverages perception, approach, obstacle avoidance, and retreat motions. The central role is to prove robust navigation and approach capability in a cluttered tabletop scene with the scissors as the explicit goal.",
+    "preconditions": [
+      "Robot is powered and initialized.",
+      "Scissors are present within manipulation workspace.",
+      "No objects are grasped; workspace lighting is nominal."
+    ],
+    "stepwise_plan": [
+      "Confirm scissors are visible, or scan until visible.",
+      "Detect and localize the scissors.",
+      "Move the end effector above the scissors, avoiding obstacles (i.e., other objects on the table).",
+      "Approach and align precisely over the scissors.",
+      "Make a lateral move to avoid final contact (obstacle avoidance step).",
+      "Retreat to confirm successful navigation."
+    ],
+    "success_criteria": [
+      "Scissors are properly located.",
+      "Robot moves above the scissors without collision.",
+      "Obstacle (if present, as in the visual frames) is avoided.",
+      "Robot completes approach and retreat without error."
+    ],
+    "failure_and_recovery": [
+      "Failure: Scissors not visible—retry scan (up to 3 attempts).",
+      "Failure: No approach path—abort motion, report.",
+      "Failure: Obstacle blocks path—abort or adjust lateral move."
+    ],
+    "termination": "Behavior ends after retreat confirms successful approach and no collisions occurred."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "avoid obstacle and reach the scissors",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 1200,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["scissors","robot_arm","books","black_box","clock"],
+  "objects_from_instruction": ["scissors"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"scissors"},
+      "description":"Checks if the scissors are currently visible in the workspace."
+    },
+    {
+      "id":"ScanForTarget",
+      "type":"Action",
+      "ports":{"target":"scissors","pattern":"line","max_attempts":3,"timeout_ms":1200},
+      "description":"Performs a scanning pattern (line) to find the scissors, retrying up to 3 times."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"scissors","timeout_ms":800},
+      "description":"Attempts to localize the scissors after they are visible."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"scissors","offset_z":0.10,"timeout_ms":1500},
+      "description":"Moves the end effector directly above the scissors with a 10 cm upward offset."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"scissors","tolerance":0.005,"timeout_ms":1500},
+      "description":"Carefully approaches and aligns over the scissors, with minimal lateral deviation (tight tolerance)."
+    },
+    {
+      "id":"MoveDelta",
+      "type":"Action",
+      "ports":{"axis":"y","dist":0.05,"timeout_ms":1200},
+      "description":"Moves 5 cm along the y-axis to avoid final obstacle and enable safe approach."
+    },
+    {
+      "id":"Retreat",
+      "type":"Action",
+      "ports":{"distance":0.10,"timeout_ms":1200},
+      "description":"Withdraws the arm 10 cm from last position, confirming safe retreat after approach."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 9,
+    "actions": 5,
+    "conditions": 1,
+    "depth": 7
+  },
+  "failure_modes": [
+    "Scissors not visible for detection",
+    "Obstacle blocks direct approach",
+    "Localization error",
+    "Physical collision during movement"
+  ],
+  "recovery_strategy": [
+    "Retry scanning up to three times to find the scissors",
+    "Abort move if path is blocked or adjust lateral move",
+    "Retreat if contact or collision is detected"
+  ],
+  "assumptions": [
+    "Frames show a clear tabletop environment with a robot arm approaching scissors. No grasp is performed (just approach and retreat), which reflects the instruction and evidence.",
+    "If an obstacle is encountered, MoveDelta provides lateral avoidance; path is not dynamically replanned.",
+    "Instruction implies obstacle avoidance but does not request grasping; this matches observed frame sequences."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Robot reliably detects and approaches the scissors",
+      "No collisions with other objects (obstacles) occur",
+      "Scissors are reached and lateral avoidance (if any) succeeds"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"scissors"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"scissors","pattern":"line","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"scissors","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"scissors","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"scissors","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveDelta","attrs":{"axis":"y","dist":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

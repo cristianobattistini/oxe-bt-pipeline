@@ -1,5 +1,12 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="bottle"/>
+      <Action ID="DetectObject" target="bottle" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="bottle" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="bottle" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="OpenContainer" target="bottle" container_type="lid" timeout_ms="2000"/>
+    <Condition ID="ContainerOpen" target="bottle"/>
   </Sequence>
 </BehaviorTree>

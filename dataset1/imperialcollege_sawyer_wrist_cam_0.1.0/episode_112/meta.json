@@ -1,11 +1,195 @@
 {
   "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
   "episode_id": "episode_112",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "open bottle",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/imperialcollege_sawyer_wrist_cam_0.1.0/episode_112",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot opens a bottle positioned on a blue surface by visually locating, approaching, aligning, and actuating its lid using gripper or end-effector manipulation.",
+  "task_long_description": {
+    "overview": "This episode involves a robot arm attempting to open a bottle, as observed through nine consecutive wrist camera frames. The bottle starts in a closed state, centrally located, and the sequence proceeds with the gripper moving towards, aligning above, and ultimately actuating the bottle's lid. The environment is structured for a single manipulation without visible clutter. Primary roles include perception for object detection, planning sequential approach, mechanical actuation, and verification of open state.",
+    "preconditions": [
+      "Bottle present upright on flat blue surface",
+      "Bottle initial state: closed",
+      "Robot arm and wrist camera operational",
+      "Gripper capable of interacting with bottle lid"
+    ],
+    "stepwise_plan": [
+      "Scan for and confirm visibility of the bottle",
+      "Detect bottle and estimate location",
+      "Move gripper above bottle",
+      "Approach and align to bottle position",
+      "Open the bottle by actuating the lid",
+      "Verify that the bottle is open"
+    ],
+    "success_criteria": [
+      "Bottle transitions from closed to open as confirmed by visual or tactile feedback",
+      "No adverse bottle movement or displacement from surface",
+      "Task completes within reasonable time (~10 seconds)"
+    ],
+    "failure_and_recovery": [
+      "Failure to detect bottle: scan up to three times",
+      "Misalignment: repeat approach/alignment",
+      "Opening attempt fails: retry cycle (not present in this tree)",
+      "Open verification fails: abort or request manual inspection"
+    ],
+    "termination": "Tree terminates upon successful verification that the bottle is open (ContainerOpen condition true) or unrecoverable detection/alignment failure."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": [
+      "frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7",
+      "frame_0","frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "open bottle",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["bottle", "bottle_lid"],
+  "objects_from_instruction": ["bottle"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"bottle"},
+      "description":"Checks if the bottle is visible to the robot vision."
+    },
+    {
+      "id":"ScanForTarget",
+      "type":"Action",
+      "ports":{"target":"bottle","pattern":"circle","max_attempts":3,"timeout_ms":1000},
+      "description":"Performs a circular scan to find the bottle within vision range."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"bottle","timeout_ms":800},
+      "description":"Runs object detection algorithm for precise bottle localization."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"bottle","offset_z":0.05,"timeout_ms":1500},
+      "description":"Moves the robot's gripper to a position above the bottle."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"bottle","tolerance":0.005,"timeout_ms":1500},
+      "description":"Approaches and aligns gripper with the bottle position."
+    },
+    {
+      "id":"OpenContainer",
+      "type":"Action",
+      "ports":{"target":"bottle","container_type":"lid","timeout_ms":2000},
+      "description":"Attempts to open the bottle by actuating the lid mechanism."
+    },
+    {
+      "id":"ContainerOpen",
+      "type":"Condition",
+      "ports":{"target":"bottle"},
+      "description":"Confirms that the bottle is in an open state."
+    }
+  ],
+  "tree_stats": {"nodes_total": 7, "actions": 5, "conditions": 2, "depth": 3},
+  "failure_modes": [
+    "Bottle not detected",
+    "Gripper fails to align",
+    "Opening actuation fails",
+    "Bottle remains closed after attempt"
+  ],
+  "recovery_strategy": [
+    "Fallback to scan if initial perception fails",
+    "Repeat alignment phase if tolerance not achieved",
+    "Abort or log unresolved failures after final verification"
+  ],
+  "assumptions": [
+    "The frames clearly show a bottle being manipulated, supporting the 'open bottle' instruction.",
+    "No explicit retry on opening is present since frames show single decisive actuation.",
+    "No additional force or timeout parameters are specified or apparent from frames.",
+    "Frame evidence takes precedence where visual progress/discontinuity is detected."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Bottle visually open at the end (frames 6–8 show an open or lid-removed bottle)",
+      "No spill or excessive movement"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"bottle"}},
+      "active_path_ids": ["Sequence","Fallback","IsObjectVisible"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"bottle","timeout_ms":800}},
+      "active_path_ids": ["Sequence","DetectObject"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"bottle","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"bottle","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"bottle","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","ApproachAndAlign"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"bottle","container_type":"lid","timeout_ms":2000}},
+      "active_path_ids": ["Sequence","OpenContainer"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"OpenContainer","attrs":{"target":"bottle","container_type":"lid","timeout_ms":2000}},
+      "active_path_ids": ["Sequence","OpenContainer"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {"id":"ContainerOpen","attrs":{"target":"bottle"}},
+      "active_path_ids": ["Sequence","ContainerOpen"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {"id":"ContainerOpen","attrs":{"target":"bottle"}},
+      "active_path_ids": ["Sequence","ContainerOpen"]
+    }
+  ]
 }

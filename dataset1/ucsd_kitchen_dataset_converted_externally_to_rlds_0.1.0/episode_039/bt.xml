@@ -1,5 +1,15 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="cabinet_door"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="cabinet_door" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="cabinet_door" timeout_ms="800"/>
+    <Action ID="ApproachAndAlign" target="cabinet_door" tolerance="0.01" timeout_ms="1500"/>
+    <Action ID="OpenContainer" target="cabinet_door" container_type="cabinet" timeout_ms="2000"/>
+    <Condition ID="ContainerOpen" target="cabinet_door"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

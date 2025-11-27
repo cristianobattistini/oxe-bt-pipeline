@@ -1,11 +1,419 @@
 {
   "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_088",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "Place the teapot on the stove",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0/episode_088",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Place the teapot onto the stove by perceiving, grasping, transferring, and releasing with stable arm motion and precise placement.",
+  "task_long_description": {
+    "overview": "A robot manipulator is instructed to pick up a teapot and place it onto the stove surface. The scene involves a teapot, a stove in a toy or demonstrative kitchen setup, and the robot arm. The system must actively perceive the teapot, approach and securely grasp it from above, verify grasp stability, then transfer and place the teapot precisely on the stove top, followed by retreat and completion verification.",
+    "preconditions": [
+      "Teapot is within reachable workspace",
+      "Stove is clear and accessible",
+      "Robot arm properly initialized and homed",
+      "No major occlusions of target objects"
+    ],
+    "stepwise_plan": [
+      "Check visibility of teapot; scan if not visible",
+      "Locate and detect teapot",
+      "Open gripper to suitable width",
+      "Move above teapot and compute top grasp pose",
+      "Approach and align to grasp position",
+      "Lower gripper until contact with proper force threshold",
+      "Close gripper and verify stable grasp",
+      "Check visibility (or detect) stove",
+      "Move above stove at safe offset",
+      "Place teapot on stove surface with gentle press",
+      "Open gripper to release",
+      "Retreat gripper upward",
+      "Wait to confirm action completion"
+    ],
+    "success_criteria": [
+      "Teapot is stably placed on the stove surface",
+      "No collision or dropping occurs",
+      "Gripper is open and retracted after placement"
+    ],
+    "failure_and_recovery": [
+      "If teapot not visible: retry scan up to 3 times",
+      "If grasp is not stable: abort or retry pick",
+      "If placement fails: detect, reacquire pose, attempt again"
+    ],
+    "termination": "The sequence ends after the robot releases the teapot and retreats, with the teapot resting on the stove."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Place the teapot on the stove",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 1200,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "teapot",
+    "stove"
+  ],
+  "objects_from_instruction": [
+    "teapot",
+    "stove"
+  ],
+  "blackboard_keys": [
+    "grasp_teapot"
+  ],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {
+        "target": "teapot"
+      },
+      "description": "Returns success if teapot is currently visible to perception system"
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {
+        "target": "teapot",
+        "pattern": "raster",
+        "max_attempts": 3,
+        "timeout_ms": 1200
+      },
+      "description": "Performs raster scanning to search for the teapot within workspace"
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {
+        "target": "teapot",
+        "timeout_ms": 800
+      },
+      "description": "Attempts to precisely localize the teapot"
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {
+        "width": 0.06,
+        "timeout_ms": 500
+      },
+      "description": "Opens gripper to a width to pre-shape for object grasp"
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {
+        "target": "teapot",
+        "offset_z": 0.05,
+        "timeout_ms": 1500
+      },
+      "description": "Moves end-effector to a position above teapot to begin grasp"
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {
+        "target": "teapot",
+        "strategy": "top",
+        "result_key": "grasp_teapot"
+      },
+      "description": "Computes a top-down grasp pose and stores in blackboard"
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {
+        "target": "teapot",
+        "tolerance": 0.005,
+        "timeout_ms": 1500
+      },
+      "description": "Fine approach and alignment to grasp the teapot with tight tolerance"
+    },
+    {
+      "id": "LowerUntilContact",
+      "type": "Action",
+      "ports": {
+        "speed": "slow",
+        "max_depth": 0.05,
+        "force_threshold": 5,
+        "timeout_ms": 1200
+      },
+      "description": "Lower gripper slowly until gentle contact is detected with teapot"
+    },
+    {
+      "id": "CloseGripper",
+      "type": "Action",
+      "ports": {
+        "force": 10,
+        "timeout_ms": 800
+      },
+      "description": "Closes gripper around teapot with low force"
+    },
+    {
+      "id": "IsGraspStable",
+      "type": "Condition",
+      "ports": {},
+      "description": "Checks that the grasp is stable before lifting"
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {
+        "target": "stove",
+        "timeout_ms": 800
+      },
+      "description": "Attempts to localize the stove (if not already visible)"
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {
+        "target": "stove",
+        "offset_z": 0.10,
+        "timeout_ms": 1500
+      },
+      "description": "Moves gripper above the stove surface to prepare for placement"
+    },
+    {
+      "id": "PlaceOnSurface",
+      "type": "Action",
+      "ports": {
+        "target": "teapot",
+        "area_id": "stove",
+        "yaw_deg": 0,
+        "press_force": 10,
+        "timeout_ms": 1200
+      },
+      "description": "Places teapot on stove top with low press force"
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {
+        "width": 0.08,
+        "timeout_ms": 500
+      },
+      "description": "Opens gripper to release teapot after placement"
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {
+        "distance": 0.1,
+        "timeout_ms": 1200
+      },
+      "description": "Retracts gripper upward after placing teapot"
+    },
+    {
+      "id": "Wait",
+      "type": "Action",
+      "ports": {
+        "timeout_ms": 500
+      },
+      "description": "Short wait to confirm placement and stabilization"
+    },
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {
+        "target": "stove"
+      },
+      "description": "Checks if stove is visible"
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 19,
+    "actions": 13,
+    "conditions": 4,
+    "depth": 5
+  },
+  "failure_modes": [
+    "Teapot not detected by perception",
+    "Failed or unstable grasp",
+    "Stove not detected or occluded",
+    "Object dropped or misplaced during transfer",
+    "Collision with environment"
+  ],
+  "recovery_strategy": [
+    "Scan for object up to 3 times if not visible",
+    "Abort or retry grasp if stable grasp not achieved",
+    "Reacquire placement target if stove not found"
+  ],
+  "assumptions": [
+    "The instruction matches the observed sequence: teapot is placed on stove. The gripper and objects inferred from frames [0]-[8].",
+    "No evidence for additional objects/conflicting instructions.",
+    "Offset_z values and force/tolerance selected for safe, demonstrative kitchen setting.",
+    "Using teapot and stove as symbolic targets per visual evidence."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Teapot is upright and resting on stove in final frame",
+      "No collision or slippage observed",
+      "Gripper fully retracted and open"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "IsObjectVisible",
+        "attrs": {
+          "target": "teapot"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {
+          "target": "teapot",
+          "timeout_ms": 800
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {
+          "width": 0.06,
+          "timeout_ms": 500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {
+          "target": "teapot",
+          "offset_z": 0.05,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {
+          "target": "teapot",
+          "tolerance": 0.005,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "LowerUntilContact",
+        "attrs": {
+          "speed": "slow",
+          "max_depth": 0.05,
+          "force_threshold": 5,
+          "timeout_ms": 1200
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {
+          "target": "stove",
+          "offset_z": 0.10,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "place",
+      "active_leaf": {
+        "id": "PlaceOnSurface",
+        "attrs": {
+          "target": "teapot",
+          "area_id": "stove",
+          "yaw_deg": 0,
+          "press_force": 10,
+          "timeout_ms": 1200
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.1,
+          "timeout_ms": 1200
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
 }

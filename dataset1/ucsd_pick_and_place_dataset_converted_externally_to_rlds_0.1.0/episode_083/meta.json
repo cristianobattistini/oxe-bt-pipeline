@@ -1,11 +1,170 @@
 {
   "dataset_id": "ucsd_pick_and_place_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_083",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "place the pot in the sink",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_pick_and_place_dataset_converted_externally_to_rlds_0.1.0/episode_083",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot's task is to detect, grasp, and place the pot into the sink as seen in the contact sheet frames.",
+  "task_long_description": {
+    "overview": "In this episode, a robotic manipulator interacts with a kitchen scene that includes a pot on the countertop, a sink, and supporting cabinetry. The robot must visually locate the pot, approach it from a suitable angle, compute and perform a reliable grasp, confirm its grip, then transfer the pot to the sink and release it onto the sink’s surface. Throughout, visual verification and correct placement are crucial to prevent task failure due to misalignment or object slip.",
+    "preconditions": [
+      "Pot is present and accessible on the counter.",
+      "Sink area is clear for placement.",
+      "Robot gripper is initialized and free of objects."
+    ],
+    "stepwise_plan": [
+      "Ensure pot is visible; retry detection if needed.",
+      "Detect pot and open gripper.",
+      "Move above pot and compute grasp pose.",
+      "Approach, align, and grasp pot.",
+      "Confirm pot is secured in gripper.",
+      "Ensure sink is visible; retry detection if needed.",
+      "Move above sink.",
+      "Place pot on sink surface and release.",
+      "Retreat and wait."
+    ],
+    "success_criteria": [
+      "Pot is stably placed inside the sink.",
+      "Gripper is empty and retracted.",
+      "No collisions or dropped object during transfer."
+    ],
+    "failure_and_recovery": [
+      "Failure to detect pot or sink: retry scan.",
+      "Grasp unsuccessful: retry grasp.",
+      "Placement fails: attempt to realign and replace."
+    ],
+    "termination": "Episode ends after pot is placed in the sink and robot has retreated and waited briefly."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "place the pot in the sink",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["pot", "sink"],
+  "objects_from_instruction": ["pot", "sink"],
+  "blackboard_keys": ["grasp_pot"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"pot"},"description":"Checks if pot is visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"pot","pattern":"raster","max_attempts":3,"timeout_ms":1200},"description":"Scans workspace for pot if not directly visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"pot","timeout_ms":800},"description":"Runs object detection for pot."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.08,"timeout_ms":500},"description":"Opens gripper for grasp preparation."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"pot","offset_z":0.05,"timeout_ms":1000},"description":"Moves gripper above pot for grasp."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"pot","strategy":"top","result_key":"grasp_pot"},"description":"Computes grasp from above for pot."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"pot","tolerance":0.005,"timeout_ms":1000},"description":"Approaches and aligns to grasp pose over pot."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_pot","strategy":"top","timeout_ms":1000},"description":"Executes grasp on pot."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"pot"},"description":"Confirms pot is held."},
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"sink"},"description":"Checks if sink is visible."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"sink","timeout_ms":800},"description":"Runs object detection for sink."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"sink","offset_z":0.10,"timeout_ms":1500},"description":"Moves above sink for placement."},
+    {"id":"PlaceOnSurface","type":"Action","ports":{"target":"pot","area_id":"sink","yaw_deg":0,"press_force":10,"timeout_ms":1200},"description":"Places pot onto sink surface."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.10,"timeout_ms":500},"description":"Opens gripper to release pot."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1200},"description":"Retracts gripper after placement."},
+    {"id":"Wait","type":"Action","ports":{"timeout_ms":500},"description":"Waits briefly after placement."}
+  ],
+  "tree_stats": {"nodes_total": 17, "actions": 13, "conditions": 4, "depth": 3},
+  "failure_modes": [
+    "Pot or sink not detected.",
+    "Grasp unsuccessful or unstable.",
+    "Pot dropped in transit.",
+    "Placement unsuccessful (misaligned, stuck, or falls)."
+  ],
+  "recovery_strategy": [
+    "Retry detection or scanning.",
+    "Attempt additional grasp or realignment.",
+    "Re-detect placement area if sink missed.",
+    "Abort and retreat on persistent failures."
+  ],
+  "assumptions": [
+    "Pot is present and in the expected location per frames.",
+    "Sink is sufficiently clear for placement.",
+    "Pot size and gripper geometry are compatible.",
+    "Contact sheet confirms 'pot' and 'sink' naming for library.",
+    "No low-force or tolerance constraints given; frames show normal handling.",
+    "Instruction matches scene; no visual conflict detected."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Pot remains stable inside sink after placement.",
+      "Robot releases object and retracts."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"pot"}},
+      "active_path_ids": ["Sequence","Fallback","IsObjectVisible"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"pot","offset_z":0.05,"timeout_ms":1000}},
+      "active_path_ids": ["Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"pot","strategy":"top","result_key":"grasp_pot"}},
+      "active_path_ids": ["Sequence","ComputeGraspPose"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_pot","strategy":"top","timeout_ms":1000}},
+      "active_path_ids": ["Sequence","GraspAtPose"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"sink","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": ["Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"pot","area_id":"sink","yaw_deg":0,"press_force":10,"timeout_ms":1200}},
+      "active_path_ids": ["Sequence","PlaceOnSurface"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "retreat",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.10,"timeout_ms":500}},
+      "active_path_ids": ["Sequence","OpenGripper"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": ["Sequence","Retreat"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Wait","attrs":{"timeout_ms":500}},
+      "active_path_ids": ["Sequence","Wait"]
+    }
+  ]
 }

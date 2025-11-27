@@ -1,5 +1,21 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="canned_spam"/>
+      <Action ID="ScanForTarget" target="canned_spam" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <Action ID="DetectObject" target="canned_spam" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="ApproachAndAlign" target="canned_spam" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="Grasp" target="canned_spam" strategy="top" force="5" timeout_ms="1000"/>
+    <Condition ID="ObjectInGripper" target="canned_spam"/>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="sink"/>
+      <Action ID="DetectObject" target="sink" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="sink" offset_z="0.10" timeout_ms="1500"/>
+    <Action ID="PlaceDown" target="sink" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1200"/>
   </Sequence>
 </BehaviorTree>

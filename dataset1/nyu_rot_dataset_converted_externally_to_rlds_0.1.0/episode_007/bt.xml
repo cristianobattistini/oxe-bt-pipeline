@@ -1,5 +1,13 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="button"/>
+      <Action ID="DetectObject" target="button" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="MoveAbove" target="button" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="button" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="PressButton" target="button" button_type="push_button" press_depth="0.010" press_force="5" timeout_ms="800"/>
+    <Condition ID="ButtonPressed" target="button"/>
+    <Action ID="Retreat" distance="0.05" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>

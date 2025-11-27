@@ -1,11 +1,161 @@
 {
   "dataset_id": "nyu_rot_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_011",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "turn the knob",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/nyu_rot_dataset_converted_externally_to_rlds_0.1.0/episode_011",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot locates, approaches, and turns a knob, as depicted in the nine contact-sheet frames.",
+  "task_long_description": {
+    "overview": "This episode tasks a stationary manipulator robot with turning a green knob attached to a blue/yellow fixture on a table. The robot must visually identify the knob, approach and align its end effector to the knob, then turn it clockwise (direction inferred from continuous hand motion in frames). The robot's arm is the only actuator, and the action occurs without interruptions or tool changes.",
+    "preconditions": [
+      "Knob is visible and reachable on the table",
+      "Robot is powered on, in start position",
+      "No obstacles block the robot's path"
+    ],
+    "stepwise_plan": [
+      "Detect the knob",
+      "Approach and align to the knob precisely",
+      "Turn the knob clockwise by ~90 degrees, low force"
+    ],
+    "success_criteria": [
+      "Knob is turned to new orientation (visible displacement in frames 4-8)",
+      "No collision or dropped object",
+      "Robot arm returns to neutral after turning"
+    ],
+    "failure_and_recovery": [
+      "Detection failure: retry object detection",
+      "Approach/align fails: adjust pose or timeout",
+      "Knob resists turning: limit applied force, abort early on slip"
+    ],
+    "termination": "Tree terminates after successful TurnKnob action; knob orientation is visibly changed."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3", "frame_5", "frame_2", "frame_6", "frame_1", "frame_4", "frame_7", "frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "turn the knob",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 1500,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["robot_arm", "knob", "fixture", "table"],
+  "objects_from_instruction": ["knob"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "knob", "timeout_ms": 1000},
+      "description": "Detect the knob to localize its position for manipulation."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "knob", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Move and align the end effector precisely to the knob."
+    },
+    {
+      "id": "TurnKnob",
+      "type": "Action",
+      "ports": {"target": "knob", "knob_type": "knob", "angle_deg": 90, "direction": "clockwise", "force_limit": 5, "timeout_ms": 1500},
+      "description": "Turn the knob clockwise 90 degrees with minimal required force."
+    }
+  ],
+  "tree_stats": {"nodes_total": 4, "actions": 3, "conditions": 0, "depth": 4},
+  "failure_modes": [
+    "Knob not detected",
+    "Misalignment blocks approach",
+    "Knob jams or excessive force needed"
+  ],
+  "recovery_strategy": [
+    "Retry detection if knob not found",
+    "Re-plan approach if alignment fails",
+    "Abort or reduce force if resistance is detected"
+  ],
+  "assumptions": [
+    "The knob is clearly visible and free of occlusion in all frames.",
+    "Turning direction is inferred as clockwise (frames show rightward motion of knob, not explicitly stated in instruction).",
+    "Angle turned is 90 degrees, matching the robot's continuous arm motion from pre-turn to post-turn; true value is visually estimated.",
+    "‘Low force’ mapped to minimum allowed force_limit."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Knob visibly turns 90 degrees from initial orientation",
+      "No slippage or error during turning"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "knob", "timeout_ms": 1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "knob", "timeout_ms": 1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "knob", "tolerance": 0.005, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "knob", "tolerance": 0.005, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "knob", "tolerance": 0.005, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id": "TurnKnob", "attrs": {"target": "knob", "knob_type": "knob", "angle_deg": 90, "direction": "clockwise", "force_limit": 5, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id": "TurnKnob", "attrs": {"target": "knob", "knob_type": "knob", "angle_deg": 90, "direction": "clockwise", "force_limit": 5, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {"id": "TurnKnob", "attrs": {"target": "knob", "knob_type": "knob", "angle_deg": 90, "direction": "clockwise", "force_limit": 5, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {"id": "TurnKnob", "attrs": {"target": "knob", "knob_type": "knob", "angle_deg": 90, "direction": "clockwise", "force_limit": 5, "timeout_ms": 1500}},
+      "active_path_ids": []
+    }
+  ]
 }

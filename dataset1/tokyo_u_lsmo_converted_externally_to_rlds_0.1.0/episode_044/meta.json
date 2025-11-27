@@ -1,11 +1,180 @@
 {
   "dataset_id": "tokyo_u_lsmo_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_044",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "avoid obstacle and reach the blue pen",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/tokyo_u_lsmo_converted_externally_to_rlds_0.1.0/episode_044",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "The robot arm must avoid the obstacle (books) on the table and reach the blue pen at the far side of the books.",
+  "task_long_description": {
+    "overview": "This scene takes place on a tabletop where a robot arm must move its end-effector from one side of a stack of books (serving as an obstacle) to reach a blue pen placed in a holder on the far side. The books block direct access; the robot must first perceive the pen, plan a safe path, move above or around the obstacle, and approach the pen.",
+    "preconditions": [
+      "Robot arm is initialized and homed",
+      "Obstacle (stack of books) and blue pen are visible on the table",
+      "No objects obstructing overhead movement path"
+    ],
+    "stepwise_plan": [
+      "Detect if the blue pen is visible; if not, scan the area",
+      "Confirm pen's location via detection",
+      "Raise above obstacle to avoid collision",
+      "Move above blue pen",
+      "Approach and align precisely towards blue pen",
+      "Verify successful arrival at pen"
+    ],
+    "success_criteria": [
+      "Robot avoids collision with obstacle",
+      "End-effector reaches a position above or at the blue pen",
+      "Pen is reached without disturbance to books or other objects"
+    ],
+    "failure_and_recovery": [
+      "Failure to perceive pen: scan area up to 3 times",
+      "Collision risk: ensure raise above obstacle before approach"
+    ],
+    "termination": "Task completes successfully when robot is at/above blue pen, or after repeated detection failures."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "avoid obstacle and reach the blue pen",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["robot_arm", "books", "blue_pen", "pen_holder", "table"],
+  "objects_from_instruction": ["obstacle", "blue_pen"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "blue_pen"},
+      "description": "Checks if blue pen is visible to the robot sensors"
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "blue_pen", "pattern": "grid", "max_attempts": 3, "timeout_ms": 1000},
+      "description": "Scans the tabletop in a grid pattern to locate the blue pen"
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "blue_pen", "timeout_ms": 800},
+      "description": "Performs sensor-based detection of the blue pen"
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "obstacle", "offset_z": 0.10, "timeout_ms": 1500},
+      "description": "Raises the arm above the obstacle (books) ensuring collision avoidance"
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "blue_pen", "offset_z": 0.10, "timeout_ms": 1500},
+      "description": "Moves the arm to a position above the blue pen"
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "blue_pen", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Approaches and aligns precisely with the blue pen"
+    },
+    {
+      "id": "IsAt",
+      "type": "Condition",
+      "ports": {"target": "blue_pen"},
+      "description": "Verifies robot is at the target (blue pen)"
+    }
+  ],
+  "tree_stats": {"nodes_total": 7, "actions": 5, "conditions": 2, "depth": 7},
+  "failure_modes": [
+    "Pen not initially visible due to occlusion",
+    "Collision with obstacle during movement",
+    "Error in detection or approach phase"
+  ],
+  "recovery_strategy": [
+    "Scan area up to three times for the blue pen",
+    "Always move above obstacle before approaching target"
+  ],
+  "assumptions": [
+    "Obstacle is identified visually as stack of books in frames, not strictly named in instruction",
+    "Pen referenced as 'blue_pen'; assumed target in both instruction and frames",
+    "No interaction such as grasp; only approach and reach"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "No collision with obstacle",
+      "Robot reaches above the blue pen"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible", "attrs":{"target":"blue_pen"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget", "attrs":{"target":"blue_pen","pattern":"grid","max_attempts":3,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject", "attrs":{"target":"blue_pen","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove", "attrs":{"target":"obstacle","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove", "attrs":{"target":"blue_pen","offset_z":0.10,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "approach",
+      "active_leaf": {"id":"ApproachAndAlign", "attrs":{"target":"blue_pen","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id":"IsAt", "attrs":{"target":"blue_pen"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {"id":"IsAt", "attrs":{"target":"blue_pen"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {"id":"IsAt", "attrs":{"target":"blue_pen"}},
+      "active_path_ids": []
+    }
+  ]
 }

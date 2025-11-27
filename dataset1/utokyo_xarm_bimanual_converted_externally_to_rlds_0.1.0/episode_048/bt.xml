@@ -1,5 +1,18 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="towel"/>
+      <Action ID="ScanForTarget" target="towel" pattern="grid" max_attempts="3" timeout_ms="1200"/>
+    </Fallback>
+    <Action ID="DetectObject" target="towel" timeout_ms="800"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="towel" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="towel" strategy="side" result_key="grasp_1"/>
+    <Action ID="GraspAtPose" pose_key="grasp_1" strategy="side" timeout_ms="1000"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="Unfold" target="towel" strategy="pull" num_folds="1" timeout_ms="3000"/>
+    <Action ID="PlaceAt" pose_key="place_on_table" yaw_deg="0" press_force="5" timeout_ms="1200"/>
+    <Action ID="OpenGripper" width="0.10" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1000"/>
   </Sequence>
 </BehaviorTree>

@@ -1,11 +1,217 @@
 {
   "dataset_id": "imperialcollege_sawyer_wrist_cam_0.1.0",
   "episode_id": "episode_018",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pour in mug",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/imperialcollege_sawyer_wrist_cam_0.1.0/episode_018",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Robot pours contents from a spout into a mug placed on a blue surface. The wrist camera observes approach, alignment, pouring, and retreat.",
+  "task_long_description": {
+    "overview": "The robot is tasked to pour a liquid or granular substance from its end-effector (spout) into a mug placed upright on a blue work surface. The scenario involves approaching the mug, aligning the pouring tool over the mug, performing the pour with a suitable tilt angle, and then retreating. Accuracy of alignment is critical, with the visual confirmation being inferred from the wrist camera. No other objects are visible in the workspace, and constraints include not spilling outside the mug.",
+    "preconditions": [
+      "Mug is upright and positioned, visible in camera field",
+      "Spout is filled and ready to pour",
+      "No obstacles around mug or in arm path"
+    ],
+    "stepwise_plan": [
+      "Detect and localize the mug",
+      "Move above the mug to a preset height",
+      "Align over the mug opening",
+      "Tilt/pour contents into mug at appropriate angle",
+      "Retreat to clear the area"
+    ],
+    "success_criteria": [
+      "Contents poured into mug without spillage",
+      "Mug remains upright and undisturbed",
+      "Robot retreats to a safe position"
+    ],
+    "failure_and_recovery": [
+      "If mug not visible, retry detection and alignment",
+      "If pour is off-target, abort and realign before retry",
+      "On contact fault (e.g., collision), retreat and notify"
+    ],
+    "termination": "Pour completes successfully and arm retreats, or unrecoverable perception/grasp failure occurs"
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pour in mug",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": 0.005,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": ["mug", "spout"],
+  "objects_from_instruction": ["mug"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "mug"},
+      "description": "Checks if the mug is visible to the camera."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "mug", "timeout_ms": 800},
+      "description": "Attempts detection if the mug is not seen."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "mug", "offset_z": 0.05, "timeout_ms": 1000},
+      "description": "Moves the end-effector above the mug to a safe approach height."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "mug", "tolerance": 0.005, "timeout_ms": 1000},
+      "description": "Aligns precisely above the mug opening."
+    },
+    {
+      "id": "Pour",
+      "type": "Action",
+      "ports": {"source": "spout", "target": "mug", "amount": "null", "tilt_angle": 45, "pour_rate": "normal", "timeout_ms": 1500},
+      "description": "Pours the contents from spout into the mug with a tilt."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {"distance": 0.10, "timeout_ms": 1000},
+      "description": "Retreats upward after pouring is complete."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 8,
+    "actions": 5,
+    "conditions": 1,
+    "depth": 3
+  },
+  "failure_modes": [
+    "Mug not detected or not visible",
+    "Misalignment causing off-target pouring",
+    "Spillage due to premature tilt or excessive motion",
+    "Arm collision with mug"
+  ],
+  "recovery_strategy": [
+    "Retry detection if mug not found",
+    "Abort pouring and realign before retry if misaligned",
+    "Stop and retreat on collision or error"
+  ],
+  "assumptions": [
+    "The red object in view is the robot's tool (spout/end-effector); pouring not explicit in some frames but inferred from dark area in mug in frames 6-8.",
+    "Single object (mug) in center; source presumed as 'spout' based on common embodiment.",
+    "No handle manipulation is required per visual evidence."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Liquid or material ends up in the mug with none spilled externally",
+      "Mug position undisturbed during/after pour",
+      "No collision detected by force sensors"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"mug"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"mug","offset_z":0.05,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"mug","offset_z":0.05,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"mug","tolerance":0.005,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"mug","tolerance":0.005,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Pour","attrs":{"source":"spout","target":"mug","amount":"null","tilt_angle":45,"pour_rate":"normal","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "transfer",
+      "active_leaf": {"id":"Pour","attrs":{"source":"spout","target":"mug","amount":"null","tilt_angle":45,"pour_rate":"normal","timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
 }

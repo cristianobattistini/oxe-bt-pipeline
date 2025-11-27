@@ -1,11 +1,149 @@
 {
   "dataset_id": "ucsd_pick_and_place_dataset_converted_externally_to_rlds_0.1.0",
   "episode_id": "episode_079",
-  "created_at": "2025-11-25T22:59:01",
-  "instruction": "pick up the red object from the table",
-  "sources": {
-    "frames_dir": "/home/kcbat/LM T2I/oxe-bt-pipeline/out_temp/ucsd_pick_and_place_dataset_converted_externally_to_rlds_0.1.0/episode_079",
-    "prompt_template": "/home/kcbat/LM T2I/oxe-bt-pipeline/prompts/prompt_full_v3.md"
+  "task_summary": "Pick up the red block from the table by detecting, approaching, and grasping it with a robotic arm.",
+  "task_long_description": {
+    "overview": "The robot must locate a red block placed on a black table, approach it using its gripper, and pick it up. The environment contains additional blue objects which are not the target, and the task requires accurate perception and stable grasping. The behavior is grounded in sequential visual phases from detection through grasp and lifting, with retry logic for perception if required.",
+    "preconditions": ["Red block present and visible on table", "Robot arm initialized above workspace", "Gripper operational and open"],
+    "stepwise_plan": [
+      "1. Search for and visually detect the red block",
+      "2. Open the gripper",
+      "3. Move to a pre-grasp position above the block",
+      "4. Compute grasp pose and align",
+      "5. Grasp the block from above",
+      "6. Verify object is in gripper",
+      "7. Lift the block off the table"
+    ],
+    "success_criteria": [
+      "Red block secured in gripper",
+      "Red block lifted above table with clear separation"
+    ],
+    "failure_and_recovery": [
+      "If block not initially visible: scan with retries",
+      "If grasp unsuccessful: re-align and retry perception or approach"
+    ],
+    "termination": "Ends when the red block is confirmed to be gripped and raised off the table."
   },
-  "notes": "Fill after model generation."
+  "frame_ranking": {
+    "order": [
+      "frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up the red object from the table",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["red_block", "blue_tray_1", "blue_tray_2", "blue_tape_1", "blue_tape_2"],
+  "objects_from_instruction": ["red_block"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"red_block"},"description":"Checks if the red block is currently visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"red_block","pattern":"grid","max_attempts":3,"timeout_ms":1200},"description":"Scans grid pattern to find the red block, up to 3 attempts."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"red_block","timeout_ms":800},"description":"Detects the red block using perception."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Opens the gripper to a width suitable for the block."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"red_block","offset_z":0.05,"timeout_ms":1500},"description":"Moves end-effector above the block for grasp preparation."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"red_block","strategy":"top","result_key":"std_top"},"description":"Calculates a top-down grasp pose for the block."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"red_block","tolerance":0.005,"timeout_ms":1500},"description":"Approaches and aligns end-effector to precisely position before grasp."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"std_top","strategy":"top","timeout_ms":800},"description":"Executes the grasp using the computed pose and top strategy."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"red_block"},"description":"Confirms the block is securely held in the gripper."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"red_block","distance":0.05,"timeout_ms":1200},"description":"Lifts the gripped block vertically by 5 cm."}
+  ],
+  "tree_stats": {"nodes_total": 13, "actions": 8, "conditions": 2, "depth": 4},
+  "failure_modes": [
+    "Red block not detected due to occlusion or perception error",
+    "Gripper fails to close completely around block",
+    "Block slips during lift"
+  ],
+  "recovery_strategy": [
+    "Scan and perception retry sequence",
+    "Recalculation of grasp pose and alignment before retry",
+    "Monitoring for grasp failure signal to trigger reattempt"
+  ],
+  "assumptions": [
+    "Instruction refers to a 'red object', which is visually confirmed as a cuboidal red block in all frames.",
+    "No clear evidence for placement or transfer phase after grasp in these frames: only pick and lift sequence present.",
+    "No explicit force provided in instruction or evident in frames; force left as null; tolerance and retry count are inferred from required precision.",
+    "Other blue objects are ignored as non-targets, consistent with instruction and observed robotic action."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "The red block is securely within the gripper and raised >5cm above the table surface."
+    ],
+    "test_scenarios": [
+      "happy path","object_missing","grasp_fail","perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"red_block"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_block","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"red_block","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"red_block","strategy":"top","result_key":"std_top"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "align",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_block","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"std_top","strategy":"top","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"red_block"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"red_block","distance":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"red_block","distance":0.05,"timeout_ms":1200}},
+      "active_path_ids": []
+    }
+  ]
 }

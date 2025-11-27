@@ -1,5 +1,21 @@
 <BehaviorTree ID="MainTree">
   <Sequence>
-    <!-- TODO: fill with valid nodes from node_library -->
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="toast"/>
+      <Action ID="DetectObject" target="toast" timeout_ms="800"/>
+    </Fallback>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="toaster"/>
+      <Action ID="DetectObject" target="toaster" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="toast" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="toast" strategy="top" result_key="grasp_toast"/>
+    <Action ID="GraspAtPose" pose_key="grasp_toast" strategy="top" timeout_ms="800"/>
+    <Condition ID="IsGraspStable"/>
+    <Action ID="MoveAbove" target="toaster" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="InsertInto" target="toast" slot_id="slot_1" axis="z" distance="0.05" tolerance="0.005" force_limit="5" timeout_ms="1000"/>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="Retreat" distance="0.05" timeout_ms="800"/>
   </Sequence>
 </BehaviorTree>
