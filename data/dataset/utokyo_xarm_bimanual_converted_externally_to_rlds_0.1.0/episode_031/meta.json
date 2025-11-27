@@ -1,0 +1,163 @@
+{
+  "dataset_id": "utokyo_xarm_bimanual_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_031",
+  "task_summary": "The robot locates, grasps, unfolds, and places a wrinkled towel on a table, completing the 'Unfold a wrinkled towel' task as witnessed in 9 sequential frames.",
+  "task_long_description": {
+    "overview": "In this episode, a dual-armed robot performs the task of unfolding a wrinkled towel on a grass-like table. The robot first perceives the towel's initial state, then approaches and grasps it. Through coordinated manipulation, the robot applies a pulling action to unfold the towel, then places it flat on the table surface. The environment is static, the towel is the only manipulable object, and the bimanual system aims for a visible, unfolded outcome. Key constraints include gentle handling and maintaining the towel on the table area.",
+    "preconditions": [
+      "Towel present and within camera field of view",
+      "Robot arms functional and ready",
+      "Gripper clear and open",
+      "No major obstacles near towel"
+    ],
+    "stepwise_plan": [
+      "Detect presence and location of the towel",
+      "Move robot end-effectors above towel",
+      "Plan and execute grasp at top",
+      "Perform unfolding by pulling action",
+      "Place towel on table surface",
+      "Release towel by opening gripper",
+      "Retreat from towel region"
+    ],
+    "success_criteria": [
+      "Towel unfolded, visibly more flat",
+      "Towel remains entirely on table surface",
+      "No major folds or wrinkles remaining",
+      "Gripper releases towel after placement"
+    ],
+    "failure_and_recovery": [
+      "Failure to detect towel – retry scan up to 3 times",
+      "Unstable grasp – attempt alternative grasp strategy",
+      "Towel slips during unfolding – regrasp and repeat unfold",
+      "Obstacle impedes arm movement – stop and retry approach"
+    ],
+    "termination": "Episode ends when towel is flatly placed, robot has retracted, and gripper is open."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Unfold a wrinkled towel.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["towel","table"],
+  "objects_from_instruction": ["towel"],
+  "blackboard_keys": ["grasp_towel"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"towel"},"description":"Checks if the towel is visible in the workspace."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"towel","pattern":"grid","max_attempts":3,"timeout_ms":1200},"description":"Actively scans workspace for towel up to 3 attempts."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"towel","timeout_ms":800},"description":"Detects the towel to determine precise location."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"towel","offset_z":0.05,"timeout_ms":1000},"description":"Moves gripper 5 cm above detected towel."},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"towel","strategy":"top","result_key":"grasp_towel"},"description":"Plans a top-down grasp pose on the towel."},
+    {"id":"GraspAtPose","type":"Action","ports":{"pose_key":"grasp_towel","strategy":"top","timeout_ms":1500},"description":"Executes planned grasp on towel."},
+    {"id":"Unfold","type":"Action","ports":{"target":"towel","strategy":"pull","num_folds":2,"timeout_ms":3000},"description":"Performs an unfolding maneuver by pulling towel to flatten two folds."},
+    {"id":"PlaceOnSurface","type":"Action","ports":{"target":"towel","area_id":"table","yaw_deg":0,"press_force":10,"timeout_ms":1200},"description":"Places unfolded towel on table with gentle press."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.10,"timeout_ms":500},"description":"Opens gripper fully to release towel."},
+    {"id":"Retreat","type":"Action","ports":{"distance":0.10,"timeout_ms":1200},"description":"Retracts end-effector 10 cm from towel area."}
+  ],
+  "tree_stats": {"nodes_total": 12, "actions": 9, "conditions": 1, "depth": 10},
+  "failure_modes": [
+    "Towel not detected",
+    "Unstable grasp failure",
+    "Towel slips from gripper during unfold",
+    "Fold not properly undone",
+    "Placement off table"
+  ],
+  "recovery_strategy": [
+    "Rescan for towel up to 3 times on perception failure",
+    "Recompute grasp if grasp fails",
+    "Repeat unfolding if wrinkles remain",
+    "Adjust placement if towel not fully on table"
+  ],
+  "assumptions": [
+    "Frames confirm bimanual manipulation and a single unfolding phase, matching instruction.",
+    "No explicit force/tolerance constraints are inferable from images.",
+    "All frames show a towel on a table, no side objects involved.",
+    "If additional folds exist, unfolding repeats as per leaf num_folds=2."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Towel visible and unfolded in final frame",
+      "All steps executed sequentially, no regressions"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"towel"}},
+      "active_path_ids": ["MainTree","Sequence","Fallback","IsObjectVisible"]
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"towel","timeout_ms":800}},
+      "active_path_ids": ["MainTree","Sequence","DetectObject"]
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"towel","offset_z":0.05,"timeout_ms":1000}},
+      "active_path_ids": ["MainTree","Sequence","MoveAbove"]
+    },
+    {
+      "frame": "frame_3",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"towel","strategy":"top","result_key":"grasp_towel"}},
+      "active_path_ids": ["MainTree","Sequence","ComputeGraspPose"]
+    },
+    {
+      "frame": "frame_4",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"grasp_towel","strategy":"top","timeout_ms":1500}},
+      "active_path_ids": ["MainTree","Sequence","GraspAtPose"]
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {"id":"Unfold","attrs":{"target":"towel","strategy":"pull","num_folds":2,"timeout_ms":3000}},
+      "active_path_ids": ["MainTree","Sequence","Unfold"]
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {"id":"PlaceOnSurface","attrs":{"target":"towel","area_id":"table","yaw_deg":0,"press_force":10,"timeout_ms":1200}},
+      "active_path_ids": ["MainTree","Sequence","PlaceOnSurface"]
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.10,"timeout_ms":500}},
+      "active_path_ids": ["MainTree","Sequence","OpenGripper"]
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {"id":"Retreat","attrs":{"distance":0.10,"timeout_ms":1200}},
+      "active_path_ids": ["MainTree","Sequence","Retreat"]
+    }
+  ]
+}

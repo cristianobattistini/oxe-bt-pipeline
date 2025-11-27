@@ -1,0 +1,183 @@
+{
+  "dataset_id": "utokyo_xarm_bimanual_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_029",
+  "task_summary": "The robot is tasked to reach a towel by perceiving its location, approaching, and verifying arrival.",
+  "task_long_description": {
+    "overview": "This episode shows a dual-arm robot operating on a workspace containing a towel. The robot starts in a neutral ready position, perceives the workspace, localizes the towel, then sequentially approaches it. The left arm is active and steadily moves toward the towel, performing a precise reach action. No grasp or manipulation occurs, matching the 'Reach a towel' instruction. The episode exercises perception, kinematic approach, and arrival verification.",
+    "preconditions": [
+      "Robot is powered and arms are unblocked",
+      "Workspace contains a pink towel",
+      "Vision systems are operational"
+    ],
+    "stepwise_plan": [
+      "Scan for and localize towel",
+      "Verify visibility of towel",
+      "Move above the towel with safe offset",
+      "Approach and align end-effector with towel",
+      "Verify final position at towel"
+    ],
+    "success_criteria": [
+      "Robot end-effector is aligned and positioned above the towel",
+      "Arrival at towel confirmed via pose check"
+    ],
+    "failure_and_recovery": [
+      "Failure to detect towel: retry scan up to 3 times",
+      "Approach misalignment: repeat alignment",
+      "Object missing: task aborts"
+    ],
+    "termination": "Episode terminates when robot reaches and verifies arrival at towel"
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Reach a towel.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"
+  ],
+  "objects": ["towel"],
+  "objects_from_instruction": ["towel"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {
+      "id":"IsObjectVisible",
+      "type":"Condition",
+      "ports":{"target":"towel"},
+      "description":"Checks if the towel is currently visible to robot sensors."
+    },
+    {
+      "id":"ScanForTarget",
+      "type":"Action",
+      "ports":{"target":"towel", "pattern":"raster", "max_attempts":3, "timeout_ms":1000},
+      "description":"Performs a raster scan of the workspace to detect the towel, up to 3 attempts."
+    },
+    {
+      "id":"DetectObject",
+      "type":"Action",
+      "ports":{"target":"towel", "timeout_ms":800},
+      "description":"Runs object detection routine for the towel."
+    },
+    {
+      "id":"MoveAbove",
+      "type":"Action",
+      "ports":{"target":"towel", "offset_z":0.10, "timeout_ms":1500},
+      "description":"Moves the end-effector to a position above the towel, offset 10cm in Z."
+    },
+    {
+      "id":"ApproachAndAlign",
+      "type":"Action",
+      "ports":{"target":"towel", "tolerance":0.005, "timeout_ms":1500},
+      "description":"Approaches and aligns to the towel within 5mm positional tolerance."
+    },
+    {
+      "id":"IsAt",
+      "type":"Condition",
+      "ports":{"target":"towel"},
+      "description":"Verifies that the end-effector is at the towel's location."
+    }
+  ],
+  "tree_stats": { "nodes_total": 7, "actions": 4, "conditions": 2, "depth": 3 },
+  "failure_modes": [
+    "Towel not visible",
+    "Scan fails after retries",
+    "DetectObject fails",
+    "Approach collision",
+    "Alignment inaccuracy"
+  ],
+  "recovery_strategy": [
+    "Retry scan for towel",
+    "Abort on persistent detection failure",
+    "Pause and notify operator if misalignment"
+  ],
+  "assumptions": [
+    "Instruction requested only reaching (no grasp/manipulation); frames show no grasp or hand contact.",
+    "Towel is present and accessible in workspace.",
+    "One arm (left) is active, reflecting episode visual evidence."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Arm end-effector arrives and aligns above the towel",
+      "BT proceeds to IsAt(towel) check"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail (not applicable here)",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible", "attrs": {"target":"towel"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget", "attrs": {"target":"towel", "pattern":"raster", "max_attempts":3, "timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "approach",
+      "active_leaf": {"id":"DetectObject", "attrs": {"target":"towel", "timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove", "attrs": {"target":"towel", "offset_z":0.10, "timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove", "attrs": {"target":"towel", "offset_z":0.10, "timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign", "attrs": {"target":"towel", "tolerance":0.005, "timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign", "attrs": {"target":"towel", "tolerance":0.005, "timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "verify",
+      "active_leaf": {"id":"IsAt", "attrs": {"target":"towel"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "verify",
+      "active_leaf": {"id":"IsAt", "attrs": {"target":"towel"}},
+      "active_path_ids": []
+    }
+  ]
+}

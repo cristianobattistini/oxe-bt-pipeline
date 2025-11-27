@@ -1,0 +1,158 @@
+{
+  "dataset_id": "ucsd_pick_and_place_dataset_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_075",
+  "task_summary": "Pick up the red block from the table using a robot arm as observed in 9 sequential frames.",
+  "task_long_description": {
+    "overview": "The robot arm is commanded to locate, approach, and pick up a red block from a tabletop scene with various blue tiles. The system must first perceive and visually confirm the red object, open its gripper, accurately approach the red block from above, grasp it with appropriate force, and confirm a successful pickup. There are no explicit placement steps observed or instructed, and the environment appears uncluttered except for the block and tiles.",
+    "preconditions": [
+      "Tabletop workspace is clear",
+      "Red block present and visible on table",
+      "Robot arm and sensors operational",
+      "Gripper ready to actuate"
+    ],
+    "stepwise_plan": [
+      "Verify visibility of red block",
+      "Optionally scan to locate block if not visible",
+      "Detect precise object pose",
+      "Open gripper to suitable width",
+      "Move above the block",
+      "Approach and align for grasp",
+      "Close gripper with moderate force",
+      "Confirm the block is secured",
+      "Raise the held block off the table"
+    ],
+    "success_criteria": [
+      "Red block detected, grasped, and raised",
+      "Gripper closes to secure block",
+      "Grasp confirmation via sensor or logic"
+    ],
+    "failure_and_recovery": [
+      "Block not seen: trigger scanning",
+      "Bad grasp: retry approach",
+      "Grip too weak: retry closing"
+    ],
+    "termination": "Task ends when the block is grasped and lifted from the tabletop."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick up the red object from the table",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 1000,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["red_block","table","blue_tile"],
+  "objects_from_instruction": ["red_object","table"],
+  "blackboard_keys": [],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"red_block"},"description":"Checks if the red block is visible."},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"red_block","pattern":"grid","max_attempts":3,"timeout_ms":1000},"description":"Scans workspace for the red block using a grid pattern."},
+    {"id":"DetectObject","type":"Action","ports":{"target":"red_block","timeout_ms":800},"description":"Detects and localizes the red block."},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":500},"description":"Opens the gripper to prepare for grasping."},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"red_block","offset_z":0.05,"timeout_ms":1500},"description":"Moves the gripper above the red block."},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"red_block","tolerance":0.005,"timeout_ms":1500},"description":"Approaches and aligns with the block for precise grasp."},
+    {"id":"CloseGripper","type":"Action","ports":{"force":10,"timeout_ms":800},"description":"Closes gripper with appropriate force to grasp block."},
+    {"id":"ObjectInGripper","type":"Condition","ports":{"target":"red_block"},"description":"Checks that the red block is securely held."},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"red_block","distance":0.05,"timeout_ms":1000},"description":"Raises the grasped block clear of the table."}
+  ],
+  "tree_stats": {"nodes_total": 9, "actions": 7, "conditions": 2, "depth": 2},
+  "failure_modes": [
+    "Block not visible due to occlusion",
+    "Scan fails to find object",
+    "Gripper does not close properly",
+    "Grasp slips or misses block",
+    "Block not detected in gripper"
+  ],
+  "recovery_strategy": [
+    "Retry object scanning up to 3 times",
+    "Re-attempt approach if alignment fails",
+    "Retry grasp action with confirmed force"
+  ],
+  "assumptions": [
+    "The red object in all frames is identified as 'red_block'",
+    "No placement was performed/described in frames",
+    "Instruction requests only a pickup, not a place",
+    "Blue tiles are not targets in this episode",
+    "Environment and object labels inferred visually; object category resolved via color and shape",
+    "No conflicting evidence between frames and instruction"
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Red block lifted from table and held in gripper"
+    ],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"red_block"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"red_block","pattern":"grid","max_attempts":3,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"red_block","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"red_block","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"red_block","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"red_block"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"red_block","distance":0.05,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

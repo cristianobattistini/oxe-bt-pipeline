@@ -1,0 +1,330 @@
+{
+  "dataset_id": "utokyo_xarm_bimanual_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_061",
+  "task_summary": "The robot detects, grasps, unfolds, and places down a wrinkled towel using both arms in a sequential workflow.",
+  "task_long_description": {
+    "overview": "This episode involves a bimanual robot tasked with unfolding a wrinkled towel placed on a green, grass-like workspace. The robot first visually perceives the towel, calculates a grasp pose, and picks up a towel corner. Then it executes an unfolding maneuver (pulling the towel), followed by placing the towel back on the surface and opening the gripper. The robot then retreats to finalize the task. Proper perception, alignment, and manipulation are essential for successful unfolding. No objects beside the towel are manipulated.",
+    "preconditions": [
+      "Towel is present and visible on workspace.",
+      "Robot arms are initialized and grippers open.",
+      "Workspace is clear of obstructions."
+    ],
+    "stepwise_plan": [
+      "Detect the towel.",
+      "Move above the towel.",
+      "Compute pinch grasp pose.",
+      "Grasp towel using pinch strategy.",
+      "Unfold towel via pulling.",
+      "Place towel down.",
+      "Open gripper to release towel.",
+      "Retreat arms from towel."
+    ],
+    "success_criteria": [
+      "Towel appears unfolded and flat on workspace.",
+      "No visible wrinkles remain.",
+      "Towel is not dropped off workspace."
+    ],
+    "failure_and_recovery": [
+      "Failure to detect towel: retry detection.",
+      "Failed grasp: reattempt pinch grasp.",
+      "Incomplete unfolding: repeat unfold action.",
+      "Dropped towel: reacquire and repeat sequence."
+    ],
+    "termination": "Tree completes after arms retreat and towel is released."
+  },
+  "frame_ranking": {
+    "order": [
+      "frame_3",
+      "frame_5",
+      "frame_2",
+      "frame_6",
+      "frame_1",
+      "frame_4",
+      "frame_7",
+      "frame_0",
+      "frame_8"
+    ],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "Unfold a wrinkled towel.",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": [
+    "towel"
+  ],
+  "objects_from_instruction": [
+    "towel"
+  ],
+  "blackboard_keys": [
+    "grasp_towel"
+  ],
+  "node_specs": [
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {
+        "target": "towel",
+        "timeout_ms": 800
+      },
+      "description": "Detect presence and location of towel."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {
+        "target": "towel",
+        "offset_z": 0.05,
+        "timeout_ms": 1500
+      },
+      "description": "Position end-effector above towel for grasping."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {
+        "target": "towel",
+        "strategy": "pinch",
+        "result_key": "grasp_towel"
+      },
+      "description": "Compute a pinch grasp pose for towel corner."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {
+        "pose_key": "grasp_towel",
+        "strategy": "pinch",
+        "timeout_ms": 1500
+      },
+      "description": "Grasp the towel using the computed pinch pose."
+    },
+    {
+      "id": "Unfold",
+      "type": "Action",
+      "ports": {
+        "target": "towel",
+        "strategy": "pull",
+        "num_folds": 2,
+        "timeout_ms": 3000
+      },
+      "description": "Unfold towel by pulling for 2 folds."
+    },
+    {
+      "id": "PlaceDown",
+      "type": "Action",
+      "ports": {
+        "target": "towel",
+        "timeout_ms": 1000
+      },
+      "description": "Lower and place towel back on surface."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {
+        "width": 0.10,
+        "timeout_ms": 500
+      },
+      "description": "Open gripper to release towel."
+    },
+    {
+      "id": "Retreat",
+      "type": "Action",
+      "ports": {
+        "distance": 0.10,
+        "timeout_ms": 800
+      },
+      "description": "Move arms away from towel area."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 8,
+    "actions": 8,
+    "conditions": 0,
+    "depth": 8
+  },
+  "failure_modes": [
+    "Towel not detected",
+    "Failed grasp",
+    "Insufficient unfolding",
+    "Dropped towel"
+  ],
+  "recovery_strategy": [
+    "Retry towel detection",
+    "Recompute grasp pose and re-grasp",
+    "Repeat unfold action",
+    "Re-detect and re-grasp towel"
+  ],
+  "assumptions": [
+    "Instruction matches visual episode; no explicit 'force' or 'tolerance' in tree. Wrinkled towel present in frames, unfolded by bimanual robot using a pull strategy.",
+    "Number of folds for 'Unfold' inferred from observed motion spread in frames [2]-[7].",
+    "Grasp is a pinch on towel edge/corner as implied by frames.",
+    "No explicit failures shown, so recovery handled as specified."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Towel is visibly unfolded by final frame and covers workspace.",
+      "No remaining major wrinkles or folds."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {
+          "target": "towel",
+          "timeout_ms": 800
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {
+          "target": "towel",
+          "offset_z": 0.05,
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ComputeGraspPose",
+        "attrs": {
+          "target": "towel",
+          "strategy": "pinch",
+          "result_key": "grasp_towel"
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "GraspAtPose",
+        "attrs": {
+          "pose_key": "grasp_towel",
+          "strategy": "pinch",
+          "timeout_ms": 1500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "Unfold",
+        "attrs": {
+          "target": "towel",
+          "strategy": "pull",
+          "num_folds": 2,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "transfer",
+      "active_leaf": {
+        "id": "Unfold",
+        "attrs": {
+          "target": "towel",
+          "strategy": "pull",
+          "num_folds": 2,
+          "timeout_ms": 3000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "place",
+      "active_leaf": {
+        "id": "PlaceDown",
+        "attrs": {
+          "target": "towel",
+          "timeout_ms": 1000
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "OpenGripper",
+        "attrs": {
+          "width": 0.10,
+          "timeout_ms": 500
+        }
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "retreat",
+      "active_leaf": {
+        "id": "Retreat",
+        "attrs": {
+          "distance": 0.10,
+          "timeout_ms": 800
+        }
+      },
+      "active_path_ids": []
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="towel"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="towel" pattern="grid" max_attempts="3" timeout_ms="1500"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="towel" timeout_ms="1000"/>
+    <Action ID="ApproachAndAlign" target="towel" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="Grasp" target="towel" strategy="pinch" force="5" timeout_ms="1200"/>
+    <Action ID="Unfold" target="towel" strategy="pull" num_folds="2" timeout_ms="3000"/>
+    <Action ID="PlaceDown" target="towel" timeout_ms="1500"/>
+    <Action ID="Retreat" distance="0.10" timeout_ms="1000"/>
+  </Sequence>
+</BehaviorTree>
