@@ -1,0 +1,14 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="tube"/>
+      <Action ID="DetectObject" target="tube" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="tube" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="tube" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="tube" strategy="top" result_key="std_top"/>
+    <Action ID="GraspAtPose" pose_key="std_top" strategy="top" timeout_ms="800"/>
+    <Condition ID="ObjectInGripper" target="tube"/>
+  </Sequence>
+</BehaviorTree>

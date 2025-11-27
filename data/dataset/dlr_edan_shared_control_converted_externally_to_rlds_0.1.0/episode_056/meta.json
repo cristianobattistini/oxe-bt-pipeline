@@ -1,0 +1,232 @@
+{
+  "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_056",
+  "task_summary": "The robot must locate, approach, and grasp a tennis ball placed on a small table using a top-grasp strategy. Visual confirmation, alignment, and force control are key steps in the pick process.",
+  "task_long_description": {
+    "overview": "This episode captures a blue robotic arm performing a pick task involving a tennis ball on a table within a modern kitchen scene. The robot approaches, detects, aligns with, and grasps the tennis ball using its gripper. The task is constrained by the need for accurate perception, gentle force, and repeat attempts if the object isn't immediately found. The robot must verify the object is held before success is reported.",
+    "preconditions": [
+      "Robot arm is powered on and calibrated.",
+      "Tennis ball is placed on accessible table.",
+      "Gripper is clear and operational.",
+      "Workspace is free of obstructions."
+    ],
+    "stepwise_plan": [
+      "Visually check for tennis ball in workspace.",
+      "If not visible, scan workspace with spiral search up to 3 times.",
+      "Detect tennis ball and localize.",
+      "Open gripper in preparation for grasp.",
+      "Move above tennis ball at offset height.",
+      "Compute top grasp on the tennis ball.",
+      "Approach and align with tight tolerance.",
+      "Grasp tennis ball gently using minimal force.",
+      "Verify tennis ball is secured in gripper."
+    ],
+    "success_criteria": [
+      "Tennis ball is grasped securely by gripper.",
+      "No collisions or drops occur.",
+      "Object presence confirmed in gripper."
+    ],
+    "failure_and_recovery": [
+      "If tennis ball not detected, robot re-scans up to 3 times.",
+      "If grasp fails, reattempt top grasp.",
+      "If misalignment or loss of sight, repeat approach."
+    ],
+    "termination": "Tree terminates once the tennis ball is held in the gripper or after maximum scan/retry attempts are exhausted."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12,
+      "frame_1": 0.34,
+      "frame_2": 0.56,
+      "frame_3": 0.92,
+      "frame_4": 0.28,
+      "frame_5": 0.80,
+      "frame_6": 0.49,
+      "frame_7": 0.18,
+      "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the tennis ball",
+  "instruction_to_ports": {
+    "force": 5,
+    "timeout_ms": 800,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0",
+    "frame_1",
+    "frame_2",
+    "frame_3",
+    "frame_4",
+    "frame_5",
+    "frame_6",
+    "frame_7",
+    "frame_8"
+  ],
+  "objects": ["tennis_ball", "table", "gripper", "white_blocks", "flower_vase"],
+  "objects_from_instruction": ["tennis_ball"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "tennis_ball"},
+      "description": "Checks if the tennis ball is visible in the workspace."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "tennis_ball", "pattern": "spiral", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Scans workspace for tennis ball using a spiral pattern."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "tennis_ball", "timeout_ms": 800},
+      "description": "Performs object detection for tennis ball."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width": 0.06, "timeout_ms": 500},
+      "description": "Opens gripper in preparation for grasp."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "tennis_ball", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Moves TCP above the tennis ball at an offset height."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target": "tennis_ball", "strategy": "top", "result_key": "std_top"},
+      "description": "Computes grasp pose for top strategy and stores in blackboard."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "tennis_ball", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Approaches and aligns end-effector to tennis ball with tight tolerance."
+    },
+    {
+      "id": "Grasp",
+      "type": "Action",
+      "ports": {"target": "tennis_ball", "strategy": "top", "force": 5, "timeout_ms": 800},
+      "description": "Executes top grasp of tennis ball with gentle force."
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {"target": "tennis_ball"},
+      "description": "Checks if tennis ball is inside the gripper."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 13,
+    "actions": 7,
+    "conditions": 2,
+    "depth": 4
+  },
+  "failure_modes": [
+    "Tennis ball not detected",
+    "Vision failures",
+    "Grasp pose not computed",
+    "Misalignment",
+    "Grasp failure",
+    "Object drops from gripper"
+  ],
+  "recovery_strategy": [
+    "Retry scanning up to 3 times if ball not visible",
+    "Retry approach and grasp steps if contact/grasp fails",
+    "Abort if repeated vision or grasp failures"
+  ],
+  "assumptions": [
+    "Instruction matches frames: tennis ball is visible and pickable in all frames.",
+    "No explicit placement in instruction, though ball is sometimes seen placed; focus strictly on pick as asked.",
+    "Grasp strategy inferred from object geometry and sequence progression – top is most plausible."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Tennis ball securely held in gripper at sequence end",
+      "Alignment and force verified",
+      "No collisions or drops observed"
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id": "IsObjectVisible", "attrs": {"target": "tennis_ball"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id": "ScanForTarget", "attrs": {"target": "tennis_ball", "pattern": "spiral", "max_attempts": 3, "timeout_ms": 1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id": "DetectObject", "attrs": {"target": "tennis_ball", "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id": "OpenGripper", "attrs": {"width": 0.06, "timeout_ms": 500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id": "MoveAbove", "attrs": {"target": "tennis_ball", "offset_z": 0.05, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id": "ComputeGraspPose", "attrs": {"target": "tennis_ball", "strategy": "top", "result_key": "std_top"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "verify",
+      "active_leaf": {"id": "ApproachAndAlign", "attrs": {"target": "tennis_ball", "tolerance": 0.005, "timeout_ms": 1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id": "Grasp", "attrs": {"target": "tennis_ball", "strategy": "top", "force": 5, "timeout_ms": 800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": {"id": "ObjectInGripper", "attrs": {"target": "tennis_ball"}},
+      "active_path_ids": []
+    }
+  ]
+}

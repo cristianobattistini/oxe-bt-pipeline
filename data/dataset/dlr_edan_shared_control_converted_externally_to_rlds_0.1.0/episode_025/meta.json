@@ -1,0 +1,211 @@
+{
+  "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_025",
+  "task_summary": "Robot arm identifies and grasps an orange fruit from a table using visual localization, approach, and grasp actions.",
+  "task_long_description": {
+    "overview": "This episode documents the robotic arm executing a pick task to acquire an orange from a table. The arm uses visual feedback to locate the orange among other objects (e.g., an apple, a green fruit, and cubes), approaches above, computes a suitable grasp, aligns to the fruit, and successfully grasps it. Steps progress from perception to grasp confirmation, with all actions visible across 9 chronologically arranged frames.",
+    "preconditions": [
+      "Orange is present on the table and unoccluded.",
+      "Robot gripper starts open and unoccupied.",
+      "Sufficient workspace clearance for execution."
+    ],
+    "stepwise_plan": [
+      "Verify visibility of the orange; retry scan if not found.",
+      "Detect orange and estimate its pose.",
+      "Open gripper to suitable width.",
+      "Move to a position above the orange (top-down approach).",
+      "Compute grasp pose (top strategy).",
+      "Approach and align to the grasp pose.",
+      "Execute grasp at computed pose.",
+      "Confirm orange is in the gripper."
+    ],
+    "success_criteria": [
+      "Orange is securely held by the gripper at the end.",
+      "No collision or fruit displacement occurs prior to grasp.",
+      "No unintended objects are grasped."
+    ],
+    "failure_and_recovery": [
+      "Object not visible: retry scan up to 3 times.",
+      "Perception noise: scan or re-detect.",
+      "Grasp fails: run sequence again if permissible."
+    ],
+    "termination": "Task ends when orange is confirmed to be in the gripper or after failure recovery exceeds allowed attempts."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the orange",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["orange", "apple", "green_fruit", "cube_1", "cube_2", "table"],
+  "objects_from_instruction": ["orange"],
+  "blackboard_keys": ["grasp_orange"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": { "target": "orange" },
+      "description": "Checks if orange is detected in the scene."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": { "target": "orange", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200 },
+      "description": "Scans for orange using raster scan, up to 3 attempts."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": { "target": "orange", "timeout_ms": 800 },
+      "description": "Visually detects and localizes the orange."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": { "width": 0.08, "timeout_ms": 500 },
+      "description": "Opens gripper to 8cm."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": { "target": "orange", "offset_z": 0.10, "timeout_ms": 1500 },
+      "description": "Moves end-effector above the orange (10cm overhead)."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": { "target": "orange", "strategy": "top", "result_key": "grasp_orange" },
+      "description": "Computes grasp pose using top-down approach and stores as 'grasp_orange'."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": { "target": "orange", "tolerance": 0.005, "timeout_ms": 1500 },
+      "description": "Robot arm approaches and aligns above orange with 5mm tolerance."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": { "pose_key": "grasp_orange", "strategy": "top", "timeout_ms": 800 },
+      "description": "Executes grasp at computed pose using top strategy."
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": { "target": "orange" },
+      "description": "Checks if orange is held by gripper."
+    }
+  ],
+  "tree_stats": {
+    "nodes_total": 10,
+    "actions": 7,
+    "conditions": 2,
+    "depth": 2
+  },
+  "failure_modes": [
+    "Orange out of scene (not visible)",
+    "Perception or pose estimation error",
+    "Unsuccessful approach or collision",
+    "Gripper fails to close or slips"
+  ],
+  "recovery_strategy": [
+    "Retry scan for orange up to 3 times",
+    "Abort if detection or grasp fails repeatedly"
+  ],
+  "assumptions": [
+    "Frames clearly depict a top-down pick of an orange (not any transfer or placement).",
+    "The 'orange' is the orange-colored sphere next to an apple and a green fruit on the table.",
+    "No explicit force parameter is visible or required in this episode; the grasp action suffices.",
+    "No placing action is required as per the frames; only the pick is executed.",
+    "If instruction implied a full pick-and-place, this episode only captures the pick.",
+    "Action ports and strategies are inferred for directness and minimal context from visuals."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "At the last annotated frame, the orange is confirmed visually as in the gripper."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {
+    "model_reported_tokens": null,
+    "client_elapsed_ms": null
+  },
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": { "id": "IsObjectVisible", "attrs": { "target": "orange" } },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": { "id": "ScanForTarget", "attrs": { "target": "orange", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200 } },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": { "id": "DetectObject", "attrs": { "target": "orange", "timeout_ms": 800 } },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": { "id": "OpenGripper", "attrs": { "width": 0.08, "timeout_ms": 500 } },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": { "id": "MoveAbove", "attrs": { "target": "orange", "offset_z": 0.10, "timeout_ms": 1500 } },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": { "id": "ComputeGraspPose", "attrs": { "target": "orange", "strategy": "top", "result_key": "grasp_orange" } },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": { "id": "ApproachAndAlign", "attrs": { "target": "orange", "tolerance": 0.005, "timeout_ms": 1500 } },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": { "id": "GraspAtPose", "attrs": { "pose_key": "grasp_orange", "strategy": "top", "timeout_ms": 800 } },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": { "id": "ObjectInGripper", "attrs": { "target": "orange" } },
+      "active_path_ids": []
+    }
+  ]
+}

@@ -1,0 +1,203 @@
+{
+  "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_029",
+  "task_summary": "The robot is tasked to pick a tube from a shelf, requiring perception, approach, grasp planning, and successful grasp confirmation.",
+  "task_long_description": {
+    "overview": "This sequence controls a robot arm to locate and pick a cylindrical tube placed in a shelf cubicle. The system initiates with perception to detect the tube, followed by a top approach maneuver. Grasp planning ensures a successful and stable pickup before confirmation. The sequence relies on visual feedback for alignment and success is verified by object detection in the gripper.",
+    "preconditions": [
+      "Tube is present and visible in the scene",
+      "Gripper is empty and operational",
+      "Robot is within reach of the shelf"
+    ],
+    "stepwise_plan": [
+      "Check if the tube is visible; trigger raster scan if not",
+      "Detect the tube precisely",
+      "Open the gripper for grasping",
+      "Move above the tube with a small offset",
+      "Compute grasp pose with a top strategy",
+      "Approach and align to minimize tolerances",
+      "Execute the grasp at computed pose",
+      "Confirm tube is held in the gripper"
+    ],
+    "success_criteria": [
+      "Tube is securely held by the gripper",
+      "No collisions with shelf or environment",
+      "No object slip during approach or grasp"
+    ],
+    "failure_and_recovery": [
+      "Failure to see tube: retry raster scan up to 3 times",
+      "Grasp fail: sequence ends (not covered by further retries here)"
+    ],
+    "termination": "On positive tube-in-gripper detection or unresolvable perception/grasp failure."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the tube",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": [
+    "frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"
+  ],
+  "objects": ["tube", "shelf"],
+  "objects_from_instruction": ["tube"],
+  "blackboard_keys": ["std_top"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target":"tube"},
+      "description": "Checks if the tube is visible for perception."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {
+        "target": "tube",
+        "pattern": "raster",
+        "max_attempts": 3,
+        "timeout_ms": 1200
+      },
+      "description": "Actively scans the workspace to locate the tube using a raster pattern."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target":"tube","timeout_ms":800},
+      "description": "Detects/refines position of the tube in the workspace."
+    },
+    {
+      "id": "OpenGripper",
+      "type": "Action",
+      "ports": {"width":0.06,"timeout_ms":500},
+      "description": "Opens the gripper in preparation to grasp the tube."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target":"tube","offset_z":0.05,"timeout_ms":1000},
+      "description": "Moves the gripper just above the tube before approach."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target":"tube","strategy":"top","result_key":"std_top"},
+      "description": "Computes a top grasp pose over the tube; result key is std_top."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target":"tube","tolerance":0.005,"timeout_ms":1500},
+      "description": "Aligns and approaches the tube with tight tolerance."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key":"std_top","strategy":"top","timeout_ms":800},
+      "description": "Performs grasp at the computed pose using a top strategy."
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {"target":"tube"},
+      "description": "Verifies the tube is held within the gripper."
+    }
+  ],
+  "tree_stats": {"nodes_total": 11,"actions":7,"conditions":2,"depth":3},
+  "failure_modes": [
+    "Tube not visible (perception failure)",
+    "Tube out of reach or occluded",
+    "Gripper fails to open",
+    "Collision during approach/alignment",
+    "Grasp execution failure (slip, misalignment)"
+  ],
+  "recovery_strategy": [
+    "Retry visual scan up to 3 times",
+    "Abort if tube not detected or not grasped"
+  ],
+  "assumptions": [
+    "The tube is the object being picked (white cylindrical, bottom shelf center); no explicit force or tolerance in instruction.",
+    "Approach, grasp, and verification are visually inferred from arm/tube/shelf geometry."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Tube detected in gripper after grasp, no collision"
+    ],
+    "test_scenarios": [
+      "happy path","object_missing","grasp_fail","perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"tube"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"tube","pattern":"raster","max_attempts":3,"timeout_ms":1200}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"tube","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"tube","offset_z":0.05,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"tube","strategy":"top","result_key":"std_top"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"ApproachAndAlign","attrs":{"target":"tube","tolerance":0.005,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"GraspAtPose","attrs":{"pose_key":"std_top","strategy":"top","timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": {"id":"ObjectInGripper","attrs":{"target":"tube"}},
+      "active_path_ids": []
+    }
+  ]
+}

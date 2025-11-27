@@ -1,0 +1,15 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="die"/>
+      <Action ID="DetectObject" target="die" timeout_ms="800"/>
+    </Fallback>
+    <Action ID="OpenGripper" width="0.08" timeout_ms="500"/>
+    <Action ID="MoveAbove" target="die" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="die" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="ComputeGraspPose" target="die" strategy="top" result_key="std_top"/>
+    <Action ID="GraspAtPose" pose_key="std_top" strategy="top" timeout_ms="800"/>
+    <Condition ID="ObjectInGripper" target="die"/>
+    <Action ID="Retreat" distance="0.1" timeout_ms="1200"/>
+  </Sequence>
+</BehaviorTree>

@@ -1,0 +1,139 @@
+{
+  "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_016",
+  "task_summary": "The robot locates and grasps a small cylindrical tube from a shelf compartment.",
+  "task_long_description": {
+    "overview": "The robot is instructed to pick a tube placed in a lower shelf cell. The robot must visually detect the tube, plan an approach from above, grasp it using a pinch strategy, and lift it vertically. The tube appears white, cylindrical, and placed horizontally in the shelf structure. The scene does not show distractions but involves spatial constraints.",
+    "preconditions": [
+      "Tube is visible or can be located via scan",
+      "Gripper is initially open",
+      "Workspace is unobstructed"
+    ],
+    "stepwise_plan": [
+      "Ensure tube is visible or retry scanning",
+      "Detect tube with vision module",
+      "Open gripper for approach",
+      "Move to a position above the tube",
+      "Compute a pinch grasp pose",
+      "Align and lower to contact",
+      "Close gripper to secure object",
+      "Verify grasp stability",
+      "Raise object by 10cm"
+    ],
+    "success_criteria": [
+      "Tube is lifted off shelf",
+      "Gripper securely holds tube",
+      "No collision with shelf edges"
+    ],
+    "failure_and_recovery": [
+      "Tube not found → retry scan",
+      "Grasp fails → abort post-check",
+      "Contact misaligned → backtrack"
+    ],
+    "termination": "Behavior ends after successful lift"
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0","frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "gripper precisely aligned with tube; nearing grasp",
+        "predicts_next": "gripper closure and lift likely",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the tube",
+  "instruction_to_ports": {
+    "force": 10,
+    "timeout_ms": 1000,
+    "tolerance": 0.005,
+    "retry_attempts": 3
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7","frame_8"],
+  "objects": ["tube", "shelf", "gripper"],
+  "objects_from_instruction": ["tube"],
+  "blackboard_keys": ["grasp_tube"],
+  "node_specs": [
+    {"id":"IsObjectVisible","type":"Condition","ports":{"target":"tube"},"description":"Check if tube is visible"},
+    {"id":"ScanForTarget","type":"Action","ports":{"target":"tube","pattern":"spiral","max_attempts":3,"timeout_ms":1500},"description":"Scan for tube if not visible"},
+    {"id":"DetectObject","type":"Action","ports":{"target":"tube","timeout_ms":1000},"description":"Detect position of the tube"},
+    {"id":"OpenGripper","type":"Action","ports":{"width":0.06,"timeout_ms":800},"description":"Prepare gripper for grasp"},
+    {"id":"MoveAbove","type":"Action","ports":{"target":"tube","offset_z":0.05,"timeout_ms":1500},"description":"Move above the tube"},
+    {"id":"ComputeGraspPose","type":"Action","ports":{"target":"tube","strategy":"pinch","result_key":"grasp_tube"},"description":"Compute grasp pose for tube"},
+    {"id":"ApproachAndAlign","type":"Action","ports":{"target":"tube","tolerance":0.005,"timeout_ms":1500},"description":"Align with tube"},
+    {"id":"LowerUntilContact","type":"Action","ports":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1500},"description":"Lower gripper until contact"},
+    {"id":"CloseGripper","type":"Action","ports":{"force":10,"timeout_ms":1000},"description":"Grasp the tube"},
+    {"id":"IsGraspStable","type":"Condition","ports":{},"description":"Verify stable grasp"},
+    {"id":"RaiseHeld","type":"Action","ports":{"target":"tube","distance":0.10,"timeout_ms":1000},"description":"Lift the tube"}
+  ],
+  "tree_stats": {"nodes_total": 11, "actions": 9, "conditions": 2, "depth": 3},
+  "failure_modes": ["tube not detected", "failed grasp", "misalignment during approach"],
+  "recovery_strategy": ["retry scan", "skip pick if grasp fails", "back off and retry alignment"],
+  "assumptions": ["The small white cylindrical object is inferred as 'tube' based on geometry despite lack of explicit label"],
+  "evaluation_notes": {
+    "expected_success_criteria": ["tube fully lifted", "grasp stable", "no drop"],
+    "test_scenarios": ["happy path","object_missing","grasp_fail","perception_noise"]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {"id":"IsObjectVisible","attrs":{"target":"tube"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {"id":"ScanForTarget","attrs":{"target":"tube","pattern":"spiral","max_attempts":3,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {"id":"DetectObject","attrs":{"target":"tube","timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {"id":"OpenGripper","attrs":{"width":0.06,"timeout_ms":800}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "approach",
+      "active_leaf": {"id":"MoveAbove","attrs":{"target":"tube","offset_z":0.05,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {"id":"ComputeGraspPose","attrs":{"target":"tube","strategy":"pinch","result_key":"grasp_tube"}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {"id":"LowerUntilContact","attrs":{"speed":"slow","max_depth":0.05,"force_threshold":5,"timeout_ms":1500}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {"id":"CloseGripper","attrs":{"force":10,"timeout_ms":1000}},
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "transfer",
+      "active_leaf": {"id":"RaiseHeld","attrs":{"target":"tube","distance":0.10,"timeout_ms":1000}},
+      "active_path_ids": []
+    }
+  ]
+}

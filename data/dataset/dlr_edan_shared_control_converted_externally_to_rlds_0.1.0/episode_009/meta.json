@@ -1,0 +1,220 @@
+{
+  "dataset_id": "dlr_edan_shared_control_converted_externally_to_rlds_0.1.0",
+  "episode_id": "episode_009",
+  "task_summary": "Robot arm locates, approaches, and grasps a transparent drinking glass from a tabletop scene using vision and physical interaction.",
+  "task_long_description": {
+    "overview": "This episode shows a blue/white robot arm tasked to pick up a drinking glass from a glass table, in a structured indoor environment. The table holds other objects as distractors. The robot must reliably perceive the glass, approach it safely, compute a grasp, execute a top-down grasp, and confirm acquisition, all while avoiding obstacles. The physical properties of the glass, including transparency and shape, require robust perception and alignment.",
+    "preconditions": [
+      "Robot arm powered and operational.",
+      "Glass placed on table, clear workspace.",
+      "Camera or sensors calibrated for object detection."
+    ],
+    "stepwise_plan": [
+      "Visually locate the glass (fallback with scan retries).",
+      "Detect precise pose of the glass.",
+      "Move to a safe position above the glass.",
+      "Compute an appropriate grasp pose (top grasp).",
+      "Approach and align to the grasp pose with moderate precision.",
+      "Execute grasp (top strategy).",
+      "Verify glass is securely in gripper."
+    ],
+    "success_criteria": [
+      "Glass detected and correctly localized.",
+      "Robot approaches with collision avoidance.",
+      "Grasp executed and glass secured in gripper."
+    ],
+    "failure_and_recovery": [
+      "Object not detected: fallback scan up to 3 times.",
+      "Approach misalignment: abort grasp, retry alignment.",
+      "Failed grasp: null signal, abort execution."
+    ],
+    "termination": "Task ends when the glass is stably detected in the robot's gripper."
+  },
+  "frame_ranking": {
+    "order": ["frame_3","frame_5","frame_2","frame_6","frame_1","frame_4","frame_7","frame_0", "frame_8"],
+    "scores": {
+      "frame_0": 0.12, "frame_1": 0.34, "frame_2": 0.56, "frame_3": 0.92,
+      "frame_4": 0.28, "frame_5": 0.80, "frame_6": 0.49, "frame_7": 0.18, "frame_8": 0.05
+    },
+    "rationale_per_frame": {
+      "frame_3": {
+        "now_evidence": "first stable contact and alignment cue visible",
+        "predicts_next": "push actuation expected; confirms goal direction",
+        "uncertainty_reduction": "high"
+      }
+    }
+  },
+  "task_instruction": "pick the glass",
+  "instruction_to_ports": {
+    "force": null,
+    "timeout_ms": null,
+    "tolerance": null,
+    "retry_attempts": null
+  },
+  "frame_source": "contact_sheet",
+  "frame_order": ["frame_0","frame_1","frame_2","frame_3","frame_4","frame_5","frame_6","frame_7", "frame_8"],
+  "objects": ["glass", "table", "white cylinder", "white cube", "plant", "cabinet"],
+  "objects_from_instruction": ["glass"],
+  "blackboard_keys": ["grasp_glass"],
+  "node_specs": [
+    {
+      "id": "IsObjectVisible",
+      "type": "Condition",
+      "ports": {"target": "glass"},
+      "description": "Checks if the glass is visible to robot sensors."
+    },
+    {
+      "id": "ScanForTarget",
+      "type": "Action",
+      "ports": {"target": "glass", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200},
+      "description": "Scans workspace to locate the glass; retries if not visible."
+    },
+    {
+      "id": "DetectObject",
+      "type": "Action",
+      "ports": {"target": "glass", "timeout_ms": 800},
+      "description": "Performs precise detection of the glass object."
+    },
+    {
+      "id": "MoveAbove",
+      "type": "Action",
+      "ports": {"target": "glass", "offset_z": 0.05, "timeout_ms": 1500},
+      "description": "Moves the end effector to a position above the glass, offset in Z."
+    },
+    {
+      "id": "ComputeGraspPose",
+      "type": "Action",
+      "ports": {"target": "glass", "strategy": "top", "result_key": "grasp_glass"},
+      "description": "Calculates a grasp pose using a top-down approach."
+    },
+    {
+      "id": "ApproachAndAlign",
+      "type": "Action",
+      "ports": {"target": "glass", "tolerance": 0.005, "timeout_ms": 1500},
+      "description": "Approaches and aligns gripper to the planned grasp pose."
+    },
+    {
+      "id": "GraspAtPose",
+      "type": "Action",
+      "ports": {"pose_key": "grasp_glass", "strategy": "top", "timeout_ms": 1000},
+      "description": "Executes the grasp maneuver at the computed pose."
+    },
+    {
+      "id": "ObjectInGripper",
+      "type": "Condition",
+      "ports": {"target": "glass"},
+      "description": "Confirms that the glass is now held by the gripper."
+    }
+  ],
+  "tree_stats": {"nodes_total": 8, "actions": 6, "conditions": 2, "depth": 8},
+  "failure_modes": [
+    "Glass not detected in scene.",
+    "Gripper fails to align or approach pose.",
+    "Failed grasp due to transparency/slippage.",
+    "False positive for gripper holding ('ObjectInGripper' fails)."
+  ],
+  "recovery_strategy": [
+    "Fallback scan reattempts for visibility.",
+    "Abort on failed approach or grasp; optionally retry sub-sequence."
+  ],
+  "assumptions": [
+    "Instruction specifies 'pick the glass', frames clearly indicate the glass as target. No force or precision requirements supplied in instruction—defaulted to top grasp and moderate tolerance based on scene cues.",
+    "Glass transparency could complicate visual detection—tree handles lost visibility via fallback scan.",
+    "'GraspAtPose' is chosen for glass (not generic 'Grasp') due to computed pose."
+  ],
+  "evaluation_notes": {
+    "expected_success_criteria": [
+      "Glass is grasped and held by robot gripper."
+    ],
+    "test_scenarios": [
+      "happy path",
+      "object_missing",
+      "grasp_fail",
+      "perception_noise"
+    ]
+  },
+  "timing": {"model_reported_tokens": null, "client_elapsed_ms": null},
+  "local_annotations": [
+    {
+      "frame": "frame_0",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "IsObjectVisible",
+        "attrs": {"target": "glass"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_1",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "ScanForTarget",
+        "attrs": {"target": "glass", "pattern": "raster", "max_attempts": 3, "timeout_ms": 1200}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_2",
+      "phase": "perceive",
+      "active_leaf": {
+        "id": "DetectObject",
+        "attrs": {"target": "glass", "timeout_ms": 800}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_3",
+      "phase": "approach",
+      "active_leaf": {
+        "id": "MoveAbove",
+        "attrs": {"target": "glass", "offset_z": 0.05, "timeout_ms": 1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_4",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ComputeGraspPose",
+        "attrs": {"target": "glass", "strategy": "top", "result_key": "grasp_glass"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_5",
+      "phase": "verify",
+      "active_leaf": {
+        "id": "ApproachAndAlign",
+        "attrs": {"target": "glass", "tolerance": 0.005, "timeout_ms": 1500}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_6",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "GraspAtPose",
+        "attrs": {"pose_key": "grasp_glass", "strategy": "top", "timeout_ms": 1000}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_7",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "ObjectInGripper",
+        "attrs": {"target": "glass"}
+      },
+      "active_path_ids": []
+    },
+    {
+      "frame": "frame_8",
+      "phase": "grasp",
+      "active_leaf": {
+        "id": "ObjectInGripper",
+        "attrs": {"target": "glass"}
+      },
+      "active_path_ids": []
+    }
+  ]
+}

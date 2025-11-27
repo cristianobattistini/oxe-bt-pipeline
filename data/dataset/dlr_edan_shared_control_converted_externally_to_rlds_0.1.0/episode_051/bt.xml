@@ -1,0 +1,17 @@
+<BehaviorTree ID="MainTree">
+  <Sequence>
+    <Fallback>
+      <Condition ID="IsObjectVisible" target="cube"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="ScanForTarget" target="cube" pattern="raster" max_attempts="3" timeout_ms="1200"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+    <Action ID="DetectObject" target="cube" timeout_ms="800"/>
+    <Action ID="MoveAbove" target="cube" offset_z="0.05" timeout_ms="1500"/>
+    <Action ID="ApproachAndAlign" target="cube" tolerance="0.005" timeout_ms="1500"/>
+    <Action ID="OpenGripper" width="0.06" timeout_ms="500"/>
+    <Action ID="ComputeGraspPose" target="cube" strategy="top" result_key="grasp_cube"/>
+    <Action ID="GraspAtPose" pose_key="grasp_cube" strategy="top" timeout_ms="1000"/>
+    <Condition ID="ObjectInGripper" target="cube"/>
+  </Sequence>
+</BehaviorTree>
