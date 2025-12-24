@@ -16,6 +16,13 @@ Report
 - Elenco errori: path, episode_id, tipo ("sintattico" | "nome sbagliato") e messaggio.
 """
 
+try:
+    from ._bootstrap import ensure_repo_root
+except ImportError:
+    from _bootstrap import ensure_repo_root
+
+ensure_repo_root()
+
 import json
 import re
 import sys

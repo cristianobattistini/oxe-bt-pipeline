@@ -8,6 +8,7 @@
 from typing import Any, Dict, Generator, Sequence, Optional
 import os
 import json
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 import tensorflow_datasets as tfds
 from PIL import Image
@@ -122,7 +123,12 @@ def _make_builder(name_or_dir: str, data_dir: str | None = None):
 # =============================================================================
 #  Iteratore episodi RLDS (come nel notebook OXE)
 # =============================================================================
-def iterate_episodes(name_or_dir: str, split: str, data_dir: str | None = None) -> Generator[Dict[str, Any], None, None]:
+def iterate_episodes(
+    name_or_dir: str,
+    split: str,
+    data_dir: str | None = None,
+    skip: int = 0,
+) -> Generator[Dict[str, Any], None, None]:
     """
     Restituisce un generatore di EPISODI TFDS (OXE/RLDS) come dict numpy-friendly.
     In OXE un episodio ha tipicamente 'steps/observation/...', 'steps/action/...', ecc.
@@ -131,6 +137,8 @@ def iterate_episodes(name_or_dir: str, split: str, data_dir: str | None = None) 
     """
     b = _make_builder(name_or_dir, data_dir=data_dir)
     ds = b.as_dataset(split=split, read_config=tfds.ReadConfig(try_autocache=False))
+    if skip and skip > 0:
+        ds = ds.skip(skip)
     ds = tfds.as_numpy(ds)
     # ex = next(iter(ds))
 
@@ -380,12 +388,21 @@ def dump_episode_rlds(
         arr = arr[None, ...]
     T = min(arr.shape[0], max_frames)
 
+    io_workers = int(getattr(CFG, "io_workers", 1) or 1)
     frames_rel = []
-    for t in range(T):
+
+    def _save_frame(t: int) -> str:
         img = Image.fromarray(arr[t])
         fp = os.path.join(frames_dir, f"frame_{t:04d}.jpg")
         img.save(fp, quality=95)
-        frames_rel.append(os.path.relpath(fp, out_dir))
+        return os.path.relpath(fp, out_dir)
+
+    if io_workers > 1 and T > 1:
+        with ThreadPoolExecutor(max_workers=io_workers) as ex:
+            frames_rel = list(ex.map(_save_frame, range(T)))
+    else:
+        for t in range(T):
+            frames_rel.append(_save_frame(t))
 
     # GIF
     gif_flag = False

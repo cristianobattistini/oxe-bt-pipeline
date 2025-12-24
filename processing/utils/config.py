@@ -18,15 +18,17 @@ dataset  = ""
 #     "cmu_stretch/0.1.0"
 # ]
 datasets = [
+    "berkeley_gnm_cory_hall/0.1.0",
     "dlr_edan_shared_control_converted_externally_to_rlds/0.1.0",
+    "dlr_sara_grid_clamp_converted_externally_to_rlds/0.1.0",
     "dlr_sara_pour_converted_externally_to_rlds/0.1.0",
     "imperialcollege_sawyer_wrist_cam/0.1.0",
     "nyu_rot_dataset_converted_externally_to_rlds/0.1.0",
     "tokyo_u_lsmo_converted_externally_to_rlds/0.1.0",
     "ucsd_kitchen_dataset_converted_externally_to_rlds/0.1.0",
     "ucsd_pick_and_place_dataset_converted_externally_to_rlds/0.1.0",
-    "utokyo_saytap_converted_externally_to_rlds/0.1.0",
     "utokyo_xarm_bimanual_converted_externally_to_rlds/0.1.0",
+    "utokyo_xarm_pick_and_place/0.1.0",
 ]
 
 # Subset rapido per prove (puoi aumentare in seguito)
@@ -69,11 +71,19 @@ dataset_keys = {
         "steps/observation/image",
         "steps/language_instruction",
     ),
-    "utokyo_saytap_converted_externally_to_rlds/0.1.0": (
+    "utokyo_xarm_bimanual_converted_externally_to_rlds/0.1.0": (
         "steps/observation/image",
         "steps/language_instruction",
     ),
-    "utokyo_xarm_bimanual_converted_externally_to_rlds/0.1.0": (
+    "utokyo_xarm_pick_and_place/0.1.0": (
+        "steps/observation/image",
+        "steps/language_instruction",
+    ),
+    "dlr_sara_grid_clamp_converted_externally_to_rlds/0.1.0": (
+        "steps/observation/image",
+        "steps/language_instruction",
+    ),
+    "berkeley_gnm_cory_hall/0.1.0": (
         "steps/observation/image",
         "steps/language_instruction",
     ),
@@ -83,11 +93,18 @@ dataset_keys = {
 max_frames = 1000
 
 # Limite episodi per dataset (fase di prova)
-limit_episodes_per_dataset = 120
+limit_episodes_per_dataset = 400
+
+# Resume: riprendi dall'ultimo episodio già esportato in out_root/<dataset>/episode_XXX
+resume_from_existing = True
+skip_existing = True
+
+# Parallelismo per scrittura immagini (0/1 = disabilitato)
+io_workers = int(os.getenv("OXE_IO_WORKERS", "4"))
 
 # Directory TFDS (usa variabile d'ambiente per evitare hardcode di percorsi host)
 # Esempio Windows: TFDS_DATA_DIR=/mnt/c/Users/<USER>/Documents/tensorflow_datasets
-tfds_data_dir = os.getenv("TFDS_DATA_DIR", "/mnt/c/Users/<USER>/Documents/tensorflow_datasets")
+tfds_data_dir = os.getenv("TFDS_DATA_DIR", "/home/kcbat/tensorflow_datasets")
 
 
 # Embedding-based selection

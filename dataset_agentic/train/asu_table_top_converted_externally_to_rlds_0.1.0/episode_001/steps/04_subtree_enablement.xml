@@ -1,0 +1,62 @@
+<root main_tree_to_execute="MainTree">
+
+  <!-- MainTree refactored to use SubTrees -->
+  <BehaviorTree ID="MainTree">
+    <Sequence name="pick_green_bottle">
+      <!-- Approach phase -->
+      <SubTree ID="T_Navigate" target="green_bottle"/>
+
+      <!-- Grasp phase with retry and recovery -->
+      <Fallback name="grasp_phase">
+        <!-- Primary grasp with retry -->
+        <SubTree ID="T_Manipulate_Grasp" target="green_bottle"/>
+        <!-- Recovery: re-navigate and retry grasp -->
+        <Sequence name="recovery_grasp">
+          <SubTree ID="T_Navigate" target="green_bottle"/>
+          <SubTree ID="T_Manipulate_Grasp" target="green_bottle"/>
+        </Sequence>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- SubTree Definitions -->
+
+  <!-- Navigation SubTree -->
+  <BehaviorTree ID="T_Navigate">
+    <Fallback name="navigate_fallback">
+      <Action ID="NAVIGATE_TO" obj="{target}"/>
+      <Action ID="NAVIGATE_TO" obj="{target}"/>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- Grasp SubTree with retry -->
+  <BehaviorTree ID="T_Manipulate_Grasp">
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="GRASP" obj="{target}"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+
+  <!-- Place SubTree (standard, not used in MainTree but defined for completeness) -->
+  <BehaviorTree ID="T_Manipulate_Place">
+    <Sequence name="place_sequence">
+      <Action ID="PLACE_OBJECT" obj="{target}"/>
+      <Action ID="RELEASE" obj="{target}"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Open SubTree (standard) -->
+  <BehaviorTree ID="T_Open">
+    <Action ID="OPEN" obj="{target}"/>
+  </BehaviorTree>
+
+  <!-- Close SubTree (standard) -->
+  <BehaviorTree ID="T_Close">
+    <Action ID="CLOSE" obj="{target}"/>
+  </BehaviorTree>
+
+  <!-- Toggle SubTree (standard) -->
+  <BehaviorTree ID="T_Toggle">
+    <Action ID="TOGGLE" obj="{target}"/>
+  </BehaviorTree>
+
+</root>

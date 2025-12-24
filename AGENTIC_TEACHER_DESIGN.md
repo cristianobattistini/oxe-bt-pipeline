@@ -2,11 +2,181 @@
 
 **Purpose:** Generate a proposer training dataset where every BT is:
 1. **Executable** - Uses only BEHAVIOR-1K primitives (PAL v1)
-2. **Robust** - Includes guards, recovery, timeouts
+2. **Robust** - Includes guards, recovery, explicit termination strategies
 3. **Patchable** - Structured to be easily modified by validator
 4. **Audited** - Comes with logs of checks passed/failed
 
 **Key Insight:** A simple teacher LLM produces linear, brittle BTs. An **agentic teacher loop** with multiple specialized agents produces structured, robust, patchable BTs suitable for training both proposer AND validator.
+
+**Current Scope (this phase):**
+- We generate a **proposer-only dataset** from **OXE episodes** (instruction + contact sheet in `out_temp/.../final_selected/`).
+- Runtime validator data is a later phase and is **not** produced here.
+
+---
+
+## Assumptions and Non-Goals
+
+**Key Distinctions:**
+1. **OmniGibson Primitive Signatures vs BT Wrapper Nodes (PAL):**
+   - OmniGibson primitives are Python methods with specific signatures (e.g., `_grasp(self, obj)`)
+   - PAL v1 defines BT-level wrapper nodes that map to these primitives
+   - PAL validation must check against the actual node library, not assume primitives = XML ports
+2. **Input Source (Proposer dataset):**
+   - Input is **OXE episodes** with **instruction + contact sheet** (from `out_temp/.../final_selected/`)
+   - We do **not** assume BEHAVIOR-1K demos in this phase
+3. **PAL v1 Vocabulary (Symbolic 14):**
+   - Allowed Action IDs are **exactly**:
+     `GRASP, PLACE_ON_TOP, PLACE_INSIDE, OPEN, CLOSE, NAVIGATE_TO, RELEASE,
+      TOGGLE_ON, TOGGLE_OFF, SOAK_UNDER, SOAK_INSIDE, WIPE, CUT, PLACE_NEAR_HEATING_ELEMENT`
+   - No other leaf actions are allowed in proposer outputs
+
+4. **Timeout/Retry Handling:**
+   - OmniGibson primitives do NOT accept timeout parameters (no `timeout_ms`)
+   - Timeouts must be enforced at BT control-flow level via `Timeout` decorator (if supported by node library)
+   - If `Timeout` decorator unavailable, represent time budgets in metadata/audit logs and enforce externally at runtime
+
+5. **Retry Semantics:**
+   - Retry logic exists ONLY at BT level via `RetryUntilSuccessful` decorator
+   - This decorator repeats the child action node on failure
+   - Primitives do NOT accept `num_attempts` or `retry` parameters
+   - OmniGibson's internal `apply_ref(attempts=...)` is NOT exposed to BT layer
+
+6. **Preconditions and Guards:**
+   - If PAL v1 has no explicit Condition nodes, guards are implemented structurally via Fallback + recovery
+   - Preconditions are implicit in primitive failure semantics (primitive fails if precondition not met)
+   - Blackboard discipline is required only for parameter passing; state tracking may be implicit in primitives
+
+**Verification Required:**
+- SubTree parameter passing mechanism (attribute substitution vs blackboard)
+- Whether executable node library supports `Timeout`, `Condition`, or other utility nodes
+- Exact primitive parameter arity (some primitives take 1 arg, others take multiple)
+
+---
+
+## BEHAVIOR-1K Primitive Reference (PAL v1)
+
+**PAL v1 (Symbolic 14) is the ONLY allowed leaf vocabulary for the proposer dataset.**
+All Action IDs must be exactly one of these:
+
+```
+GRASP, PLACE_ON_TOP, PLACE_INSIDE, OPEN, CLOSE, NAVIGATE_TO, RELEASE,
+TOGGLE_ON, TOGGLE_OFF, SOAK_UNDER, SOAK_INSIDE, WIPE, CUT, PLACE_NEAR_HEATING_ELEMENT
+```
+
+**Parameter expectations (proposer-side):**
+- `obj` is required for all primitives **except** `RELEASE` (no params).
+- We do not use `PLACE_WITH_PREDICATE` or `NAVIGATE_TO_POSE` in PAL v1 to keep
+  the small VLM output space compact and stable.
+
+**Usage in BT XML (proposer vocabulary):**
+```xml
+<Action ID="NAVIGATE_TO" obj="table"/>
+<Action ID="GRASP" obj="cup"/>
+<Action ID="PLACE_ON_TOP" obj="table"/>
+<Action ID="RELEASE"/>
+<Action ID="TOGGLE_ON" obj="faucet"/>
+<Action ID="WIPE" obj="counter"/>
+```
+
+**Note on mapping:** These Action IDs map 1:1 to BEHAVIOR-1K primitives in the
+runtime adapter. We keep the vocabulary small so the proposer emits only
+executable actions.
+
+---
+
+## BehaviorTree.CPP v3 Compatibility
+
+**Critical Requirement:** All generated BTs must be executable in BehaviorTree.CPP v3.
+
+**Allowed nodes for proposer dataset (current scope):**
+
+**Control Nodes:**
+- `<Sequence>`
+- `<Fallback>`
+- `<Parallel>` (optional, rare)
+
+**Decorator Nodes:**
+- `<RetryUntilSuccessful num_attempts="N">`
+- `<Timeout msec="N">`
+
+**Structural Nodes:**
+- `<SubTree ID="..." />`
+- `<Action ID="..." />` (PAL v1 only)
+
+**Explicitly NOT allowed (for now):**
+- `<Condition>` nodes (PAL v1 has no condition vocabulary yet)
+- `<SetBlackboard>` nodes (avoid custom C++ bindings in proposer dataset)
+
+**Verified Compatible Nodes (runtime / future):**
+
+**Control Nodes:**
+- `<Sequence>` - Execute children until first failure
+- `<Fallback>` - Execute children until first success
+- `<Parallel>` - Execute children concurrently with threshold
+- `<ReactiveSequence>` - Re-evaluate sequence on every tick
+- `<ReactiveFallback>` - Re-evaluate fallback on every tick
+
+**Decorator Nodes:**
+- `<RetryUntilSuccessful num_attempts="N">` - Retry child up to N times
+- `<Timeout msec="N">` - Abort child after N milliseconds
+- `<Inverter>` - Invert child's result
+- `<ForceSuccess>` - Always return success
+- `<ForceFailure>` - Always return failure
+- `<KeepRunningUntilFailure>` - Tick child until failure
+- `<Repeat num_cycles="N">` - Repeat child N times
+
+**Structural Nodes:**
+- `<SubTree ID="..." />` - Call another tree
+- `<Action ID="..." />` - Leaf action node
+- `<Condition ID="..." />` - (future, not used in proposer dataset)
+
+**Blackboard Operations (future):**
+- Not used in proposer dataset to keep the runtime simple
+- If needed later: `{key}` syntax + `SetBlackboard` require explicit C++ registration
+
+**Requires Verification:**
+- SubTree parameter passing mechanism (attribute vs blackboard)
+- SetBlackboard node availability (may need custom implementation)
+- Exact blackboard key syntax for parameter substitution
+
+**Constraints:**
+- All Action IDs must be registered in C++ (our PAL primitives)
+- Node names must follow BT.CPP naming conventions
+- XML format must match BT.CPP schema
+
+**Execution Architecture (Future Integration):**
+
+```
+BT.CPP Executor (C++)
+  ├─ Loads XML behavior tree
+  ├─ Ticks tree nodes (Sequence, Fallback, Retry, Timeout, etc.)
+  │  └─ All control flow executed by BT.CPP during simulation
+  │
+  └─ Leaf Action nodes (GRASP, NAVIGATE_TO, etc.)
+      └─ Registered C++ functions that bridge to BEHAVIOR-1K
+          └─ Call BEHAVIOR-1K Python API
+              └─ Execute primitives in OmniGibson simulation
+```
+
+**Key Implications:**
+- **Control flow robustness works in simulation:** RetryUntilSuccessful, Fallback, Timeout are executed by BT.CPP ticker
+- **Primitives are stateless API calls:** Each primitive just translates to a BEHAVIOR-1K API call
+- **BT.CPP must be running during simulation:** The tree is actively ticked, not just a static recipe
+- **Generated BTs are fully executable:** All decorators/control nodes will function during sim execution
+
+**Implementation Bridge (Future Work):**
+```cpp
+// Example: Register GRASP primitive in BT.CPP
+NodeStatus GraspAction::tick() {
+    std::string obj;
+    getInput("obj", obj);
+
+    // Bridge to BEHAVIOR-1K Python API
+    bool success = behavior1k_api.grasp(obj);
+
+    return success ? NodeStatus::SUCCESS : NodeStatus::FAILURE;
+}
+```
 
 ---
 
@@ -15,7 +185,7 @@
 ### 1.1 Overview
 
 ```
-Input: (instruction, observation, PAL_v1, BT_conventions)
+Input: (instruction, contact_sheet or 9 selected frames, PAL_v1, BT_conventions)
   ↓
 ┌─────────────────── AGENTIC TEACHER LOOP ───────────────────┐
 │                                                              │
@@ -29,7 +199,7 @@ Input: (instruction, observation, PAL_v1, BT_conventions)
 │     → Check key flow, naming, preconditions                 │
 │                                                              │
 │  D. Robustness Agent                                         │
-│     → Inject guards, recovery, retry budgets, timeouts      │
+│     → Inject guards, recovery, retry wrappers               │
 │                                                              │
 │  E. Subtree Enablement Agent                                 │
 │     → Factor into replaceable subtrees (Perception,         │
@@ -73,7 +243,7 @@ Output: (bt.xml, audit_log.json, subtree_map.json)
 
 **Input:**
 - Task instruction
-- Observation (key frames)
+- Contact sheet (3x3) or 9 selected frames
 - PAL v1 primitive list
 - BT conventions
 
@@ -108,7 +278,7 @@ Output: (bt.xml, audit_log.json, subtree_map.json)
     <SubTree ID="T_Navigate" target="{destination}"/>
 
     <!-- Phase 5: Place -->
-    <SubTree ID="T_Manipulate_Place" target="{destination}"/>
+    <SubTree ID="T_Manipulate_Place_OnTop" target="{destination}"/>
   </Sequence>
 </BehaviorTree>
 
@@ -180,83 +350,80 @@ Repair: Map to <Action ID="NAVIGATE_TO" obj="cup"/> (implies perception)
 
 ### Agent C: Blackboard/Schema Agent
 
-**Role:** Validate blackboard key usage and data flow
+**Role:** Validate blackboard key usage and parameter flow (if required)
 
 **Input:** Conformance-validated BT
 
-**Output:** BT with consistent blackboard schema
+**Output:** BT with consistent parameter passing
 
-**Checks:**
+**Checks (only if blackboard is required for parameter passing):**
 1. **Key naming consistency:**
-   - Use standard keys: `target_obj`, `grasp_pose`, `destination`, `container`
+   - Use standard keys: `target_obj`, `destination`
    - No ad-hoc or "mystery" keys
 
 2. **Write-before-read:**
-   - If node reads `grasp_pose`, ensure earlier node writes it
-   - Flag missing writes
+- If SubTree reads `{target_obj}`, ensure the SubTree call provides `target_obj`
+- Flag missing attributes / missing keys
 
 3. **Key types:**
-   - Ensure keys have consistent types (string, pose, state, etc.)
-
-4. **Precondition checks:**
-   - Actions requiring state (e.g., held object) have checks
-   - Example: Before `PLACE_ON_TOP`, check object is held
+   - Ensure keys have consistent types (string for object names)
 
 **Repair Strategy:**
-- Add missing blackboard writes
-- Insert precondition checks
+- Add missing SubTree attributes for parameter passing
 - Standardize key names
+- Prefer attribute-based SubTree parameters (no explicit SetBlackboard)
 
-**Example:**
+**Example (attribute-based parameter passing):**
 ```xml
-<!-- Before repair -->
-<Action ID="PLACE_ON_TOP" obj="{destination}"/>  <!-- Assumes object held -->
+<BehaviorTree ID="MainTree">
+  <SubTree ID="T_Navigate" target_obj="cup"/>
+</BehaviorTree>
 
-<!-- After repair -->
-<Sequence>
-  <Condition ID="CheckBlackboard" key="held_object" expected="true"/>
-  <Action ID="PLACE_ON_TOP" obj="{destination}"/>
-</Sequence>
+<BehaviorTree ID="T_Navigate">
+  <Action ID="NAVIGATE_TO" name="nav_01" obj="{target_obj}"/>
+</BehaviorTree>
 ```
 
-**Note:** PAL v1 doesn't have explicit Condition nodes yet. We might:
-- Add `CheckBlackboard` as a utility condition
-- Or rely on BEHAVIOR-1K's implicit state tracking
-- **Decision needed:** Should we extend PAL v1 with utility conditions?
+**Note on Preconditions:**
+- PAL v1 has no explicit Condition nodes (unless node library provides them)
+- Guards are implemented structurally via Fallback + recovery subtrees
+- Preconditions are implicit: primitives fail if preconditions not met (e.g., PLACE_* fails if no object held)
+- Agent C does NOT insert explicit condition checks
 
 ---
 
 ### Agent D: Robustness Agent
 
-**Role:** Inject guards, recovery, retry logic
+**Role:** Inject guards, recovery, retry wrappers
 
 **Input:** Schema-validated BT
 
 **Output:** Robust BT with error handling
 
 **Checks:**
-1. **Visibility guards:**
-   - Before manipulating object, ensure it's visible/accessible
-   - Add checks or recovery if missing
+1. **Structural guards via Fallback:**
+   - Before critical actions, wrap in Fallback with recovery branch
+   - Example: Fallback(primary_action, recovery_sequence)
 
-2. **Retry budgets:**
-   - Wrap failure-prone actions in `RetryUntilSuccessful`
-   - Set reasonable `num_attempts` (3-5)
+2. **Retry wrappers:**
+   - Wrap failure-prone actions in `RetryUntilSuccessful` decorator
+   - Set reasonable `num_attempts` (2-3) - this repeats the child node on failure
+   - **Note:** This is BT-level retry, NOT primitive-level; primitive is called multiple times
 
-3. **Timeouts:**
-   - Add timeout parameters to actions
-   - Ensure termination even if action hangs
+3. **Recovery branches:**
+   - For critical failures, add recovery sequence
+   - Example: If GRASP fails → re-navigate → retry grasp
 
-4. **Recovery branches:**
-   - For critical failures, add Fallback with recovery
-   - Example: If GRASP fails → re-navigate → retry
+4. **Explicit termination:**
+   - Ensure all retry loops have finite max attempts
+   - Document termination strategy in metadata
 
 **Repair Strategy:**
 ```xml
 <!-- Before: brittle -->
 <Action ID="GRASP" obj="cup"/>
 
-<!-- After: robust -->
+<!-- After: robust (with BT-level retry and recovery) -->
 <RetryUntilSuccessful num_attempts="3">
   <Fallback>
     <Action ID="GRASP" obj="cup"/>
@@ -272,13 +439,18 @@ Repair: Map to <Action ID="NAVIGATE_TO" obj="cup"/> (implies perception)
 ```json
 {
   "agent": "Robustness",
-  "check": "retry_budget",
+  "check": "retry_wrapper",
   "node": "grasp_01",
-  "issue": "No retry wrapper",
-  "repair": "Added RetryUntilSuccessful(3)",
+  "issue": "No retry wrapper for critical action",
+  "repair": "Added RetryUntilSuccessful(3) with Fallback recovery",
   "status": "fixed"
 }
 ```
+
+**Important Notes:**
+- Actions do NOT accept timeout parameters (`timeout_ms` is invalid)
+- If runtime timeout enforcement needed, represent time budget in metadata and enforce externally
+- Retry logic is BT-level only; primitives are simply called again on failure
 
 ---
 
@@ -324,7 +496,7 @@ Repair: Map to <Action ID="NAVIGATE_TO" obj="cup"/> (implies perception)
     <SubTree ID="T_Navigate" target="cup"/>
     <SubTree ID="T_Manipulate_Grasp" target="cup"/>
     <SubTree ID="T_Navigate" target="table"/>
-    <SubTree ID="T_Manipulate_Place" target="table"/>
+    <SubTree ID="T_Manipulate_Place_OnTop" target="table"/>
   </Sequence>
 </BehaviorTree>
 
@@ -336,7 +508,7 @@ Repair: Map to <Action ID="NAVIGATE_TO" obj="cup"/> (implies perception)
   <Action ID="GRASP" name="grasp_01" obj="{target}"/>
 </BehaviorTree>
 
-<BehaviorTree ID="T_Manipulate_Place">
+<BehaviorTree ID="T_Manipulate_Place_OnTop">
   <Sequence>
     <Action ID="PLACE_ON_TOP" name="place_01" obj="{target}"/>
     <Action ID="RELEASE" name="release_01"/>
@@ -363,7 +535,7 @@ Repair: Map to <Action ID="NAVIGATE_TO" obj="cup"/> (implies perception)
       "patchable": true
     },
     {
-      "id": "T_Manipulate_Place",
+      "id": "T_Manipulate_Place_OnTop",
       "role": "manipulation",
       "params": ["target"],
       "node_count": 2,
@@ -398,6 +570,11 @@ Repair: Map to <Action ID="NAVIGATE_TO" obj="cup"/> (implies perception)
 - **Actions**: `<primitive>_<seq>` → `grasp_01`, `place_01`
 - **Composites**: `<type>_<seq>` → `seq_00`, `fallback_01`
 - **Subtrees**: `T_<Role>_<Context>` → `T_Navigate`, `T_Manipulate_Grasp`
+
+**Deterministic ID algorithm (required):**
+- Traverse each tree in **pre-order** and assign IDs with per-type counters.
+- Preserve IDs for **unchanged subtrees** across repair iterations.
+- If a subtree is replaced, keep the **SubTree node ID** stable and reassign IDs **inside** that subtree only.
 
 **Example:**
 ```xml
@@ -471,6 +648,10 @@ OR
 
 **Scoring Criteria:**
 
+**Adaptive rule:** Complexity thresholds should scale with the instruction.
+If the task is simple (single primitive intent), allow a near-linear tree and fewer subtrees.
+Reserve stricter branching requirements for multi-step tasks.
+
 1. **Structural Quality (0-10):**
    - Depth: 3-6 (not too shallow, not too deep)
    - Branching factor: >1.5 (not linear)
@@ -479,9 +660,10 @@ OR
 2. **Robustness (0-10):**
    - Recovery branches present: +2
    - Retry wrappers on critical actions: +2
-   - Timeout parameters present: +2
-   - Precondition checks present: +2
-   - Guard conditions present: +2
+   - Explicit termination strategy (finite retry, final fallback): +2
+   - Meaningful recovery (not just repeat identical action): +2
+   - Guard conditions (Fallback wrappers for critical steps): +2
+   - **Penalty:** Redundant wrappers that repeat identical actions without changing context: -2
 
 3. **Patchability (0-10):**
    - All nodes have IDs: +3
@@ -491,8 +673,8 @@ OR
 
 4. **Compliance (0-10):**
    - 100% PAL v1 primitives: +5
-   - All parameters valid: +3
-   - Blackboard schema consistent: +2
+   - All parameters valid (no timeout_ms, no action="ON" unless documented): +3
+   - Parameter passing consistent (blackboard or attribute-based): +2
 
 **Accept Threshold:** Total score ≥ 30/40
 
@@ -534,7 +716,7 @@ Each agent performs explicit checks and logs results. Here's the complete checkl
 - [ ] All required parameters present
 - [ ] Parameter types match PAL spec (object_name, int, etc.)
 - [ ] Object names exist in scene vocabulary
-- [ ] Numeric ranges reasonable (timeouts: 500-5000ms, attempts: 1-5, etc.)
+- [ ] Numeric ranges reasonable (retry attempts: 1-5 for RetryUntilSuccessful)
 - [ ] No `null` or `undefined` values
 
 ### 3.3 Control Flow Sanity
@@ -549,7 +731,10 @@ Each agent performs explicit checks and logs results. Here's the complete checkl
 - [ ] Before GRASP, object should be visible/reachable
 - [ ] Before PLACE_ON_TOP, object should be held
 
-**Note:** BEHAVIOR-1K primitives handle much of this internally. We may not need explicit gates.
+**Implementation Note:**
+- Guards implemented via Fallback structure + recovery subtrees, NOT explicit Condition nodes
+- BEHAVIOR-1K primitives handle much of this internally via failure semantics
+- Example: `<Fallback><Action ID="GRASP"/><SubTree ID="T_Recovery_Navigate_Then_Grasp"/></Fallback>`
 
 ### 3.5 Pre/Postconditions
 - [ ] GRASP requires: object visible, hand free
@@ -557,7 +742,10 @@ Each agent performs explicit checks and logs results. Here's the complete checkl
 - [ ] OPEN/CLOSE requires: object reachable
 - [ ] RELEASE requires: object held
 
-**Implementation:** Add conditions or rely on BEHAVIOR-1K's built-in checks?
+**Implementation:**
+- Preconditions are implicit: primitives fail if preconditions not met
+- Do NOT add explicit Condition nodes (PAL v1 may not support them)
+- Use structural guards (Fallback + recovery) when precondition violation needs special handling
 
 ### 3.6 Blackboard Discipline
 - [ ] Consistent key names (target_obj, destination, held_object)
@@ -591,7 +779,7 @@ Each agent performs explicit checks and logs results. Here's the complete checkl
   <Action ID="NAVIGATE_TO" name="nav_percep_01" obj="{target}"/>
 </BehaviorTree>
 ```
-**Purpose:** Locate and observe target (NAVIGATE_TO implies perception in BEHAVIOR-1K)
+**Purpose:** Approximate perception by approaching the target (no explicit Detect in PAL v1)
 
 **T_Navigate(target):**
 ```xml
@@ -611,16 +799,27 @@ Each agent performs explicit checks and logs results. Here's the complete checkl
 ```
 **Purpose:** Grasp object with retry
 
-**T_Manipulate_Place(target, action):**
+**T_Manipulate_Place_OnTop(target):**
 ```xml
-<BehaviorTree ID="T_Manipulate_Place">
+<BehaviorTree ID="T_Manipulate_Place_OnTop">
   <Sequence>
     <Action ID="PLACE_ON_TOP" name="place_01" obj="{target}"/>
     <Action ID="RELEASE" name="release_01"/>
   </Sequence>
 </BehaviorTree>
 ```
-**Purpose:** Place held object (PLACE_ON_TOP, PLACE_INSIDE, etc.) and release
+**Purpose:** Place held object on top and release
+
+**T_Manipulate_Place_Inside(target):**
+```xml
+<BehaviorTree ID="T_Manipulate_Place_Inside">
+  <Sequence>
+    <Action ID="PLACE_INSIDE" name="place_01" obj="{target}"/>
+    <Action ID="RELEASE" name="release_01"/>
+  </Sequence>
+</BehaviorTree>
+```
+**Purpose:** Place held object inside and release
 
 **T_Manipulate_Open(target):**
 ```xml
@@ -675,7 +874,9 @@ Each agent performs explicit checks and logs results. Here's the complete checkl
 
 ### 4.3 Parameter Passing to Subtrees
 
-**Mechanism:** Use attribute substitution with `{param}` syntax
+**Recommended Approach (BT.CPP v3 Standard):** Attribute-based SubTree parameters
+
+**Rationale:** This is the canonical BT.CPP v3 pattern for SubTree parameter passing via automatic remapping.
 
 **Example:**
 ```xml
@@ -688,10 +889,13 @@ Each agent performs explicit checks and logs results. Here's the complete checkl
 </BehaviorTree>
 ```
 
-**At runtime:** `{target}` → `"cup"`
+**How it works:**
+- `target="cup"` on SubTree call creates blackboard entry `target="cup"`
+- Child tree reads `{target}` which resolves to `"cup"`
+- Automatic scoping per SubTree invocation
 
-**Alternative (if BehaviorTree.CPP v3 doesn't support param substitution):**
-Use blackboard keys:
+**Alternative (Explicit Blackboard):** Manual blackboard management
+
 ```xml
 <BehaviorTree ID="MainTree">
   <Sequence>
@@ -705,7 +909,7 @@ Use blackboard keys:
 </BehaviorTree>
 ```
 
-**Decision needed:** Which parameter-passing mechanism does BehaviorTree.CPP v3 support?
+**Note:** Use explicit blackboard approach only when you need to share state across multiple subtrees or when runtime state modification is required. SetBlackboard may require custom node registration in C++.
 
 ---
 
@@ -752,13 +956,12 @@ embodied_bt_brain/
 │   ├── __init__.py
 │   ├── generate_dataset.py            (Main script)
 │   ├── input_sources/
-│   │   ├── behavior1k_demos.py        (Load BEHAVIOR-1K demos)
-│   │   └── oxe_episodes.py            (Load OXE episodes - future)
+│   │   └── oxe_episodes.py            (Load OXE episodes from out_temp)
 │   ├── output_writers/
 │   │   ├── dataset_writer.py          (Write JSONL dataset)
 │   │   └── audit_logger.py            (Write audit logs)
 │   └── utils/
-│       ├── frame_selection.py         (Select key frames)
+│       ├── contact_sheet.py           (Load contact sheets)
 │       └── instruction_parser.py      (Parse task descriptions)
 ```
 
@@ -772,9 +975,9 @@ class AgenticTeacherLoop:
         self.pal_spec = pal_spec
         self.bt_conventions = bt_conventions
 
-    def generate_bt(self, instruction, observation):
+    def generate_bt(self, instruction, contact_sheet_path):
         # Step 1: Architect drafts skeleton
-        bt_skeleton = self.agents['architect'].draft(instruction, observation)
+        bt_skeleton = self.agents['architect'].draft(instruction, contact_sheet_path)
 
         # Step 2-6: Refinement pipeline
         bt = bt_skeleton
@@ -859,38 +1062,23 @@ class ConformanceAgent:
 
 ## 6. Dataset Generation Workflow
 
-### 6.1 Input Source: BEHAVIOR-1K Demonstrations
+### 6.1 Input Source: OXE Episodes (current scope)
 
-**Step 1:** Download demonstration from HuggingFace
+**Step 1:** Read episode from `out_temp/<dataset>/episode_XXX/final_selected/`
 ```python
-# demo structure
-demo = {
-    "task_name": "turning_on_radio",
-    "task_description": "Turn on the radio in the living room",
-    "observations": [rgb_frame_0, rgb_frame_1, ..., rgb_frame_N],
-    "actions": [
-        {"primitive": "NAVIGATE_TO", "obj": "radio"},
-        {"primitive": "TOGGLE_ON", "obj": "radio"}
-    ],
-    "success": True
+# episode structure (already produced by processing/main.py)
+episode = {
+    "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
+    "episode_id": "episode_012",
+    "instruction": "...",  # from final_selected/episode_data.json
+    "contact_sheet": "out_temp/<ds>/<ep>/final_selected/contact_sheet.jpg"
 }
 ```
 
-**Step 2:** Convert action sequence → BT skeleton
+**Step 2:** Build a minimal skeleton (optional)
 ```python
-def demo_to_bt_skeleton(demo):
-    actions = demo['actions']
-
-    # Simple linear skeleton
-    bt_skeleton = f"""
-    <BehaviorTree ID="MainTree">
-      <Sequence name="root">
-        {'\n'.join([f'<Action ID="{a["primitive"]}" obj="{a["obj"]}"/>' for a in actions])}
-      </Sequence>
-    </BehaviorTree>
-    """
-
-    return bt_skeleton
+# optional: seed the loop with a minimal skeleton based on instruction
+bt_skeleton = "<BehaviorTree ID=\"MainTree\"><Sequence name=\"root\"/></BehaviorTree>"
 ```
 
 **Step 3:** Feed to agentic teacher
@@ -898,8 +1086,8 @@ def demo_to_bt_skeleton(demo):
 teacher = AgenticTeacherLoop(pal_spec, bt_conventions, agents)
 
 result = teacher.generate_bt(
-    instruction=demo['task_description'],
-    observation=select_key_frames(demo['observations'])
+    instruction=episode["instruction"],
+    contact_sheet_path=episode["contact_sheet"]
 )
 
 # result = {
@@ -913,19 +1101,18 @@ result = teacher.generate_bt(
 **Step 4:** Write to dataset
 ```python
 dataset_entry = {
-    "instruction": demo['task_description'],
-    "observation": key_frame_path,
-    "bt_xml": result['bt_xml'],
+    "instruction": episode["instruction"],
+    "contact_sheet": episode["contact_sheet"],
+    "bt_xml": result["bt_xml"],
     "metadata": {
-        "source": "behavior1k_demo",
-        "task_name": demo['task_name'],
-        "score": result['score'],
-        "audit_log": result['audit_log'],
-        "subtree_map": result['subtree_map']
+        "source": "oxe",
+        "dataset_id": episode["dataset_id"],
+        "episode_id": episode["episode_id"],
+        "score": result["score"],
+        "audit_log": result["audit_log"],
+        "subtree_map": result["subtree_map"]
     }
 }
-
-write_to_jsonl(dataset_entry, "data/dataset_behavior1k/train/data.jsonl")
 ```
 
 ### 6.2 Dataset Output Format
@@ -942,19 +1129,19 @@ write_to_jsonl(dataset_entry, "data/dataset_behavior1k/train/data.jsonl")
       "role": "user",
       "content": [
         {"type": "text", "text": "INSTRUCTION: Turn on the radio in the living room"},
-        {"type": "image", "image": "images/turning_on_radio/frame_0000.jpg"}
+        {"type": "image", "image": "images/<dataset>/<episode>/contact_sheet.jpg"}
       ]
     },
     {
       "role": "assistant",
       "content": [
-        {"type": "text", "text": "<BehaviorTree ID=\"MainTree\">\n  <Sequence name=\"seq_00\">\n    <SubTree ID=\"T_Navigate\" name=\"subtree_01\" target=\"radio\"/>\n    <SubTree ID=\"T_Manipulate_Toggle\" name=\"subtree_02\" target=\"radio\" action=\"ON\"/>\n  </Sequence>\n</BehaviorTree>\n\n<BehaviorTree ID=\"T_Navigate\">\n  <Action ID=\"NAVIGATE_TO\" name=\"nav_01\" obj=\"{target}\"/>\n</BehaviorTree>\n\n<BehaviorTree ID=\"T_Manipulate_Toggle\">\n  <Action ID=\"TOGGLE_ON\" name=\"toggle_01\" obj=\"{target}\"/>\n</BehaviorTree>"}
+        {"type": "text", "text": "<BehaviorTree ID=\"MainTree\">\n  <Sequence name=\"seq_00\">\n    <SubTree ID=\"T_Navigate\" name=\"subtree_01\" target=\"radio\"/>\n    <SubTree ID=\"T_Manipulate_Toggle\" name=\"subtree_02\" target=\"radio\"/>\n  </Sequence>\n</BehaviorTree>\n\n<BehaviorTree ID=\"T_Navigate\">\n  <Action ID=\"NAVIGATE_TO\" name=\"nav_01\" obj=\"{target}\"/>\n</BehaviorTree>\n\n<BehaviorTree ID=\"T_Manipulate_Toggle\">\n  <Action ID=\"TOGGLE_ON\" name=\"toggle_01\" obj=\"{target}\"/>\n</BehaviorTree>"}
       ]
     }
   ],
   "metadata": {
     "task_name": "turning_on_radio",
-    "source": "behavior1k_demo",
+    "source": "oxe",
     "score": 37,
     "subtree_map": {...}
   }
@@ -981,7 +1168,7 @@ write_to_jsonl(dataset_entry, "data/dataset_behavior1k/train/data.jsonl")
     },
     {
       "agent": "Robustness",
-      "checks_performed": ["retry_budget", "timeout_params"],
+      "checks_performed": ["retry_budget", "termination_strategy", "recovery_subtrees"],
       "repairs": [
         {"node": "grasp_01", "repair": "Added RetryUntilSuccessful(3)"}
       ],
@@ -1013,15 +1200,14 @@ write_to_jsonl(dataset_entry, "data/dataset_behavior1k/train/data.jsonl")
 
 ### 7.2 Condition Nodes
 
-**Question:** Do we need explicit Condition nodes (e.g., `IsObjectHeld`, `IsVisible`)?
+**Decision (proposer dataset):** No explicit Condition nodes.
 
-**Options:**
-1. **No:** BEHAVIOR-1K handles preconditions internally, primitives fail if conditions not met
-2. **Yes:** Add utility conditions for explicit guards
+**Rationale:**
+1. BEHAVIOR-1K primitives already encode preconditions and fail if unmet
+2. We keep the proposer vocabulary small and stable
+3. Recovery is expressed via Fallback + Retry structures, not explicit conditions
 
-**Current PAL v1:** No condition nodes listed
-
-**Recommendation:** Start without, add only if needed for robustness
+**Future (runtime validator):** We may introduce condition nodes if needed.
 
 ### 7.3 SubTree Parameter Passing
 
@@ -1078,8 +1264,9 @@ If still failing after 2 cycles → flag for manual review
 - [ ] Test full loop with sample tasks
 
 ### Week 4: Dataset Generation Pipeline
-- [ ] Download sample BEHAVIOR-1K demos
-- [ ] Implement `demo_to_bt_skeleton` converter
+- [ ] Use OXE episodes from `out_temp/.../final_selected/`
+- [ ] Ensure contact sheets exist for all episodes
+- [ ] Implement `oxe_episodes.py` loader
 - [ ] Implement `generate_dataset.py` orchestrator
 - [ ] Generate pilot dataset (100 episodes)
 - [ ] Analyze audit logs, refine agents

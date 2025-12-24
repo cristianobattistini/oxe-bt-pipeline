@@ -1,0 +1,62 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="place_down_brown_object">
+      <!-- Approach brown object -->
+      <Fallback name="approach_phase">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="NAVIGATE_TO" obj="brown_object"/>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Try to re-navigate once more -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="NAVIGATE_TO" obj="brown_object"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      
+      <!-- Grasp with recovery -->
+      <Fallback name="grasp_phase">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="GRASP" obj="brown_object"/>
+        </RetryUntilSuccessful>
+        <Sequence name="recovery_grasp">
+          <RetryUntilSuccessful num_attempts="3">
+            <Action ID="NAVIGATE_TO" obj="brown_object"/>
+          </RetryUntilSuccessful>
+          <RetryUntilSuccessful num_attempts="3">
+            <Action ID="GRASP" obj="brown_object"/>
+          </RetryUntilSuccessful>
+        </Sequence>
+      </Fallback>
+      
+      <!-- Move to placement area (assume table as default) -->
+      <Fallback name="move_to_placement_area">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="NAVIGATE_TO" obj="table"/>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Try to re-navigate again -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="NAVIGATE_TO" obj="table"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      
+      <!-- Place and release -->
+      <Fallback name="place_phase">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="PLACE_ON_TOP" obj="table"/>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Try to place again -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="PLACE_ON_TOP" obj="table"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <Fallback name="release_phase">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="RELEASE"/>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Try to release again -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="RELEASE"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+</root>

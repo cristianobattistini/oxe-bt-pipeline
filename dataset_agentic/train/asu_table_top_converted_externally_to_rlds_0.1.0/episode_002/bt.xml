@@ -1,0 +1,64 @@
+<root main_tree_to_execute="MainTree">
+  <!-- MainTree using modular SubTrees -->
+  <BehaviorTree ID="MainTree">
+    <Sequence name="seq_01">
+      <SubTree name="subtree_01" ID="T_Navigate" target="white_carton"/>
+      <SubTree name="subtree_02" ID="T_Manipulate_Grasp" target="white_carton"/>
+      <SubTree name="subtree_03" ID="T_Manipulate_Place" target="white_carton"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Standard SubTree Definitions -->
+
+  <!-- T_Navigate: Navigate to target -->
+  <BehaviorTree ID="T_Navigate">
+    <RetryUntilSuccessful name="retry_01" num_attempts="3">
+      <Action name="nav_01" ID="NAVIGATE_TO" obj="{target}"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+
+  <!-- T_Manipulate_Grasp: Grasp with retry and fallback recovery -->
+  <BehaviorTree ID="T_Manipulate_Grasp">
+    <Fallback name="fallback_01">
+      <RetryUntilSuccessful name="retry_02" num_attempts="3">
+        <Action name="grasp_01" ID="GRASP" obj="{target}"/>
+      </RetryUntilSuccessful>
+      <Sequence name="seq_02">
+        <RetryUntilSuccessful name="retry_03" num_attempts="3">
+          <Action name="nav_02" ID="NAVIGATE_TO" obj="{target}"/>
+        </RetryUntilSuccessful>
+        <RetryUntilSuccessful name="retry_04" num_attempts="3">
+          <Action name="grasp_02" ID="GRASP" obj="{target}"/>
+        </RetryUntilSuccessful>
+      </Sequence>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- T_Manipulate_Place: Place and release with retry -->
+  <BehaviorTree ID="T_Manipulate_Place">
+    <RetryUntilSuccessful name="retry_05" num_attempts="3">
+      <Action name="release_01" ID="RELEASE" obj="{target}"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+
+  <!-- T_Open: Open target (placeholder for standardization) -->
+  <BehaviorTree ID="T_Open">
+    <RetryUntilSuccessful name="retry_06" num_attempts="3">
+      <Action name="open_01" ID="OPEN" obj="{target}"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+
+  <!-- T_Close: Close target (placeholder for standardization) -->
+  <BehaviorTree ID="T_Close">
+    <RetryUntilSuccessful name="retry_07" num_attempts="3">
+      <Action name="close_01" ID="CLOSE" obj="{target}"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+
+  <!-- T_Toggle: Toggle target (placeholder for standardization) -->
+  <BehaviorTree ID="T_Toggle">
+    <RetryUntilSuccessful name="retry_08" num_attempts="3">
+      <Action name="toggle_01" ID="TOGGLE" obj="{target}"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+</root>

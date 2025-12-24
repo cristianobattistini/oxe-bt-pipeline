@@ -24,6 +24,13 @@ Nuovo comando (SCAFFOLD r/ segnaposto pronti al copia/incolla):
   python chat_stage.py scaffold-out --from <n> --dataset <ds> [--locals 1,2,3] [--include both|locals|root] [--force]
 """
 
+try:
+    from ._bootstrap import ensure_repo_root
+except ImportError:
+    from _bootstrap import ensure_repo_root
+
+ensure_repo_root()
+
 import argparse
 import os
 import re

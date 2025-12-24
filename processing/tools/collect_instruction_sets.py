@@ -10,6 +10,17 @@ Per passare al secondo batch, rimuovere i commenti sulle righe dei dataset
 al fondo dell'array DATASETS (sezione 'BATCH 2') e, opzionalmente, cambiare TAG.
 """
 
+import os
+import sys
+
+# Assicura che la repo root sia in sys.path anche quando eseguito da tools/
+_repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
+
+from processing._bootstrap import ensure_repo_root
+ensure_repo_root()
+
 from pathlib import Path
 import json, re
 

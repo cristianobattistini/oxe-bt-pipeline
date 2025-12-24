@@ -2,6 +2,13 @@
 # Orchestratore Step 1: esporta fino a N episodi per ciascun dataset OXE (RLDS).
 # Per ogni episodio salva: frame JPEG, preview.gif (se ≥2 frame), instruction.txt (se presente), attributes.json.
 
+try:
+    from ._bootstrap import ensure_repo_root
+except ImportError:
+    from _bootstrap import ensure_repo_root
+
+ensure_repo_root()
+
 import os
 import re
 import json
@@ -19,6 +26,20 @@ def _sanitize(s: str) -> str:
     """
     return re.sub(r"[^A-Za-z0-9._-]+", "_", s)
 
+def _existing_episode_indices(ds_root: str) -> list[int]:
+    """
+    Ritorna gli indici episode_XXX già presenti (numerici).
+    """
+    indices = []
+    if not os.path.isdir(ds_root):
+        return indices
+    for name in os.listdir(ds_root):
+        if not name.startswith("episode_"):
+            continue
+        tail = name.split("_", 1)[-1]
+        if tail.isdigit():
+            indices.append(int(tail))
+    return sorted(indices)
 
 def _resolve_dataset_list() -> list[str]:
     """
@@ -56,6 +77,8 @@ def main():
     filename_mode   = getattr(CFG, "filename_mode", "original")
     normalize_names = getattr(CFG, "normalize_names", False)
     prune_only      = getattr(CFG, "prune_only", False)
+    resume_from_existing = getattr(CFG, "resume_from_existing", False)
+    skip_existing        = getattr(CFG, "skip_existing", True)
 
     os.makedirs(out_root, exist_ok=True)
     run_started = datetime.utcnow().isoformat()
@@ -72,9 +95,24 @@ def main():
         print(f"\n[DATASET] {ds}  split={split}  limit={per_ds_limit}")
         print(f"          image_key='{image_key}'  instruction_key='{instruction_key}'")
 
+        existing = _existing_episode_indices(ds_root) if resume_from_existing else []
+        start_idx = (max(existing) + 1) if existing else 0
+        if resume_from_existing:
+            print(f"[RESUME] {ds}: start_idx={start_idx} existing={len(existing)}")
+            if per_ds_limit and start_idx >= per_ds_limit:
+                print(f"[RESUME] {ds}: limit {per_ds_limit} already reached, skipping.")
+                continue
+
         exported = 0
-        for episode in iterate_episodes(ds, split, data_dir=data_dir):
-            ep_dir = os.path.join(ds_root, f"episode_{exported:03d}")
+        skip_for_iter = start_idx if resume_from_existing else 0
+        for offset, episode in enumerate(iterate_episodes(ds, split, data_dir=data_dir, skip=skip_for_iter)):
+            episode_idx = start_idx + offset
+            if per_ds_limit and episode_idx >= per_ds_limit:
+                break
+
+            ep_dir = os.path.join(ds_root, f"episode_{episode_idx:03d}")
+            if skip_existing and os.path.isdir(ep_dir):
+                continue
             os.makedirs(ep_dir, exist_ok=True)
 
             # 1) attributes.json per ispezione rapida della struttura
@@ -82,7 +120,7 @@ def main():
 
             # 2) frame + gif + instruction
             try:
-                print(f"[INFO] Dumping ep#{exported:03d}...")
+                print(f"[INFO] Dumping ep#{episode_idx:03d}...")
                 summary = dump_episode_rlds(
                     episode=episode,
                     out_dir=ep_dir,
@@ -109,15 +147,13 @@ def main():
                     prune_only=prune_only,        # se True, ripulisce fasi intermedie
                 )
 
-                print(f"[INFO] All phases built for ep#{exported:03d}")
+                print(f"[INFO] All phases built for ep#{episode_idx:03d}")
 
             except Exception as e:
-                print(f"[WARN] {ds} ep#{exported:03d} skipped: {e}")
+                print(f"[WARN] {ds} ep#{episode_idx:03d} skipped: {e}")
 
             exported += 1
             grand_total += 1
-            if per_ds_limit and exported >= per_ds_limit:
-                break
 
         print(f"[SUMMARY] {ds} → {exported} episodio/i esportati. Output: {ds_root}")
 

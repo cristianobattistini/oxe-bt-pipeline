@@ -1,0 +1,63 @@
+<root main_tree_to_execute="MainTree">
+  <!-- MainTree using SubTrees -->
+  <BehaviorTree ID="MainTree">
+    <Sequence name="raise_white_carton">
+      <SubTree ID="T_Navigate" target="white_carton"/>
+      <SubTree ID="T_Manipulate_Grasp" target="white_carton"/>
+      <!-- The robot is now holding (raising) the white carton -->
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Standard SubTree: T_Navigate -->
+  <BehaviorTree ID="T_Navigate">
+    <Fallback name="navigate_with_recovery">
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="NAVIGATE_TO" obj="{target}"/>
+      </RetryUntilSuccessful>
+      <!-- Recovery: Try navigating again -->
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="NAVIGATE_TO" obj="{target}"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- Standard SubTree: T_Manipulate_Grasp -->
+  <BehaviorTree ID="T_Manipulate_Grasp">
+    <Fallback name="grasp_with_recovery">
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="GRASP" obj="{target}"/>
+      </RetryUntilSuccessful>
+      <Sequence name="recovery_grasp">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="NAVIGATE_TO" obj="{target}"/>
+        </RetryUntilSuccessful>
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="GRASP" obj="{target}"/>
+        </RetryUntilSuccessful>
+      </Sequence>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- Standard SubTree: T_Manipulate_Place -->
+  <BehaviorTree ID="T_Manipulate_Place">
+    <Sequence name="place_sequence">
+      <Action ID="PLACE_OBJECT" obj="{target}"/>
+      <Action ID="RELEASE" obj="{target}"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Standard SubTree: T_Open -->
+  <BehaviorTree ID="T_Open">
+    <Action ID="OPEN" obj="{target}"/>
+  </BehaviorTree>
+
+  <!-- Standard SubTree: T_Close -->
+  <BehaviorTree ID="T_Close">
+    <Action ID="CLOSE" obj="{target}"/>
+  </BehaviorTree>
+
+  <!-- Standard SubTree: T_Toggle -->
+  <BehaviorTree ID="T_Toggle">
+    <Action ID="TOGGLE" obj="{target}"/>
+  </BehaviorTree>
+</root>

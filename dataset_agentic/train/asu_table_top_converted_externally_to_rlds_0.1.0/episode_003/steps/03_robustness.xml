@@ -1,0 +1,65 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="move_brown_object">
+      <!-- Approach brown object -->
+      <Fallback name="approach_phase">
+        <Action ID="NAVIGATE_TO" obj="brown_object"/>
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="NAVIGATE_TO" obj="brown_object"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      
+      <!-- Grasp with retry and recovery -->
+      <Fallback name="grasp_phase">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="GRASP" obj="brown_object"/>
+        </RetryUntilSuccessful>
+        <Sequence name="recovery_grasp">
+          <Fallback name="recovery_approach">
+            <Action ID="NAVIGATE_TO" obj="brown_object"/>
+            <RetryUntilSuccessful num_attempts="3">
+              <Action ID="NAVIGATE_TO" obj="brown_object"/>
+            </RetryUntilSuccessful>
+          </Fallback>
+          <RetryUntilSuccessful num_attempts="3">
+            <Action ID="GRASP" obj="brown_object"/>
+          </RetryUntilSuccessful>
+        </Sequence>
+      </Fallback>
+      
+      <!-- Move to a new location (for demonstration, place on top of table) -->
+      <Fallback name="navigate_to_table_phase">
+        <Action ID="NAVIGATE_TO" obj="table"/>
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="NAVIGATE_TO" obj="table"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      
+      <Fallback name="place_phase">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="PLACE_ON_TOP" obj="table"/>
+        </RetryUntilSuccessful>
+        <Sequence name="recovery_place">
+          <Fallback name="recovery_navigate_table">
+            <Action ID="NAVIGATE_TO" obj="table"/>
+            <RetryUntilSuccessful num_attempts="3">
+              <Action ID="NAVIGATE_TO" obj="table"/>
+            </RetryUntilSuccessful>
+          </Fallback>
+          <RetryUntilSuccessful num_attempts="3">
+            <Action ID="PLACE_ON_TOP" obj="table"/>
+          </RetryUntilSuccessful>
+        </Sequence>
+      </Fallback>
+      
+      <Fallback name="release_phase">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="RELEASE"/>
+        </RetryUntilSuccessful>
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="RELEASE"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+</root>

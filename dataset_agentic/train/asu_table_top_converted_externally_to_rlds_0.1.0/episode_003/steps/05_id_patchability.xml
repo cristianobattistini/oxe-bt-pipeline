@@ -1,0 +1,94 @@
+<root main_tree_to_execute="MainTree">
+
+  <!-- MainTree refactored to use SubTrees -->
+  <BehaviorTree ID="MainTree">
+    <Sequence name="seq_01">
+      <!-- Approach brown object -->
+      <SubTree name="subtree_01" ID="T_Navigate" target="brown_object"/>
+      
+      <!-- Grasp with retry and recovery -->
+      <SubTree name="subtree_02" ID="T_Manipulate_Grasp" target="brown_object"/>
+      
+      <!-- Move to table -->
+      <SubTree name="subtree_03" ID="T_Navigate" target="table"/>
+      
+      <!-- Place on table -->
+      <SubTree name="subtree_04" ID="T_Manipulate_Place" target="table"/>
+      
+      <!-- Release -->
+      <SubTree name="subtree_05" ID="T_Manipulate_Release"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- SubTree: Navigation to a target -->
+  <BehaviorTree ID="T_Navigate">
+    <Fallback name="fallback_01">
+      <Action name="action_01" ID="NAVIGATE_TO" obj="{target}"/>
+      <RetryUntilSuccessful name="retry_01" num_attempts="3">
+        <Action name="action_02" ID="NAVIGATE_TO" obj="{target}"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- SubTree: Grasp with retry and recovery -->
+  <BehaviorTree ID="T_Manipulate_Grasp">
+    <Fallback name="fallback_02">
+      <RetryUntilSuccessful name="retry_02" num_attempts="3">
+        <Action name="action_03" ID="GRASP" obj="{target}"/>
+      </RetryUntilSuccessful>
+      <Sequence name="seq_02">
+        <SubTree name="subtree_06" ID="T_Navigate" target="{target}"/>
+        <RetryUntilSuccessful name="retry_03" num_attempts="3">
+          <Action name="action_04" ID="GRASP" obj="{target}"/>
+        </RetryUntilSuccessful>
+      </Sequence>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- SubTree: Place with retry and recovery -->
+  <BehaviorTree ID="T_Manipulate_Place">
+    <Fallback name="fallback_03">
+      <RetryUntilSuccessful name="retry_04" num_attempts="3">
+        <Action name="action_05" ID="PLACE_ON_TOP" obj="{target}"/>
+      </RetryUntilSuccessful>
+      <Sequence name="seq_03">
+        <SubTree name="subtree_07" ID="T_Navigate" target="{target}"/>
+        <RetryUntilSuccessful name="retry_05" num_attempts="3">
+          <Action name="action_06" ID="PLACE_ON_TOP" obj="{target}"/>
+        </RetryUntilSuccessful>
+      </Sequence>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- SubTree: Release with retry (not parameterized) -->
+  <BehaviorTree ID="T_Manipulate_Release">
+    <Fallback name="fallback_04">
+      <RetryUntilSuccessful name="retry_06" num_attempts="3">
+        <Action name="action_07" ID="RELEASE"/>
+      </RetryUntilSuccessful>
+      <RetryUntilSuccessful name="retry_07" num_attempts="3">
+        <Action name="action_08" ID="RELEASE"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- Standard SubTrees (stubs, as requested) -->
+  <BehaviorTree ID="T_Open">
+    <RetryUntilSuccessful name="retry_08" num_attempts="3">
+      <Action name="action_09" ID="OPEN" obj="{target}"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+
+  <BehaviorTree ID="T_Close">
+    <RetryUntilSuccessful name="retry_09" num_attempts="3">
+      <Action name="action_10" ID="CLOSE" obj="{target}"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+
+  <BehaviorTree ID="T_Toggle">
+    <RetryUntilSuccessful name="retry_10" num_attempts="3">
+      <Action name="action_11" ID="TOGGLE" obj="{target}"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+
+</root>

@@ -1,0 +1,21 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="put_down_red_bottle">
+      <!-- Approach red bottle -->
+      <Action ID="NAVIGATE_TO" obj="red_bottle"/>
+      
+      <!-- Grasp with fallback recovery -->
+      <Fallback name="grasp_phase">
+        <Action ID="GRASP" obj="red_bottle"/>
+        <Sequence name="recovery_grasp">
+          <Action ID="NAVIGATE_TO" obj="red_bottle"/>
+          <Action ID="GRASP" obj="red_bottle"/>
+        </Sequence>
+      </Fallback>
+      
+      <!-- Put down (place on top of table) -->
+      <Action ID="PLACE_ON_TOP" obj="table"/>
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

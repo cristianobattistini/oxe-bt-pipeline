@@ -1,0 +1,22 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="move_brown_object">
+      <!-- Approach brown object -->
+      <Action ID="NAVIGATE_TO" obj="brown_object"/>
+      
+      <!-- Grasp with recovery -->
+      <Fallback name="grasp_phase">
+        <Action ID="GRASP" obj="brown_object"/>
+        <Sequence name="recovery_grasp">
+          <Action ID="NAVIGATE_TO" obj="brown_object"/>
+          <Action ID="GRASP" obj="brown_object"/>
+        </Sequence>
+      </Fallback>
+      
+      <!-- Move to a new location (for demonstration, place on top of table) -->
+      <Action ID="NAVIGATE_TO" obj="table"/>
+      <Action ID="PLACE_ON_TOP" obj="table"/>
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

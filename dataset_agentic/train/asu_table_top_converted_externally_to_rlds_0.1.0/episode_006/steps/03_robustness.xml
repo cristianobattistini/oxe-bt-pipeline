@@ -1,0 +1,53 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="place_down_blue_bottle">
+      <!-- Approach blue bottle (add retry) -->
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="NAVIGATE_TO" obj="blue_bottle"/>
+      </RetryUntilSuccessful>
+      
+      <!-- Grasp with fallback and retry -->
+      <Fallback name="grasp_phase">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="GRASP" obj="blue_bottle"/>
+        </RetryUntilSuccessful>
+        <Sequence name="recovery_grasp">
+          <RetryUntilSuccessful num_attempts="3">
+            <Action ID="NAVIGATE_TO" obj="blue_bottle"/>
+          </RetryUntilSuccessful>
+          <RetryUntilSuccessful num_attempts="3">
+            <Action ID="GRASP" obj="blue_bottle"/>
+          </RetryUntilSuccessful>
+        </Sequence>
+      </Fallback>
+      
+      <!-- Move to placement location (table) with retry -->
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="NAVIGATE_TO" obj="table"/>
+      </RetryUntilSuccessful>
+      
+      <!-- Place on table and release with fallback and retries -->
+      <Fallback name="place_phase">
+        <Sequence name="place_on_table">
+          <RetryUntilSuccessful num_attempts="3">
+            <Action ID="PLACE_ON_TOP" obj="table"/>
+          </RetryUntilSuccessful>
+          <RetryUntilSuccessful num_attempts="3">
+            <Action ID="RELEASE"/>
+          </RetryUntilSuccessful>
+        </Sequence>
+        <Sequence name="recovery_place">
+          <RetryUntilSuccessful num_attempts="3">
+            <Action ID="NAVIGATE_TO" obj="table"/>
+          </RetryUntilSuccessful>
+          <RetryUntilSuccessful num_attempts="3">
+            <Action ID="PLACE_ON_TOP" obj="table"/>
+          </RetryUntilSuccessful>
+          <RetryUntilSuccessful num_attempts="3">
+            <Action ID="RELEASE"/>
+          </RetryUntilSuccessful>
+        </Sequence>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,77 @@
+<root main_tree_to_execute="MainTree">
+  <!-- MainTree refactored to use SubTrees -->
+  <BehaviorTree ID="MainTree">
+    <Sequence name="raise_bread">
+      <!-- Approach bread -->
+      <SubTree ID="T_Navigate" target="bread"/>
+
+      <!-- Grasp bread with retry and recovery -->
+      <SubTree ID="T_Manipulate_Grasp" target="bread"/>
+
+      <!-- Raise bread: Place on top of an elevated object (choose "red_cup" as a suitable platform) -->
+      <SubTree ID="T_Navigate" target="red_cup"/>
+      <SubTree ID="T_Manipulate_Place" target="red_cup"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Standard SubTree Definitions -->
+
+  <!-- Navigation SubTree -->
+  <BehaviorTree ID="T_Navigate">
+    <Action ID="NAVIGATE_TO" obj="{target}"/>
+  </BehaviorTree>
+
+  <!-- Grasp SubTree with retry and recovery -->
+  <BehaviorTree ID="T_Manipulate_Grasp">
+    <Fallback name="grasp_phase">
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="GRASP" obj="{target}"/>
+      </RetryUntilSuccessful>
+      <Sequence name="recovery_grasp">
+        <Action ID="NAVIGATE_TO" obj="{target}"/>
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="GRASP" obj="{target}"/>
+        </RetryUntilSuccessful>
+      </Sequence>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- Place SubTree with retry and recovery -->
+  <BehaviorTree ID="T_Manipulate_Place">
+    <Fallback name="place_on_top_phase">
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="PLACE_ON_TOP" obj="{target}"/>
+      </RetryUntilSuccessful>
+      <Sequence name="recovery_place_on_top">
+        <Action ID="NAVIGATE_TO" obj="{target}"/>
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="PLACE_ON_TOP" obj="{target}"/>
+        </RetryUntilSuccessful>
+      </Sequence>
+    </Fallback>
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="RELEASE"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+
+  <!-- Open SubTree -->
+  <BehaviorTree ID="T_Open">
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="OPEN" obj="{target}"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+
+  <!-- Close SubTree -->
+  <BehaviorTree ID="T_Close">
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="CLOSE" obj="{target}"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+
+  <!-- Toggle SubTree -->
+  <BehaviorTree ID="T_Toggle">
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="TOGGLE" obj="{target}"/>
+    </RetryUntilSuccessful>
+  </BehaviorTree>
+</root>

@@ -15,6 +15,13 @@ USO TIPICO
    python generate_folders.py --mode videos --out-root out --dest-root dataset --video-duration 4.0
 """
 
+try:
+    from ._bootstrap import ensure_repo_root
+except ImportError:
+    from _bootstrap import ensure_repo_root
+
+ensure_repo_root()
+
 import argparse
 import json
 import re
@@ -928,5 +935,4 @@ python generate_folders.py \
   --video-duration 4.0 \
   --overwrite
 '''
-
 
