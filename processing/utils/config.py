@@ -2,6 +2,7 @@
 OXE → Triplet Builder (RLDS-aligned) — multi-dataset config.
 Usa la semantica OXE: episodi con campo 'steps'.
 """
+import os
 
 # Puoi lasciare 'dataset' vuoto quando usi 'datasets'.
 dataset  = ""
@@ -84,7 +85,9 @@ max_frames = 1000
 # Limite episodi per dataset (fase di prova)
 limit_episodes_per_dataset = 120
 
-tfds_data_dir = "/home/kcbat/tensorflow_datasets"
+# Directory TFDS (usa variabile d'ambiente per evitare hardcode di percorsi host)
+# Esempio Windows: TFDS_DATA_DIR=/mnt/c/Users/<USER>/Documents/tensorflow_datasets
+tfds_data_dir = os.getenv("TFDS_DATA_DIR", "/mnt/c/Users/<USER>/Documents/tensorflow_datasets")
 
 
 # Embedding-based selection
