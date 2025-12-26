@@ -29,9 +29,11 @@ def _get_by_path(d: Dict[str, Any], key: str) -> Any:
         return None
     parts: Sequence[str] = key.replace(".", "/").split("/")
     cur: Any = d
+    debug = bool(getattr(CFG, "debug_get_by_path", False))
     for p in parts:
         # dict classico
-        print(f"[DEBUG] Looking for {p} in {type(cur)}")
+        if debug:
+            print(f"[DEBUG] Looking for {p} in {type(cur)}")
         if isinstance(cur, dict) and p in cur:
             cur = cur[p]
             continue
@@ -43,7 +45,8 @@ def _get_by_path(d: Dict[str, Any], key: str) -> Any:
         if hasattr(cur, p):
             cur = getattr(cur, p)
             continue
-        print(f"[DEBUG] Key {p} not found in {type(cur)}")
+        if debug:
+            print(f"[DEBUG] Key {p} not found in {type(cur)}")
         return None
     return cur
 
@@ -165,6 +168,24 @@ def iterate_episodes(
     for episode in ds:
         episode["steps"] = list(episode["steps"])
         yield episode
+
+
+def get_split_num_examples(name_or_dir: str, split: str, data_dir: str | None = None) -> int | None:
+    """
+    Restituisce il numero di esempi per lo split base (es. 'train' in 'train[:100%]') se disponibile,
+    altrimenti None. Non legge i TFRecord.
+    """
+    try:
+        b = _make_builder(name_or_dir, data_dir=data_dir)
+        split_name = (split or "").split("[", 1)[0].strip()
+        if not split_name:
+            return None
+        info = b.info
+        if not hasattr(info, "splits") or split_name not in info.splits:
+            return None
+        return int(info.splits[split_name].num_examples)
+    except Exception:
+        return None
 
 # =============================================================================
 #  Conversione immagine → uint8 RGB
@@ -405,14 +426,6 @@ def dump_episode_rlds(
             frames_rel.append(_save_frame(t))
 
     # GIF
-    gif_flag = False
-    if T >= 2:
-        gif_path = os.path.join(out_dir, "preview.gif")
-        imgs = [Image.fromarray(arr[t]) for t in range(T)]
-        imgs[0].save(gif_path, save_all=True, append_images=imgs[1:], duration=120, loop=0)
-        gif_flag = True
-
-        # GIF standard (tutti i frame o max_frames)
     gif_flag = False
     if T >= 2:
         gif_path = os.path.join(out_dir, "preview.gif")

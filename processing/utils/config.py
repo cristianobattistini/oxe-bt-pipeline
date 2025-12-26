@@ -18,7 +18,11 @@ dataset  = ""
 #     "cmu_stretch/0.1.0"
 # ]
 datasets = [
+    "asu_table_top_converted_externally_to_rlds/0.1.0",
+    "austin_buds_dataset_converted_externally_to_rlds/0.1.0",
     "berkeley_gnm_cory_hall/0.1.0",
+    "cmu_stretch/0.1.0",
+    "columbia_cairlab_pusht_real/0.1.0",
     "dlr_edan_shared_control_converted_externally_to_rlds/0.1.0",
     "dlr_sara_grid_clamp_converted_externally_to_rlds/0.1.0",
     "dlr_sara_pour_converted_externally_to_rlds/0.1.0",
@@ -27,6 +31,9 @@ datasets = [
     "tokyo_u_lsmo_converted_externally_to_rlds/0.1.0",
     "ucsd_kitchen_dataset_converted_externally_to_rlds/0.1.0",
     "ucsd_pick_and_place_dataset_converted_externally_to_rlds/0.1.0",
+    "utokyo_pr2_opening_fridge_converted_externally_to_rlds/0.1.0",
+    "utokyo_pr2_tabletop_manipulation_converted_externally_to_rlds/0.1.0",
+    "utokyo_saytap_converted_externally_to_rlds/0.1.0",
     "utokyo_xarm_bimanual_converted_externally_to_rlds/0.1.0",
     "utokyo_xarm_pick_and_place/0.1.0",
 ]
@@ -98,6 +105,26 @@ limit_episodes_per_dataset = 400
 # Resume: riprendi dall'ultimo episodio già esportato in out_root/<dataset>/episode_XXX
 resume_from_existing = True
 skip_existing = True
+resume_mode = "fill_gaps"  # "append" (vecchio comportamento) | "fill_gaps" (recupera buchi/incompleti)
+
+# Se una cartella episode_### esiste ma non è completa, ricreala per evitare frame "stale"
+overwrite_incomplete = True
+
+# Se True, cancella la cartella episodio quando fallisce l'export (utile per retry puliti)
+cleanup_failed_episode = False
+
+# Criterio per considerare "completo" un episodio già esportato
+episode_complete_phase = "final_selected"
+
+# Se True, ignora CFG.datasets e processa tutti i dataset presenti in tfds_data_dir
+discover_local_datasets = True
+# Opzionale: regex per filtrare i nomi durante la discovery (es. "rlds")
+local_tfds_include_regex = None
+# Opzionale: lista/regex per escludere dataset (nome base o "nome/version")
+local_tfds_exclude = [
+    "utokyo_saytap_converted_externally_to_rlds",
+]
+local_tfds_exclude_regex = None
 
 # Parallelismo per scrittura immagini (0/1 = disabilitato)
 io_workers = int(os.getenv("OXE_IO_WORKERS", "4"))

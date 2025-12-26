@@ -17,3 +17,5 @@ Documentazione completa (cartelle `nb/`, `processing/`, `data/`, `data/dataset/`
 - Export episodi OXE: `python processing/main.py` (config in `processing/utils/config.py`; setup WSL: `SETUP_WINDOWS_WSL_DOCKER.md`)
 - Costruzione dataset episode‑level: `python processing/generate_folders.py --mode init ...`
 - Fine‑tuning: apri i notebook in `nb/` e usa `dataset_oxe.zip`
+
+

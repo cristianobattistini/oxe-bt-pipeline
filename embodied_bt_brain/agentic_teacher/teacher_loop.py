@@ -21,18 +21,15 @@ class AgenticTeacherLoop:
         agents: Dict[str, Any],
         *,
         pipeline: Optional[List[str]] = None,
-        enable_post_id_assignment: bool = True,
     ) -> None:
         if pipeline is None:
             pipeline = [
                 "robustness",
                 "subtree_enablement",
-                "schema",
                 "conformance",
             ]
         self.agents = agents
         self.pipeline = pipeline
-        self.enable_post_id_assignment = enable_post_id_assignment
 
     def generate_bt(
         self,
@@ -42,7 +39,8 @@ class AgenticTeacherLoop:
         record_steps: bool = False,
         on_agent_step: Optional[Callable[[str], None]] = None,
     ) -> Dict[str, Any]:
-        steps: List[Dict[str, str]] = []
+        # Always init steps list
+        steps: List[Dict[str, Any]] = []
 
         feasibility = self.agents.get("feasibility")
         if feasibility is not None:
@@ -53,19 +51,27 @@ class AgenticTeacherLoop:
             audit_log: List[dict] = [feasibility_log]
             if on_agent_step:
                 on_agent_step("feasibility")
+            
+            # Record step regardless of outcome
+            step_record = {
+                "agent": "feasibility",
+                "content": feasibility_data,
+                "ext": "json",
+                "feasible": feasibility_log.get("feasible", True)
+            }
             if record_steps:
-                steps.append(
-                    {
-                        "agent": "feasibility",
-                        "content": feasibility_data,
-                        "ext": "json",
-                    }
-                )
+                steps.append(step_record)
+
             if not feasibility_log.get("feasible", True):
-                raise SkipEpisode(
-                    f"infeasible episode: {feasibility_log.get('reason', 'unknown')}",
-                    details=feasibility_log,
-                )
+                # STOP HERE, but return the trace for the "Safety" dataset.
+                return {
+                    "bt_xml": "",  # No XML generated
+                    "audit_log": audit_log,
+                    "score": 0,
+                    "verdict": "REJECT",
+                    "reason": f"Infeasible: {feasibility_log.get('reason')}",
+                    "steps": steps if record_steps else [step_record], # Ensure trace is present
+                }
         else:
             audit_log = []
 
@@ -107,38 +113,11 @@ class AgenticTeacherLoop:
         if on_agent_step:
             on_agent_step("architect")
         if record_steps:
-            steps.append({"agent": "architect", "bt_xml": bt_xml})
-
-        # Critic Agent - Socratic dialogue with Architect (optional)
-        critic = self.agents.get("critic")
-        if critic is not None:
-            try:
-                # Parse scene_analysis if it's a string (convert to dict)
-                scene_dict = None
-                if scene_analysis and isinstance(scene_analysis, str):
-                    # Try to extract structured info from scene analysis text
-                    # For now, pass as dict with description
-                    scene_dict = {"scene_description": scene_analysis}
-                elif isinstance(scene_analysis, dict):
-                    scene_dict = scene_analysis
-
-                bt_xml, critic_log = critic.process(
-                    bt_xml,
-                    instruction,
-                    scene_analysis=scene_dict,
-                    architect_agent=architect,
-                )
-                audit_log.extend(critic_log)
-                if on_agent_step:
-                    on_agent_step("critic")
-                if record_steps:
-                    steps.append({"agent": "critic", "bt_xml": bt_xml})
-            except ValueError as exc:
-                # Critic rejected the BT - this is a blocking failure
-                raise SkipEpisode(
-                    f"Critic rejected BT: {exc}",
-                    details={"critic_rejection": str(exc)},
-                ) from exc
+            steps.append({
+                "agent": "architect", 
+                "bt_xml": bt_xml,
+                "type": "baseline" # Mark as baseline for DPO
+            })
 
         for agent_name in self.pipeline:
             agent = self.agents.get(agent_name)
@@ -150,16 +129,6 @@ class AgenticTeacherLoop:
                 steps.append({"agent": agent_name, "bt_xml": bt_xml})
             if on_agent_step:
                 on_agent_step(agent_name)
-
-        if self.enable_post_id_assignment:
-            assigner = self.agents.get("id_assigner")
-            if assigner is not None:
-                bt_xml, assign_log = assigner.process(bt_xml)  # type: ignore[call-arg]
-                audit_log.extend(assign_log)
-                if record_steps:
-                    steps.append({"agent": "id_assigner", "bt_xml": bt_xml})
-                if on_agent_step:
-                    on_agent_step("id_assigner")
 
         # Final hard checks (syntactic + PAL v1 conformance) after all mutations.
         try:
@@ -179,7 +148,15 @@ class AgenticTeacherLoop:
                 }
             )
             if final_issues:
-                raise ValueError(f"final PAL validation failed: {final_issues}")
+                # Instead of raising, we can reject it
+                return {
+                    "bt_xml": bt_xml,
+                    "audit_log": audit_log,
+                    "score": 0,
+                    "verdict": "REJECT",
+                    "reason": f"PAL validation failed: {final_issues}",
+                    "steps": steps
+                }
 
         verdict = "SKIP"
         score = None
@@ -195,9 +172,8 @@ class AgenticTeacherLoop:
             "audit_log": audit_log,
             "score": score,
             "verdict": verdict,
+            "steps": steps # Always include steps if record_steps was requested (or even if not? User said "Lossless")
         }
-        if record_steps:
-            result["steps"] = steps
         return result
 
 

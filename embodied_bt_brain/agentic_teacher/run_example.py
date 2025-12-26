@@ -1,3 +1,4 @@
+import argparse
 import sys
 from pathlib import Path
 
@@ -9,11 +10,9 @@ from embodied_bt_brain.agentic_teacher import AgenticTeacherLoop
 from embodied_bt_brain.agentic_teacher.agents import (
     ArchitectAgent,
     ConformanceAgent,
-    CriticAgent,
     FeasibilityAgent,
     RobustnessAgent,
     SceneAnalysisAgent,
-    SchemaAgent,
     ScorerAgent,
     SubtreeEnablementAgent,
 )
@@ -22,32 +21,29 @@ from embodied_bt_brain.primitive_library.validator import load_default_pal_spec
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--instruction", required=True)
+    parser.add_argument("--contact-sheet", required=True, help="Path to contact sheet image (jpeg).")
+    parser.add_argument("--model", default=None, help="Azure deployment name")
+    args = parser.parse_args()
+
     pal_spec = load_default_pal_spec()
-    llm_client = AzureLLMClient()
+    llm_client = AzureLLMClient(model=args.model)
 
     agents = {
-        # Phase 1: Feasibility & Understanding
         "feasibility": FeasibilityAgent(llm_client=llm_client),
         "scene_analysis": SceneAnalysisAgent(llm_client=llm_client),
-
-        # Phase 2: Creative Generation
         "architect": ArchitectAgent(llm_client),
-        "critic": CriticAgent(llm_client, max_iterations=2, strict_mode=True),
-
-        # Phase 3: Refinement
         "robustness": RobustnessAgent(llm_client=llm_client),
         "subtree_enablement": SubtreeEnablementAgent(llm_client=llm_client),
-
-        # Phase 4: Validation
-        "schema": SchemaAgent(llm_client=llm_client),
         "conformance": ConformanceAgent(pal_spec, llm_client=llm_client),
         "scorer": ScorerAgent(llm_client=llm_client),
     }
 
     teacher = AgenticTeacherLoop(agents)
     result = teacher.generate_bt(
-        instruction="Pick up the cup and place it on the table.",
-        contact_sheet_path="N/A",
+        instruction=args.instruction,
+        contact_sheet_path=args.contact_sheet,
     )
 
     print("verdict:", result["verdict"])
