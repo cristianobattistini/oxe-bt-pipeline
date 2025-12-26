@@ -1,8 +1,11 @@
 import base64
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
-from openai import AzureOpenAI
+import logging
+
+from openai import AzureOpenAI, NotFoundError
 
 
 try:
@@ -20,11 +23,28 @@ class AzureConfig:
 
 
 def load_azure_config() -> AzureConfig:
+    raw_endpoint = str(keys.AZURE_OPENAI_ENDPOINT)
+    default_model: Optional[str] = "gpt-4o"
+
+    # Support both:
+    # - base endpoint: https://<resource>.openai.azure.com
+    # - fully-qualified deployment URL (legacy / copy-paste):
+    #   https://<resource>.openai.azure.com/openai/deployments/<deployment>/chat/completions?api-version=...
+    if "/openai/deployments/" in raw_endpoint:
+        parsed = urlparse(raw_endpoint)
+        parts = parsed.path.split("/openai/deployments/", 1)
+        base_path = parts[0]
+        remainder = parts[1] if len(parts) > 1 else ""
+        deployment = remainder.split("/", 1)[0] if remainder else ""
+        if deployment:
+            default_model = deployment
+        raw_endpoint = f"{parsed.scheme}://{parsed.netloc}{base_path}"
+
     return AzureConfig(
         api_key=keys.AZURE_OPENAI_KEY,
-        azure_endpoint=keys.AZURE_OPENAI_ENDPOINT,
+        azure_endpoint=raw_endpoint,
         api_version=keys.AZURE_OPENAI_API_VERSION,
-        default_model="gpt-4o",
+        default_model=default_model,
     )
 
 
@@ -79,3 +99,43 @@ class AzureLLMClient:
             max_tokens=max_tokens,
         )
         return response.choices[0].message.content or ""
+
+    def complete_with_fallback(
+        self,
+        prompt: str,
+        *,
+        image_path: Optional[str] = None,
+        system: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: float = 0.2,
+        max_tokens: int = 1600,
+    ) -> str:
+        """
+        Same as `complete`, but if the explicit deployment/model is not found,
+        retries with the client's default deployment (useful with misconfigured CLI).
+        """
+        try:
+            return self.complete(
+                prompt,
+                image_path=image_path,
+                system=system,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except NotFoundError:
+            if model and model != self.default_model:
+                logging.warning(
+                    "Azure deployment '%s' not found; retrying with default '%s'",
+                    model,
+                    self.default_model,
+                )
+                return self.complete(
+                    prompt,
+                    image_path=image_path,
+                    system=system,
+                    model=self.default_model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+            raise

@@ -179,13 +179,23 @@ class ArchitectAgent:
         self.llm_client = llm_client
         self.model = model
 
-    def draft(self, instruction: str, contact_sheet_path: str) -> Tuple[str, List[Dict[str, str]]]:
+    def draft(
+        self,
+        instruction: str,
+        contact_sheet_path: str,
+        *,
+        scene_analysis: str = "",
+    ) -> Tuple[str, List[Dict[str, str]]]:
         if self.llm_client is None:
             raise ValueError("ArchitectAgent requires an LLM client.")
 
-        prompt = render_prompt("architect", instruction=instruction)
+        prompt = render_prompt(
+            "architect",
+            instruction=instruction,
+            scene_analysis=scene_analysis,
+        )
 
-        response = self.llm_client.complete(
+        response = self.llm_client.complete_with_fallback(
             prompt,
             image_path=contact_sheet_path,
             model=self.model,

@@ -9,8 +9,10 @@ from embodied_bt_brain.agentic_teacher import AgenticTeacherLoop
 from embodied_bt_brain.agentic_teacher.agents import (
     ArchitectAgent,
     ConformanceAgent,
-    IdPatchabilityAgent,
+    CriticAgent,
+    FeasibilityAgent,
     RobustnessAgent,
+    SceneAnalysisAgent,
     SchemaAgent,
     ScorerAgent,
     SubtreeEnablementAgent,
@@ -24,12 +26,21 @@ def main() -> None:
     llm_client = AzureLLMClient()
 
     agents = {
+        # Phase 1: Feasibility & Understanding
+        "feasibility": FeasibilityAgent(llm_client=llm_client),
+        "scene_analysis": SceneAnalysisAgent(llm_client=llm_client),
+
+        # Phase 2: Creative Generation
         "architect": ArchitectAgent(llm_client),
-        "conformance": ConformanceAgent(pal_spec, llm_client=llm_client),
-        "schema": SchemaAgent(llm_client=llm_client),
+        "critic": CriticAgent(llm_client, max_iterations=2, strict_mode=True),
+
+        # Phase 3: Refinement
         "robustness": RobustnessAgent(llm_client=llm_client),
         "subtree_enablement": SubtreeEnablementAgent(llm_client=llm_client),
-        "id_patchability": IdPatchabilityAgent(llm_client=llm_client),
+
+        # Phase 4: Validation
+        "schema": SchemaAgent(llm_client=llm_client),
+        "conformance": ConformanceAgent(pal_spec, llm_client=llm_client),
         "scorer": ScorerAgent(llm_client=llm_client),
     }
 

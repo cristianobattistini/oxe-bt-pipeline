@@ -1,23 +1,38 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from __future__ import annotations
+
+from typing import Any, Callable, Dict, List, Optional
+from xml.etree import ElementTree as ET
+
+from embodied_bt_brain.primitive_library.validator import validate_bt_xml
 
 
 class AgenticTeacherLoop:
+    """
+    Orchestrates a multi-agent "teacher" pipeline to produce a single BT XML.
+
+    Notes:
+    - Each agent is expected to return syntactically valid BT.CPP XML (or raise).
+    - PAL conformance is enforced at the end (via ConformanceAgent).
+    - Optional preflight agents can skip an episode early (FeasibilityAgent).
+    """
+
     def __init__(
         self,
         agents: Dict[str, Any],
         *,
         pipeline: Optional[List[str]] = None,
+        enable_post_id_assignment: bool = True,
     ) -> None:
         if pipeline is None:
             pipeline = [
-                "conformance",
-                "schema",
                 "robustness",
                 "subtree_enablement",
-                "id_patchability",
+                "schema",
+                "conformance",
             ]
         self.agents = agents
         self.pipeline = pipeline
+        self.enable_post_id_assignment = enable_post_id_assignment
 
     def generate_bt(
         self,
@@ -27,6 +42,52 @@ class AgenticTeacherLoop:
         record_steps: bool = False,
         on_agent_step: Optional[Callable[[str], None]] = None,
     ) -> Dict[str, Any]:
+        steps: List[Dict[str, str]] = []
+
+        feasibility = self.agents.get("feasibility")
+        if feasibility is not None:
+            feasibility_data, feasibility_log = feasibility.check(  # type: ignore[call-arg]
+                instruction,
+                contact_sheet_path,
+            )
+            audit_log: List[dict] = [feasibility_log]
+            if on_agent_step:
+                on_agent_step("feasibility")
+            if record_steps:
+                steps.append(
+                    {
+                        "agent": "feasibility",
+                        "content": feasibility_data,
+                        "ext": "json",
+                    }
+                )
+            if not feasibility_log.get("feasible", True):
+                raise SkipEpisode(
+                    f"infeasible episode: {feasibility_log.get('reason', 'unknown')}",
+                    details=feasibility_log,
+                )
+        else:
+            audit_log = []
+
+        scene_analysis = ""
+        scene = self.agents.get("scene_analysis")
+        if scene is not None:
+            scene_analysis, scene_log = scene.analyze(  # type: ignore[call-arg]
+                instruction,
+                contact_sheet_path,
+            )
+            audit_log.append(scene_log)
+            if on_agent_step:
+                on_agent_step("scene_analysis")
+            if record_steps:
+                steps.append(
+                    {
+                        "agent": "scene_analysis",
+                        "content": scene_analysis,
+                        "ext": "txt",
+                    }
+                )
+
         architect = self.agents.get("architect")
         if architect is None:
             raise ValueError("Missing required agent: architect")
@@ -37,12 +98,47 @@ class AgenticTeacherLoop:
                 "Architect agent must implement draft(instruction, contact_sheet_path)."
             )
 
-        bt_xml, audit_log = draft_fn(instruction, contact_sheet_path)
+        bt_xml, architect_log = draft_fn(
+            instruction,
+            contact_sheet_path,
+            scene_analysis=scene_analysis,
+        )
+        audit_log.extend(architect_log)
         if on_agent_step:
             on_agent_step("architect")
-        steps: List[Dict[str, str]] = []
         if record_steps:
             steps.append({"agent": "architect", "bt_xml": bt_xml})
+
+        # Critic Agent - Socratic dialogue with Architect (optional)
+        critic = self.agents.get("critic")
+        if critic is not None:
+            try:
+                # Parse scene_analysis if it's a string (convert to dict)
+                scene_dict = None
+                if scene_analysis and isinstance(scene_analysis, str):
+                    # Try to extract structured info from scene analysis text
+                    # For now, pass as dict with description
+                    scene_dict = {"scene_description": scene_analysis}
+                elif isinstance(scene_analysis, dict):
+                    scene_dict = scene_analysis
+
+                bt_xml, critic_log = critic.process(
+                    bt_xml,
+                    instruction,
+                    scene_analysis=scene_dict,
+                    architect_agent=architect,
+                )
+                audit_log.extend(critic_log)
+                if on_agent_step:
+                    on_agent_step("critic")
+                if record_steps:
+                    steps.append({"agent": "critic", "bt_xml": bt_xml})
+            except ValueError as exc:
+                # Critic rejected the BT - this is a blocking failure
+                raise SkipEpisode(
+                    f"Critic rejected BT: {exc}",
+                    details={"critic_rejection": str(exc)},
+                ) from exc
 
         for agent_name in self.pipeline:
             agent = self.agents.get(agent_name)
@@ -54,6 +150,36 @@ class AgenticTeacherLoop:
                 steps.append({"agent": agent_name, "bt_xml": bt_xml})
             if on_agent_step:
                 on_agent_step(agent_name)
+
+        if self.enable_post_id_assignment:
+            assigner = self.agents.get("id_assigner")
+            if assigner is not None:
+                bt_xml, assign_log = assigner.process(bt_xml)  # type: ignore[call-arg]
+                audit_log.extend(assign_log)
+                if record_steps:
+                    steps.append({"agent": "id_assigner", "bt_xml": bt_xml})
+                if on_agent_step:
+                    on_agent_step("id_assigner")
+
+        # Final hard checks (syntactic + PAL v1 conformance) after all mutations.
+        try:
+            ET.fromstring(bt_xml)
+        except ET.ParseError as exc:
+            raise ValueError(f"final XML parse error: {exc}") from exc
+
+        conformance_agent = self.agents.get("conformance")
+        pal_spec = getattr(conformance_agent, "pal_spec", None)
+        if pal_spec:
+            final_issues = validate_bt_xml(bt_xml, pal_spec)
+            audit_log.append(
+                {
+                    "agent": "FinalValidator",
+                    "status": "ok" if not final_issues else "error",
+                    "issues": final_issues,
+                }
+            )
+            if final_issues:
+                raise ValueError(f"final PAL validation failed: {final_issues}")
 
         verdict = "SKIP"
         score = None
@@ -73,3 +199,10 @@ class AgenticTeacherLoop:
         if record_steps:
             result["steps"] = steps
         return result
+
+
+class SkipEpisode(Exception):
+    def __init__(self, reason: str, *, details: Optional[dict] = None) -> None:
+        super().__init__(reason)
+        self.reason = reason
+        self.details = details or {}

@@ -16,12 +16,17 @@ from embodied_bt_brain.agentic_teacher import AgenticTeacherLoop
 from embodied_bt_brain.agentic_teacher.agents import (
     ArchitectAgent,
     ConformanceAgent,
+    CriticAgent,
+    FeasibilityAgent,
+    IdAssignerAgent,
     IdPatchabilityAgent,
     RobustnessAgent,
+    SceneAnalysisAgent,
     SchemaAgent,
     ScorerAgent,
     SubtreeEnablementAgent,
 )
+from embodied_bt_brain.agentic_teacher.teacher_loop import SkipEpisode
 from embodied_bt_brain.agentic_teacher.llm_client import AzureLLMClient
 from embodied_bt_brain.dataset_proposer_agentic.input_sources.oxe_episodes import iter_oxe_episodes
 from embodied_bt_brain.dataset_proposer_agentic.output_writers.audit_logger import AuditLogger
@@ -31,18 +36,25 @@ from embodied_bt_brain.dataset_proposer_agentic.utils.instruction_parser import 
 from embodied_bt_brain.primitive_library.validator import load_default_pal_spec
 
 
-def build_agents(model: Optional[str]) -> dict:
+def build_agents(model: Optional[str], *, enable_feasibility: bool, enable_scene_analysis: bool, enable_critic: bool, enable_id_patchability_llm: bool) -> dict:
     pal_spec = load_default_pal_spec()
     llm_client = AzureLLMClient(model=model)
-    return {
+    agents = {
         "architect": ArchitectAgent(llm_client, model=model),
+        "feasibility": FeasibilityAgent(enabled=enable_feasibility, llm_client=llm_client, model=model),
+        "scene_analysis": SceneAnalysisAgent(enabled=enable_scene_analysis, llm_client=llm_client, model=model),
         "conformance": ConformanceAgent(pal_spec, llm_client=llm_client, model=model),
         "schema": SchemaAgent(llm_client=llm_client, model=model),
         "robustness": RobustnessAgent(llm_client=llm_client, model=model),
         "subtree_enablement": SubtreeEnablementAgent(llm_client=llm_client, model=model),
-        "id_patchability": IdPatchabilityAgent(llm_client=llm_client, model=model),
+        "id_assigner": IdAssignerAgent(),
         "scorer": ScorerAgent(llm_client=llm_client, model=model),
     }
+    if enable_critic:
+        agents["critic"] = CriticAgent(llm_client, model=model, max_iterations=2, strict_mode=True)
+    if enable_id_patchability_llm:
+        agents["id_patchability"] = IdPatchabilityAgent(llm_client=llm_client, model=model)
+    return agents
 
 
 def parse_args() -> argparse.Namespace:
@@ -64,6 +76,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--log-every", type=int, default=100, help="Log progress every N items.")
     parser.add_argument("--no-resume", action="store_true", help="Do not skip existing episodes.")
     parser.add_argument("--model", default=None, help="Azure OpenAI deployment name.")
+    parser.add_argument("--fail-fast", action="store_true", help="Stop on first error.")
+    parser.add_argument("--no-feasibility", action="store_true", help="Disable feasibility pre-check.")
+    parser.add_argument("--no-scene-analysis", action="store_true", help="Disable scene analysis pre-step.")
+    parser.add_argument("--enable-critic", action="store_true", help="Enable Socratic Critic Agent (max 2 iterations, blocking).")
+    parser.add_argument(
+        "--id-patchability-llm",
+        action="store_true",
+        help="Enable an extra LLM step to add IDs (experimental; deterministic id_assigner always runs).",
+    )
     parser.add_argument(
         "--dump-intermediate",
         action="store_true",
@@ -126,7 +147,13 @@ def main() -> None:
     if val_ratio < 0.0 or val_ratio > 1.0:
         raise ValueError("val-ratio must be between 0 and 1")
 
-    agents = build_agents(args.model)
+    agents = build_agents(
+        args.model,
+        enable_feasibility=not args.no_feasibility,
+        enable_scene_analysis=not args.no_scene_analysis,
+        enable_critic=args.enable_critic,
+        enable_id_patchability_llm=args.id_patchability_llm,
+    )
     teacher = AgenticTeacherLoop(agents)
 
     writer_train = None
@@ -150,8 +177,16 @@ def main() -> None:
     processed = 0
     skipped = 0
     seen = 0
-    agent_steps = ["architect"] + list(teacher.pipeline)
-    if "scorer" in agents:
+    agent_steps: List[str] = []
+    if agents.get("feasibility") is not None:
+        agent_steps.append("feasibility")
+    if agents.get("scene_analysis") is not None:
+        agent_steps.append("scene_analysis")
+    agent_steps.append("architect")
+    agent_steps += [name for name in teacher.pipeline if agents.get(name) is not None]
+    if teacher.enable_post_id_assignment and agents.get("id_assigner") is not None:
+        agent_steps.append("id_assigner")
+    if agents.get("scorer") is not None:
         agent_steps.append("scorer")
 
     episodes_iter = iter_oxe_episodes(
@@ -159,9 +194,10 @@ def main() -> None:
         datasets=args.datasets,
         require_contact_sheet=require_contact_sheet,
     )
+    episodes_bar = None
     if args.tqdm:
         total = args.limit if args.limit is not None else None
-        episodes_iter = tqdm(episodes_iter, total=total, desc="episodes")
+        episodes_bar = tqdm(total=total, desc="episodes_processed")
 
     for episode in episodes_iter:
         seen += 1
@@ -187,20 +223,30 @@ def main() -> None:
             skipped += 1
             continue
 
-        if args.tqdm_agents:
-            with tqdm(total=len(agent_steps), desc="agents", leave=False) as agent_bar:
+        try:
+            if args.tqdm_agents:
+                with tqdm(total=len(agent_steps), desc="agents", leave=False) as agent_bar:
+                    result = teacher.generate_bt(
+                        instruction,
+                        str(contact_sheet),
+                        record_steps=args.dump_intermediate,
+                        on_agent_step=lambda _: agent_bar.update(1),
+                    )
+            else:
                 result = teacher.generate_bt(
                     instruction,
                     str(contact_sheet),
                     record_steps=args.dump_intermediate,
-                    on_agent_step=lambda _: agent_bar.update(1),
                 )
-        else:
-            result = teacher.generate_bt(
-                instruction,
-                str(contact_sheet),
-                record_steps=args.dump_intermediate,
-            )
+        except SkipEpisode as exc:
+            skipped += 1
+            logging.info("skipping %s/%s: %s", dataset_id, episode_id, exc.reason)
+            continue
+        except Exception as exc:
+            logging.exception("failed %s/%s: %s", dataset_id, episode_id, exc)
+            if args.fail_fast:
+                raise
+            continue
         bt_xml = result["bt_xml"]
 
         if args.output_mode == "jsonl":
@@ -243,6 +289,8 @@ def main() -> None:
             verdict=result["verdict"],
         )
         processed += 1
+        if episodes_bar is not None:
+            episodes_bar.update(1)
         if args.log_every and processed % args.log_every == 0:
             logging.info(
                 "processed=%d skipped=%d seen=%d (last split=%s)",
@@ -253,6 +301,9 @@ def main() -> None:
             )
         if args.limit is not None and processed >= args.limit:
             break
+
+    if episodes_bar is not None:
+        episodes_bar.close()
 
     logging.info(
         "done: processed=%d skipped=%d seen=%d val_ratio=%.3f mode=%s",

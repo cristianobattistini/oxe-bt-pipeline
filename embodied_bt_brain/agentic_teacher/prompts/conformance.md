@@ -26,5 +26,11 @@ Your job is to fix any primitive names or parameters that do not match the PAL v
 # Input XML
 {bt_xml}
 
+# Validation Issues
+{issues}
+
+# Context
+{context}
+
 # Output
 Return ONLY the corrected XML.

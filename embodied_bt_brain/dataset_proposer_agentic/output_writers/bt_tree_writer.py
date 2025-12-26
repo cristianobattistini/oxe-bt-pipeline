@@ -44,7 +44,13 @@ class BtFolderWriter:
             for idx, step in enumerate(steps):
                 agent = step.get("agent", f"step_{idx}")
                 agent = agent.replace("/", "_").replace(" ", "_")
-                step_path = steps_dir / f"{idx:02d}_{agent}.xml"
-                step_path.write_text(step.get("bt_xml", ""), encoding="utf-8")
+                ext = step.get("ext") or ("xml" if step.get("bt_xml") is not None else "txt")
+                if ext.startswith("."):
+                    ext = ext[1:]
+                step_path = steps_dir / f"{idx:02d}_{agent}.{ext}"
+                content = step.get("bt_xml")
+                if content is None:
+                    content = step.get("content", "")
+                step_path.write_text(content, encoding="utf-8")
 
         return ep_dir

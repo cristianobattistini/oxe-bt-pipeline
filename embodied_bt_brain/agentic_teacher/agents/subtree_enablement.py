@@ -46,7 +46,7 @@ class SubtreeEnablementAgent:
             raise ValueError("SubtreeEnablementAgent requires an LLM client.")
 
         prompt = render_prompt("subtree_enablement", bt_xml=bt_xml)
-        response = self.llm_client.complete(prompt, model=self.model)
+        response = self.llm_client.complete_with_fallback(prompt, model=self.model)
         updated_xml = extract_xml(response)
         if not updated_xml:
             raise ValueError("SubtreeEnablementAgent returned no XML.")

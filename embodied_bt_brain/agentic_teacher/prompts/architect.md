@@ -55,3 +55,6 @@ XML:
 
 # Current Task
 Instruction: {instruction}
+
+# Scene Analysis (from a separate agent)
+{scene_analysis}

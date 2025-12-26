@@ -3,8 +3,8 @@
 **Purpose:** Generate a proposer training dataset where every BT is:
 1. **Executable** - Uses only BEHAVIOR-1K primitives (PAL v1)
 2. **Robust** - Includes guards, recovery, explicit termination strategies
-3. **Patchable** - Structured to be easily modified by validator
-4. **Audited** - Comes with logs of checks passed/failed
+3. **Scene-Aware** - Adapted to the specific visual context of the episode
+4. **Patchable** - Structured to be easily modified by validator
 
 **Key Insight:** A simple teacher LLM produces linear, brittle BTs. An **agentic teacher loop** with multiple specialized agents produces structured, robust, patchable BTs suitable for training both proposer AND validator.
 
@@ -14,204 +14,56 @@
 
 ---
 
-## Assumptions and Non-Goals
-
-**Key Distinctions:**
-1. **OmniGibson Primitive Signatures vs BT Wrapper Nodes (PAL):**
-   - OmniGibson primitives are Python methods with specific signatures (e.g., `_grasp(self, obj)`)
-   - PAL v1 defines BT-level wrapper nodes that map to these primitives
-   - PAL validation must check against the actual node library, not assume primitives = XML ports
-2. **Input Source (Proposer dataset):**
-   - Input is **OXE episodes** with **instruction + contact sheet** (from `out_temp/.../final_selected/`)
-   - We do **not** assume BEHAVIOR-1K demos in this phase
-3. **PAL v1 Vocabulary (Symbolic 14):**
-   - Allowed Action IDs are **exactly**:
-     `GRASP, PLACE_ON_TOP, PLACE_INSIDE, OPEN, CLOSE, NAVIGATE_TO, RELEASE,
-      TOGGLE_ON, TOGGLE_OFF, SOAK_UNDER, SOAK_INSIDE, WIPE, CUT, PLACE_NEAR_HEATING_ELEMENT`
-   - No other leaf actions are allowed in proposer outputs
-
-4. **Timeout/Retry Handling:**
-   - OmniGibson primitives do NOT accept timeout parameters (no `timeout_ms`)
-   - Timeouts must be enforced at BT control-flow level via `Timeout` decorator (if supported by node library)
-   - If `Timeout` decorator unavailable, represent time budgets in metadata/audit logs and enforce externally at runtime
-
-5. **Retry Semantics:**
-   - Retry logic exists ONLY at BT level via `RetryUntilSuccessful` decorator
-   - This decorator repeats the child action node on failure
-   - Primitives do NOT accept `num_attempts` or `retry` parameters
-   - OmniGibson's internal `apply_ref(attempts=...)` is NOT exposed to BT layer
-
-6. **Preconditions and Guards:**
-   - If PAL v1 has no explicit Condition nodes, guards are implemented structurally via Fallback + recovery
-   - Preconditions are implicit in primitive failure semantics (primitive fails if precondition not met)
-   - Blackboard discipline is required only for parameter passing; state tracking may be implicit in primitives
-
-**Verification Required:**
-- SubTree parameter passing mechanism (attribute substitution vs blackboard)
-- Whether executable node library supports `Timeout`, `Condition`, or other utility nodes
-- Exact primitive parameter arity (some primitives take 1 arg, others take multiple)
-
----
-
-## BEHAVIOR-1K Primitive Reference (PAL v1)
-
-**PAL v1 (Symbolic 14) is the ONLY allowed leaf vocabulary for the proposer dataset.**
-All Action IDs must be exactly one of these:
-
-```
-GRASP, PLACE_ON_TOP, PLACE_INSIDE, OPEN, CLOSE, NAVIGATE_TO, RELEASE,
-TOGGLE_ON, TOGGLE_OFF, SOAK_UNDER, SOAK_INSIDE, WIPE, CUT, PLACE_NEAR_HEATING_ELEMENT
-```
-
-**Parameter expectations (proposer-side):**
-- `obj` is required for all primitives **except** `RELEASE` (no params).
-- We do not use `PLACE_WITH_PREDICATE` or `NAVIGATE_TO_POSE` in PAL v1 to keep
-  the small VLM output space compact and stable.
-
-**Usage in BT XML (proposer vocabulary):**
-```xml
-<Action ID="NAVIGATE_TO" obj="table"/>
-<Action ID="GRASP" obj="cup"/>
-<Action ID="PLACE_ON_TOP" obj="table"/>
-<Action ID="RELEASE"/>
-<Action ID="TOGGLE_ON" obj="faucet"/>
-<Action ID="WIPE" obj="counter"/>
-```
-
-**Note on mapping:** These Action IDs map 1:1 to BEHAVIOR-1K primitives in the
-runtime adapter. We keep the vocabulary small so the proposer emits only
-executable actions.
-
----
-
-## BehaviorTree.CPP v3 Compatibility
-
-**Critical Requirement:** All generated BTs must be executable in BehaviorTree.CPP v3.
-
-**Allowed nodes for proposer dataset (current scope):**
-
-**Control Nodes:**
-- `<Sequence>`
-- `<Fallback>`
-- `<Parallel>` (optional, rare)
-
-**Decorator Nodes:**
-- `<RetryUntilSuccessful num_attempts="N">`
-- `<Timeout msec="N">`
-
-**Structural Nodes:**
-- `<SubTree ID="..." />`
-- `<Action ID="..." />` (PAL v1 only)
-
-**Explicitly NOT allowed (for now):**
-- `<Condition>` nodes (PAL v1 has no condition vocabulary yet)
-- `<SetBlackboard>` nodes (avoid custom C++ bindings in proposer dataset)
-
-**Verified Compatible Nodes (runtime / future):**
-
-**Control Nodes:**
-- `<Sequence>` - Execute children until first failure
-- `<Fallback>` - Execute children until first success
-- `<Parallel>` - Execute children concurrently with threshold
-- `<ReactiveSequence>` - Re-evaluate sequence on every tick
-- `<ReactiveFallback>` - Re-evaluate fallback on every tick
-
-**Decorator Nodes:**
-- `<RetryUntilSuccessful num_attempts="N">` - Retry child up to N times
-- `<Timeout msec="N">` - Abort child after N milliseconds
-- `<Inverter>` - Invert child's result
-- `<ForceSuccess>` - Always return success
-- `<ForceFailure>` - Always return failure
-- `<KeepRunningUntilFailure>` - Tick child until failure
-- `<Repeat num_cycles="N">` - Repeat child N times
-
-**Structural Nodes:**
-- `<SubTree ID="..." />` - Call another tree
-- `<Action ID="..." />` - Leaf action node
-- `<Condition ID="..." />` - (future, not used in proposer dataset)
-
-**Blackboard Operations (future):**
-- Not used in proposer dataset to keep the runtime simple
-- If needed later: `{key}` syntax + `SetBlackboard` require explicit C++ registration
-
-**Requires Verification:**
-- SubTree parameter passing mechanism (attribute vs blackboard)
-- SetBlackboard node availability (may need custom implementation)
-- Exact blackboard key syntax for parameter substitution
-
-**Constraints:**
-- All Action IDs must be registered in C++ (our PAL primitives)
-- Node names must follow BT.CPP naming conventions
-- XML format must match BT.CPP schema
-
-**Execution Architecture (Future Integration):**
-
-```
-BT.CPP Executor (C++)
-  ├─ Loads XML behavior tree
-  ├─ Ticks tree nodes (Sequence, Fallback, Retry, Timeout, etc.)
-  │  └─ All control flow executed by BT.CPP during simulation
-  │
-  └─ Leaf Action nodes (GRASP, NAVIGATE_TO, etc.)
-      └─ Registered C++ functions that bridge to BEHAVIOR-1K
-          └─ Call BEHAVIOR-1K Python API
-              └─ Execute primitives in OmniGibson simulation
-```
-
-**Key Implications:**
-- **Control flow robustness works in simulation:** RetryUntilSuccessful, Fallback, Timeout are executed by BT.CPP ticker
-- **Primitives are stateless API calls:** Each primitive just translates to a BEHAVIOR-1K API call
-- **BT.CPP must be running during simulation:** The tree is actively ticked, not just a static recipe
-- **Generated BTs are fully executable:** All decorators/control nodes will function during sim execution
-
-**Implementation Bridge (Future Work):**
-```cpp
-// Example: Register GRASP primitive in BT.CPP
-NodeStatus GraspAction::tick() {
-    std::string obj;
-    getInput("obj", obj);
-
-    // Bridge to BEHAVIOR-1K Python API
-    bool success = behavior1k_api.grasp(obj);
-
-    return success ? NodeStatus::SUCCESS : NodeStatus::FAILURE;
-}
-```
-
----
-
 ## 1. Agentic Teacher Loop Architecture
 
 ### 1.1 Overview
 
 ```
-Input: (instruction, contact_sheet or 9 selected frames, PAL_v1, BT_conventions)
+Input: (instruction, contact_sheet + 9 frames, PAL_v1, BT_conventions)
   ↓
 ┌─────────────────── AGENTIC TEACHER LOOP ───────────────────┐
 │                                                              │
-│  A. Architect Agent                                          │
-│     → Draft structured BT skeleton (phases + recovery)      │
+│  PHASE 1: FEASIBILITY & UNDERSTANDING (COGNITION)            │
+│  ────────────────────────────────────────────────            │
+│  A. Feasibility Agent                                        │
+│     → Check if task possible with PAL primitives            │
+│     → SKIP episode if impossible (save cost)                │
 │                                                              │
-│  B. Conformance Agent                                        │
-│     → Enforce PAL whitelist, ports, types, parameters       │
+│  B. Scene Analysis Agent                                     │
+│     → Deep understanding of 9 frames                        │
+│     → Identify favorable/unfavorable conditions             │
+│     → Predict possible failures and limitations             │
+│     → Leverage LLM creativity before BT constraints         │
 │                                                              │
-│  C. Blackboard/Schema Agent                                  │
-│     → Check key flow, naming, preconditions                 │
+│  PHASE 2: CREATIVE GENERATION (CONSTRUCTION)                 │
+│  ───────────────────────────────────────────                 │
+│  C. Architect Agent                                          │
+│     → Draft BT structure informed by scene analysis         │
+│     → Focus on task logic, not validation                   │
 │                                                              │
+│  C.5 Critic Agent (Socratic Dialogue) **[NEW]**             │
+│     → Challenge Architect's design (max 2 iterations)       │
+│     → Verify logical coherence + visual grounding           │
+│     → Blocking: REJECT if critical flaws persist            │
+│                                                              │
+│  PHASE 3: REFINEMENT (ENGINEERING)                           │
+│  ─────────────────────────────────                           │
 │  D. Robustness Agent                                         │
 │     → Inject guards, recovery, retry wrappers               │
 │                                                              │
 │  E. Subtree Enablement Agent                                 │
-│     → Factor into replaceable subtrees (Perception,         │
-│       Navigate, Manipulate, Verify, Recover)                │
+│     → Modularize into replaceable subtrees                  │
 │                                                              │
-│  F. ID/Patchability Agent                                    │
-│     → Assign stable node IDs, subtree IDs for O(1) patches  │
+│  PHASE 4: FINAL VALIDATION (THE "POLICE")                    │
+│  ────────────────────────────────────────                    │
+│  F. Conformance & Schema Agent                               │
+│     → Final gate: Ensure PAL compliance & valid schema      │
+│     → Trigger repair if invalid                             │
 │                                                              │
 │  G. Scorer/Judge Agent                                       │
-│     → Reject brittle/unpatchable trees, request repair      │
+│     → Quality assessment & final verdict                    │
 │                                                              │
-│  If rejected: repair iteration (back to step needing fix)   │
+│  If rejected: DISCARD (or retry from Architect)             │
 │  If accepted: proceed to output                             │
 │                                                              │
 └──────────────────────────────────────────────────────────────┘
@@ -219,1078 +71,204 @@ Input: (instruction, contact_sheet or 9 selected frames, PAL_v1, BT_conventions)
 Output: (bt.xml, audit_log.json, subtree_map.json)
 ```
 
-### 1.2 Why This Approach?
+### 1.2 Design Philosophy Changes
 
-**Simple Teacher (bad):**
-- LLM generates XML in one shot
-- No checks, no repair
-- Result: linear, brittle BTs
-- Validator has no clear patch points
-
-**Agentic Teacher (good):**
-- Multi-agent system with specialized roles
-- Iterative refinement with explicit checks
-- Result: structured, robust, patchable BTs
-- Audit logs reveal failure modes → validator training data
+1.  **Gatekeeping First:** We moved `FeasibilityAgent` to the front to "fast fail" impossible tasks, saving tokens and ensuring data purity.
+2.  **Cognition Before Code:** The `SceneAnalysisAgent` runs *before* the Architect. This ensures the BT is grounded in visual reality (obstacles, occlusions) rather than just being a template.
+3.  **Safety Sandwich:** Validation (`Conformance`, `Schema`) moved to the *end* of the pipeline. This ensures that any changes made during Refinement (e.g., Subtree refactoring) are also validated.
+4.  **Deterministic IDs:** We removed the `IdPatchabilityAgent` (LLM-based). ID assignment should be a deterministic post-processing step to guarantee uniqueness and correctness without hallucination risk.
 
 ---
 
 ## 2. Agent Specifications
 
-### Agent A: Architect Agent
+### Agent A: Feasibility Agent (The Gatekeeper)
 
-**Role:** Draft high-level BT structure
+**Role:** Decide if the task is solvable with PAL v1 primitives.
 
 **Input:**
 - Task instruction
-- Contact sheet (3x3) or 9 selected frames
 - PAL v1 primitive list
-- BT conventions
 
-**Output:** Skeleton BT with phases
+**Output:** `feasible: true/false`, `reason`
+
+**Logic:**
+- If instruction requires "Cook", "Screw", "Fold" -> REJECT.
+- If instruction maps to "Pick", "Place", "Open", "Nav" -> ACCEPT.
+- Prevents generating garbage data for impossible tasks.
+
+### Agent B: Scene Analysis Agent (The Vision)
+
+**Role:** Provide a strategic situation report to the Architect.
+
+**Input:**
+- Instruction
+- 9 Frames (Contact Sheet)
+
+**Output:** Structured Text Report
+1.  **Scene Description:** Entities, relations.
+2.  **Dynamic Progression:** What happens in the video?
+3.  **Strategic Assessment:** Favorable (e.g., "Drawer open") vs Unfavorable (e.g., "Clutter") conditions.
+4.  **Planner Hints:** Specific advice for the BT (e.g., "Use high clearance grasp").
+
+### Agent C: Architect Agent (The Builder)
+
+**Role:** Draft the Behavior Tree logic.
+
+**Input:**
+- Instruction
+- **Scene Analysis Report** (from Agent B)
 
 **Strategy:**
-1. Decompose task into phases (e.g., "search → navigate → grasp → transport → place")
-2. Create top-level Sequence with phase subtrees
-3. Identify critical failure points → add Fallback wrappers
-4. Add recovery regions for each phase
-
-**Example Output:**
-```xml
-<BehaviorTree ID="MainTree">
-  <Sequence name="root">
-    <!-- Phase 1: Locate target -->
-    <Fallback name="phase_locate">
-      <SubTree ID="T_Perception" target="{target}"/>
-      <SubTree ID="T_Recovery_Perception" target="{target}"/>
-    </Fallback>
-
-    <!-- Phase 2: Navigate -->
-    <SubTree ID="T_Navigate" target="{target}"/>
-
-    <!-- Phase 3: Manipulate -->
-    <Fallback name="phase_grasp">
-      <SubTree ID="T_Manipulate_Grasp" target="{target}"/>
-      <SubTree ID="T_Recovery_Grasp" target="{target}"/>
-    </Fallback>
-
-    <!-- Phase 4: Transport -->
-    <SubTree ID="T_Navigate" target="{destination}"/>
-
-    <!-- Phase 5: Place -->
-    <SubTree ID="T_Manipulate_Place_OnTop" target="{destination}"/>
-  </Sequence>
-</BehaviorTree>
-
-<!-- Subtree definitions -->
-<BehaviorTree ID="T_Perception">
-  <Action ID="NAVIGATE_TO" name="nav_percep_01" obj="{target}"/>
-</BehaviorTree>
-
-<BehaviorTree ID="T_Manipulate_Grasp">
-  <Action ID="GRASP" name="grasp_01" obj="{target}"/>
-</BehaviorTree>
-
-<!-- ... more subtrees ... -->
-```
-
-**Checks (thinking):**
-- Does decomposition match task semantics?
-- Are phases in logical order?
-- Is recovery included for failure-prone steps?
+- Use the Scene Analysis to make decisions (e.g., skip `OPEN` if analysis says "Door is open").
+- Focus on logical flow (Sequence of phases).
+- Do not worry about perfect syntax or guards yet.
 
 ---
 
-### Agent B: Conformance Agent
+### Agent C.5: Critic Agent (The Socratic Challenger) **[NEW]**
 
-**Role:** Enforce PAL v1 compliance
+**Role:** Challenge Architect's design through Socratic dialogue.
 
-**Input:** Skeleton BT from Architect
+**Mode:** Socratic (Question-based critique with iterative revision)
 
-**Output:** BT with validated primitives and parameters
+**Input:**
+- BT from Architect
+- Instruction
+- Scene Analysis Report
+- Reference to Architect (for revisions)
+
+**Output:** Improved BT after 0-2 iterations of dialogue
+
+**Evaluation Dimensions:**
+
+1. **Logical Coherence (0-10):**
+   - Does BT accomplish the instruction?
+   - Are actions in correct order?
+   - Any logical impossibilities? (PLACE before GRASP)
+   - Missing critical steps?
+   - Control flow semantics correct?
+
+2. **Visual Grounding (0-10):**
+   - Did Architect use scene analysis?
+   - Scene mentioned obstacles → navigation adjusted?
+   - Scene predicted failures → mitigation added?
+   - BT matches visual reality?
+
+**Process:**
+1. **Iteration 1:** Critic reviews initial BT
+   - Asks pointed questions: "Why PLACE_ON_TOP when scene shows drawer?"
+   - Identifies critical issues: "No NAVIGATE_TO before GRASP"
+   - Provides suggestions: "Consider adding Fallback here"
+
+2. **Architect responds:**
+   - Justifies choices OR revises BT
+   - Addresses critical issues
+   - Incorporates relevant suggestions
+
+3. **Iteration 2 (if needed):** Critic re-reviews
+   - Checks if issues addressed
+   - Final accept/concerns/reject verdict
+
+4. **Max 2 iterations** - prevents infinite loops
+
+**Verdicts:**
+- **ACCEPT:** Logical and grounded → proceed to Robustness
+- **CONCERNS:** Fixable issues → revision requested
+- **REJECT:** Critical flaws → SKIP episode (blocking)
+
+**Blocking Behavior:**
+- In strict mode (default), REJECT verdict after 2 iterations → skip episode
+- This ensures only quality BTs enter the dataset
+- Prevents "garbage in, garbage out" problem
+
+**Why This Agent?**
+- **Enforces scene grounding:** Prevents templated BTs that ignore visual context
+- **Catches logic errors early:** Before expensive Robustness/Subtree work
+- **Dialectical improvement:** Thesis (draft) → Antithesis (critique) → Synthesis (improved BT)
+- **Training data quality:** Logs entire reasoning dialogue for analysis
+
+**Example Dialogue:**
+
+```
+Critic: "Scene analysis says 'cup near table edge' with predicted failure
+'grasp might fail'. Your BT has bare <Action ID='GRASP'/> with no mitigation.
+Why?"
+
+Architect (Revision): "Added Fallback with recovery: if GRASP fails,
+NAVIGATE_TO cup from different angle, retry GRASP."
+
+Critic: "Good. But scene also says 'tray has raised edges'. Your PLACE_ON_TOP
+doesn't account for precise placement. How will you handle this?"
+
+Architect (Revision): "Changed to Sequence: NAVIGATE_TO tray_center,
+PLACE_ON_TOP tray, RELEASE with delay."
+
+Critic: "ACCEPT - logical flow is sound and grounded in scene analysis."
+```
+
+---
+
+### Agent D: Robustness Agent (The Engineer)
+
+**Role:** Harden the tree against runtime failure.
+
+**Input:** Skeleton BT
+
+**Action:**
+- Wrap critical actions in `RetryUntilSuccessful`.
+- Add `Fallback` nodes with recovery sequences (e.g., "If grasp fails, re-navigate").
+
+### Agent E: Subtree Enablement Agent (The Modularizer)
+
+**Role:** Refactor into standard SubTrees.
+
+**Input:** Robust BT
+
+**Action:**
+- Identify patterns (`NAVIGATE_TO`, `GRASP`).
+- Replace with standard SubTree definitions (`T_Navigate`, `T_Manipulate_Grasp`).
+- Ensure modularity for the Validator.
+
+### Agent F: Conformance & Schema Agent (The Police)
+
+**Role:** Final validation of the artifact.
 
 **Checks:**
-1. **Library compliance:** Every `<Action>` uses a PAL v1 primitive
-   - Valid: `<Action ID="GRASP" obj="cup"/>`
-   - Invalid: `<Action ID="DetectObject" target="cup"/>` (not in PAL v1)
+- **XML Syntax:** Is it valid XML?
+- **PAL Compliance:** Are all primitives in the allowed list? (No "PickUp", "MoveTo").
+- **Parameter Flow:** Do `{target}` substitutions match?
 
-2. **Parameter compliance:** All parameters match PAL specification
-   - Check required params present
-   - Check param types (object_name, int, float, etc.)
-   - Check param values in allowed ranges/vocabulary
+**Action:**
+- If issues found -> Trigger `LLMRepairer`.
+- If issues persist -> REJECT episode.
 
-3. **No invented actions:** Reject any action not in PAL v1
+### Agent G: Scorer (The Judge)
 
-**Repair Strategy:**
-- If invalid primitive found → suggest closest PAL v1 equivalent
-- If missing parameter → add default or request from user
-- If impossible to map → flag for manual review
+**Role:** Final quality assessment.
 
-**Example:**
-```
-Input:  <Action ID="DetectObject" target="cup"/>
-Check:  "DetectObject" not in PAL v1
-Repair: Map to <Action ID="NAVIGATE_TO" obj="cup"/> (implies perception)
-        OR flag: "This action has no direct equivalent in PAL v1"
-```
-
-**Audit Log Entry:**
-```json
-{
-  "agent": "Conformance",
-  "check": "library_compliance",
-  "node": "detect_01",
-  "issue": "Invalid primitive 'DetectObject'",
-  "repair": "Mapped to NAVIGATE_TO",
-  "status": "fixed"
-}
-```
+**Criteria:**
+- Structure (Depth, Branching)
+- Robustness (Retries present)
+- Compliance (PAL v1 only)
+- Visual Grounding (Does it match the instruction?)
 
 ---
 
-### Agent C: Blackboard/Schema Agent
+## 3. Primitives (PAL v1)
 
-**Role:** Validate blackboard key usage and parameter flow (if required)
+**Allowed Actions:**
+`GRASP`, `PLACE_ON_TOP`, `PLACE_INSIDE`, `OPEN`, `CLOSE`, `NAVIGATE_TO`, `RELEASE`, `TOGGLE_ON`, `TOGGLE_OFF`, `SOAK_UNDER`, `SOAK_INSIDE`, `WIPE`, `CUT`, `PLACE_NEAR_HEATING_ELEMENT`.
 
-**Input:** Conformance-validated BT
-
-**Output:** BT with consistent parameter passing
-
-**Checks (only if blackboard is required for parameter passing):**
-1. **Key naming consistency:**
-   - Use standard keys: `target_obj`, `destination`
-   - No ad-hoc or "mystery" keys
-
-2. **Write-before-read:**
-- If SubTree reads `{target_obj}`, ensure the SubTree call provides `target_obj`
-- Flag missing attributes / missing keys
-
-3. **Key types:**
-   - Ensure keys have consistent types (string for object names)
-
-**Repair Strategy:**
-- Add missing SubTree attributes for parameter passing
-- Standardize key names
-- Prefer attribute-based SubTree parameters (no explicit SetBlackboard)
-
-**Example (attribute-based parameter passing):**
-```xml
-<BehaviorTree ID="MainTree">
-  <SubTree ID="T_Navigate" target_obj="cup"/>
-</BehaviorTree>
-
-<BehaviorTree ID="T_Navigate">
-  <Action ID="NAVIGATE_TO" name="nav_01" obj="{target_obj}"/>
-</BehaviorTree>
-```
-
-**Note on Preconditions:**
-- PAL v1 has no explicit Condition nodes (unless node library provides them)
-- Guards are implemented structurally via Fallback + recovery subtrees
-- Preconditions are implicit: primitives fail if preconditions not met (e.g., PLACE_* fails if no object held)
-- Agent C does NOT insert explicit condition checks
+**Implicit Rules:**
+- `obj` parameter required for all except `RELEASE`.
+- No `timeout_ms` parameter.
 
 ---
 
-### Agent D: Robustness Agent
-
-**Role:** Inject guards, recovery, retry wrappers
-
-**Input:** Schema-validated BT
-
-**Output:** Robust BT with error handling
-
-**Checks:**
-1. **Structural guards via Fallback:**
-   - Before critical actions, wrap in Fallback with recovery branch
-   - Example: Fallback(primary_action, recovery_sequence)
-
-2. **Retry wrappers:**
-   - Wrap failure-prone actions in `RetryUntilSuccessful` decorator
-   - Set reasonable `num_attempts` (2-3) - this repeats the child node on failure
-   - **Note:** This is BT-level retry, NOT primitive-level; primitive is called multiple times
-
-3. **Recovery branches:**
-   - For critical failures, add recovery sequence
-   - Example: If GRASP fails → re-navigate → retry grasp
-
-4. **Explicit termination:**
-   - Ensure all retry loops have finite max attempts
-   - Document termination strategy in metadata
-
-**Repair Strategy:**
-```xml
-<!-- Before: brittle -->
-<Action ID="GRASP" obj="cup"/>
-
-<!-- After: robust (with BT-level retry and recovery) -->
-<RetryUntilSuccessful num_attempts="3">
-  <Fallback>
-    <Action ID="GRASP" obj="cup"/>
-    <Sequence name="recovery_grasp">
-      <Action ID="NAVIGATE_TO" obj="cup"/>  <!-- Re-approach -->
-      <Action ID="GRASP" obj="cup"/>
-    </Sequence>
-  </Fallback>
-</RetryUntilSuccessful>
-```
-
-**Audit Log:**
-```json
-{
-  "agent": "Robustness",
-  "check": "retry_wrapper",
-  "node": "grasp_01",
-  "issue": "No retry wrapper for critical action",
-  "repair": "Added RetryUntilSuccessful(3) with Fallback recovery",
-  "status": "fixed"
-}
-```
-
-**Important Notes:**
-- Actions do NOT accept timeout parameters (`timeout_ms` is invalid)
-- If runtime timeout enforcement needed, represent time budget in metadata and enforce externally
-- Retry logic is BT-level only; primitives are simply called again on failure
-
----
-
-### Agent E: Subtree Enablement Agent
-
-**Role:** Factor BT into replaceable subtrees
-
-**Input:** Robust BT (may be monolithic)
-
-**Output:** BT with modular subtrees
-
-**Strategy:**
-1. Identify logical **subtask boundaries**:
-   - T_Perception(target) - Find and observe object
-   - T_Navigate(target) - Move to object/location
-   - T_Manipulate(action, target) - Perform manipulation
-   - T_Verify(goal_state) - Check postcondition
-   - T_Recovery(failure_class) - Handle specific failure
-
-2. Extract each subtask into a `<BehaviorTree ID="T_...">` block
-
-3. Replace inline code with `<SubTree ID="..." />`
-
-4. Ensure subtrees are **small** (5-15 nodes) and **single-responsibility**
-
-**Before (monolithic):**
-```xml
-<BehaviorTree ID="MainTree">
-  <Sequence>
-    <Action ID="NAVIGATE_TO" obj="cup"/>
-    <Action ID="GRASP" obj="cup"/>
-    <Action ID="NAVIGATE_TO" obj="table"/>
-    <Action ID="PLACE_ON_TOP" obj="table"/>
-    <Action ID="RELEASE"/>
-  </Sequence>
-</BehaviorTree>
-```
-
-**After (modular):**
-```xml
-<BehaviorTree ID="MainTree">
-  <Sequence name="root">
-    <SubTree ID="T_Navigate" target="cup"/>
-    <SubTree ID="T_Manipulate_Grasp" target="cup"/>
-    <SubTree ID="T_Navigate" target="table"/>
-    <SubTree ID="T_Manipulate_Place_OnTop" target="table"/>
-  </Sequence>
-</BehaviorTree>
-
-<BehaviorTree ID="T_Navigate">
-  <Action ID="NAVIGATE_TO" name="nav_01" obj="{target}"/>
-</BehaviorTree>
-
-<BehaviorTree ID="T_Manipulate_Grasp">
-  <Action ID="GRASP" name="grasp_01" obj="{target}"/>
-</BehaviorTree>
-
-<BehaviorTree ID="T_Manipulate_Place_OnTop">
-  <Sequence>
-    <Action ID="PLACE_ON_TOP" name="place_01" obj="{target}"/>
-    <Action ID="RELEASE" name="release_01"/>
-  </Sequence>
-</BehaviorTree>
-```
-
-**Subtree Map Output:**
-```json
-{
-  "subtrees": [
-    {
-      "id": "T_Navigate",
-      "role": "navigation",
-      "params": ["target"],
-      "node_count": 1,
-      "patchable": true
-    },
-    {
-      "id": "T_Manipulate_Grasp",
-      "role": "manipulation",
-      "params": ["target"],
-      "node_count": 1,
-      "patchable": true
-    },
-    {
-      "id": "T_Manipulate_Place_OnTop",
-      "role": "manipulation",
-      "params": ["target"],
-      "node_count": 2,
-      "patchable": true
-    }
-  ]
-}
-```
-
-**Why Subtrees?**
-- Validator can replace entire subtree (e.g., swap T_Recovery_Grasp)
-- Clear patch boundaries
-- Reusable components
-
----
-
-### Agent F: ID/Patchability Agent
-
-**Role:** Assign stable IDs for O(1) patching
-
-**Input:** Subtree-modularized BT
-
-**Output:** BT with stable node instance IDs
-
-**Strategy:**
-1. Every node gets unique `name="nXXX"` ID
-2. ID format: `<role>_<index>` (e.g., `nav_01`, `grasp_02`)
-3. IDs are stable across regeneration (deterministic based on position)
-4. Subtrees get IDs: `T_<Role>_<Variant>` (e.g., `T_Navigate_ToObject`, `T_Recovery_Grasp`)
-
-**ID Assignment Rules:**
-- **Actions**: `<primitive>_<seq>` → `grasp_01`, `place_01`
-- **Composites**: `<type>_<seq>` → `seq_00`, `fallback_01`
-- **Subtrees**: `T_<Role>_<Context>` → `T_Navigate`, `T_Manipulate_Grasp`
-
-**Deterministic ID algorithm (required):**
-- Traverse each tree in **pre-order** and assign IDs with per-type counters.
-- Preserve IDs for **unchanged subtrees** across repair iterations.
-- If a subtree is replaced, keep the **SubTree node ID** stable and reassign IDs **inside** that subtree only.
-
-**Example:**
-```xml
-<BehaviorTree ID="MainTree">
-  <Sequence name="seq_00">
-    <SubTree ID="T_Navigate" name="subtree_01" target="cup"/>
-    <SubTree ID="T_Manipulate_Grasp" name="subtree_02" target="cup"/>
-  </Sequence>
-</BehaviorTree>
-
-<BehaviorTree ID="T_Navigate">
-  <Action ID="NAVIGATE_TO" name="nav_01" obj="{target}"/>
-</BehaviorTree>
-
-<BehaviorTree ID="T_Manipulate_Grasp">
-  <RetryUntilSuccessful name="retry_01" num_attempts="3">
-    <Action ID="GRASP" name="grasp_01" obj="{target}"/>
-  </RetryUntilSuccessful>
-</BehaviorTree>
-```
-
-**Patchability Map:**
-```json
-{
-  "main_tree_nodes": {
-    "seq_00": {"type": "Sequence", "path": "/MainTree/seq_00", "children": ["subtree_01", "subtree_02"]},
-    "subtree_01": {"type": "SubTree", "path": "/MainTree/seq_00/subtree_01", "subtree_id": "T_Navigate"},
-    "subtree_02": {"type": "SubTree", "path": "/MainTree/seq_00/subtree_02", "subtree_id": "T_Manipulate_Grasp"}
-  },
-  "subtree_nodes": {
-    "T_Navigate": {
-      "nav_01": {"type": "Action", "primitive": "NAVIGATE_TO", "path": "/T_Navigate/nav_01"}
-    },
-    "T_Manipulate_Grasp": {
-      "retry_01": {"type": "RetryUntilSuccessful", "path": "/T_Manipulate_Grasp/retry_01", "children": ["grasp_01"]},
-      "grasp_01": {"type": "Action", "primitive": "GRASP", "path": "/T_Manipulate_Grasp/retry_01/grasp_01"}
-    }
-  }
-}
-```
-
-**Validator Patch Operations:**
-```json
-{
-  "patch_type": "replace_subtree",
-  "target": "subtree_02",
-  "replacement": "<BehaviorTree ID='T_Manipulate_Grasp_v2'>...</BehaviorTree>"
-}
-```
-
-OR
-
-```json
-{
-  "patch_type": "modify_attribute",
-  "target_node_id": "grasp_01",
-  "attribute": "obj",
-  "new_value": "cup_handle"
-}
-```
-
----
-
-### Agent G: Scorer/Judge Agent
-
-**Role:** Evaluate BT quality, reject brittle trees
-
-**Input:** Fully processed BT + audit log
-
-**Output:** ACCEPT or REJECT + feedback
-
-**Scoring Criteria:**
-
-**Adaptive rule:** Complexity thresholds should scale with the instruction.
-If the task is simple (single primitive intent), allow a near-linear tree and fewer subtrees.
-Reserve stricter branching requirements for multi-step tasks.
-
-1. **Structural Quality (0-10):**
-   - Depth: 3-6 (not too shallow, not too deep)
-   - Branching factor: >1.5 (not linear)
-   - Subtree count: 3-8 (modular but not excessive)
-
-2. **Robustness (0-10):**
-   - Recovery branches present: +2
-   - Retry wrappers on critical actions: +2
-   - Explicit termination strategy (finite retry, final fallback): +2
-   - Meaningful recovery (not just repeat identical action): +2
-   - Guard conditions (Fallback wrappers for critical steps): +2
-   - **Penalty:** Redundant wrappers that repeat identical actions without changing context: -2
-
-3. **Patchability (0-10):**
-   - All nodes have IDs: +3
-   - Subtrees well-defined: +3
-   - Subtrees < 15 nodes each: +2
-   - Clear patch points identified: +2
-
-4. **Compliance (0-10):**
-   - 100% PAL v1 primitives: +5
-   - All parameters valid (no timeout_ms, no action="ON" unless documented): +3
-   - Parameter passing consistent (blackboard or attribute-based): +2
-
-**Accept Threshold:** Total score ≥ 30/40
-
-**Rejection Reasons:**
-- Linear (no branching) → Request Architect to add Fallbacks
-- Too brittle (no recovery) → Request Robustness to add guards
-- Monolithic (no subtrees) → Request Subtree Enablement to refactor
-- Invalid primitives → Request Conformance to fix
-
-**Audit Log Entry:**
-```json
-{
-  "agent": "Scorer",
-  "scores": {
-    "structural": 8,
-    "robustness": 9,
-    "patchability": 10,
-    "compliance": 10
-  },
-  "total": 37,
-  "threshold": 30,
-  "verdict": "ACCEPT",
-  "comments": "Well-structured BT with good recovery and clear patch points."
-}
-```
-
----
-
-## 3. Explicit Checks ("Thinking About Checks")
-
-Each agent performs explicit checks and logs results. Here's the complete checklist:
-
-### 3.1 Library Compliance
-- [ ] Every `<Action>` ID is in PAL v1 (14 primitives)
-- [ ] No fictional primitives (DetectObject, MoveAbove, etc.)
-- [ ] All primitives spelled correctly
-
-### 3.2 Parameter Sanity
-- [ ] All required parameters present
-- [ ] Parameter types match PAL spec (object_name, int, etc.)
-- [ ] Object names exist in scene vocabulary
-- [ ] Numeric ranges reasonable (retry attempts: 1-5 for RetryUntilSuccessful)
-- [ ] No `null` or `undefined` values
-
-### 3.3 Control Flow Sanity
-- [ ] Sequence semantics correct (fail-on-first-failure)
-- [ ] Fallback semantics correct (succeed-on-first-success)
-- [ ] No infinite retry loops (RetryUntilSuccessful has max attempts)
-- [ ] Parallel has success/failure thresholds if used
-- [ ] Termination conditions present (no endless loops)
-
-### 3.4 Observability Gates
-- [ ] Before acting on object, ensure it's observed (implicit in NAVIGATE_TO)
-- [ ] Before GRASP, object should be visible/reachable
-- [ ] Before PLACE_ON_TOP, object should be held
-
-**Implementation Note:**
-- Guards implemented via Fallback structure + recovery subtrees, NOT explicit Condition nodes
-- BEHAVIOR-1K primitives handle much of this internally via failure semantics
-- Example: `<Fallback><Action ID="GRASP"/><SubTree ID="T_Recovery_Navigate_Then_Grasp"/></Fallback>`
-
-### 3.5 Pre/Postconditions
-- [ ] GRASP requires: object visible, hand free
-- [ ] PLACE_* requires: object held
-- [ ] OPEN/CLOSE requires: object reachable
-- [ ] RELEASE requires: object held
-
-**Implementation:**
-- Preconditions are implicit: primitives fail if preconditions not met
-- Do NOT add explicit Condition nodes (PAL v1 may not support them)
-- Use structural guards (Fallback + recovery) when precondition violation needs special handling
-
-### 3.6 Blackboard Discipline
-- [ ] Consistent key names (target_obj, destination, held_object)
-- [ ] Keys written before read
-- [ ] No mystery keys
-- [ ] Key types consistent
-
-**Current Status:** BEHAVIOR-1K may handle this internally. Verify if explicit blackboard needed.
-
-### 3.7 Patch Locality
-- [ ] Failures of primitive X recoverable by replacing local subtree
-- [ ] Subtrees small enough to patch (5-15 nodes)
-- [ ] Subtree IDs stable and documented
-- [ ] Node instance IDs unique and stable
-
-### 3.8 Style Constraints
-- [ ] Modular structure (subtrees, not monolith)
-- [ ] Named regions for logical phases
-- [ ] Not overly linear (branching factor >1.5)
-- [ ] Not overly deep (depth 3-6)
-
----
-
-## 4. Subtree Conventions
-
-### 4.1 Subtree Types (Standard Library)
-
-**T_Perception(target):**
-```xml
-<BehaviorTree ID="T_Perception">
-  <Action ID="NAVIGATE_TO" name="nav_percep_01" obj="{target}"/>
-</BehaviorTree>
-```
-**Purpose:** Approximate perception by approaching the target (no explicit Detect in PAL v1)
-
-**T_Navigate(target):**
-```xml
-<BehaviorTree ID="T_Navigate">
-  <Action ID="NAVIGATE_TO" name="nav_01" obj="{target}"/>
-</BehaviorTree>
-```
-**Purpose:** Move to target location/object
-
-**T_Manipulate_Grasp(target):**
-```xml
-<BehaviorTree ID="T_Manipulate_Grasp">
-  <RetryUntilSuccessful name="retry_01" num_attempts="3">
-    <Action ID="GRASP" name="grasp_01" obj="{target}"/>
-  </RetryUntilSuccessful>
-</BehaviorTree>
-```
-**Purpose:** Grasp object with retry
-
-**T_Manipulate_Place_OnTop(target):**
-```xml
-<BehaviorTree ID="T_Manipulate_Place_OnTop">
-  <Sequence>
-    <Action ID="PLACE_ON_TOP" name="place_01" obj="{target}"/>
-    <Action ID="RELEASE" name="release_01"/>
-  </Sequence>
-</BehaviorTree>
-```
-**Purpose:** Place held object on top and release
-
-**T_Manipulate_Place_Inside(target):**
-```xml
-<BehaviorTree ID="T_Manipulate_Place_Inside">
-  <Sequence>
-    <Action ID="PLACE_INSIDE" name="place_01" obj="{target}"/>
-    <Action ID="RELEASE" name="release_01"/>
-  </Sequence>
-</BehaviorTree>
-```
-**Purpose:** Place held object inside and release
-
-**T_Manipulate_Open(target):**
-```xml
-<BehaviorTree ID="T_Manipulate_Open">
-  <Action ID="OPEN" name="open_01" obj="{target}"/>
-</BehaviorTree>
-```
-**Purpose:** Open container/door
-
-**T_Manipulate_Toggle(target, state):**
-```xml
-<BehaviorTree ID="T_Manipulate_Toggle">
-  <Action ID="TOGGLE_ON" name="toggle_01" obj="{target}"/>
-</BehaviorTree>
-```
-**Purpose:** Toggle object on/off
-
-**T_Recovery_Grasp(target):**
-```xml
-<BehaviorTree ID="T_Recovery_Grasp">
-  <Sequence>
-    <Action ID="NAVIGATE_TO" name="nav_recovery_01" obj="{target}"/>
-    <Action ID="GRASP" name="grasp_recovery_01" obj="{target}"/>
-  </Sequence>
-</BehaviorTree>
-```
-**Purpose:** Recovery strategy for failed grasp (re-navigate + retry)
-
-**T_Recovery_Navigate(target):**
-```xml
-<BehaviorTree ID="T_Recovery_Navigate">
-  <Fallback>
-    <Action ID="NAVIGATE_TO" name="nav_retry_01" obj="{target}"/>
-    <!-- Could add alternative navigation strategy -->
-  </Fallback>
-</BehaviorTree>
-```
-**Purpose:** Recovery for failed navigation
-
-### 4.2 Subtree Naming Convention
-
-**Format:** `T_<Role>_<Action>_<Context>`
-
-**Examples:**
-- `T_Perception` - General perception
-- `T_Navigate` - General navigation
-- `T_Manipulate_Grasp` - Manipulation: grasping
-- `T_Manipulate_Place_OnTop` - Manipulation: placing on surface
-- `T_Manipulate_Place_Inside` - Manipulation: placing inside container
-- `T_Recovery_Grasp` - Recovery from grasp failure
-- `T_Verify_Placed` - Verify placement succeeded
-
-### 4.3 Parameter Passing to Subtrees
-
-**Recommended Approach (BT.CPP v3 Standard):** Attribute-based SubTree parameters
-
-**Rationale:** This is the canonical BT.CPP v3 pattern for SubTree parameter passing via automatic remapping.
-
-**Example:**
-```xml
-<BehaviorTree ID="MainTree">
-  <SubTree ID="T_Navigate" target="cup"/>
-</BehaviorTree>
-
-<BehaviorTree ID="T_Navigate">
-  <Action ID="NAVIGATE_TO" name="nav_01" obj="{target}"/>
-</BehaviorTree>
-```
-
-**How it works:**
-- `target="cup"` on SubTree call creates blackboard entry `target="cup"`
-- Child tree reads `{target}` which resolves to `"cup"`
-- Automatic scoping per SubTree invocation
-
-**Alternative (Explicit Blackboard):** Manual blackboard management
-
-```xml
-<BehaviorTree ID="MainTree">
-  <Sequence>
-    <SetBlackboard key="target_obj" value="cup"/>
-    <SubTree ID="T_Navigate"/>
-  </Sequence>
-</BehaviorTree>
-
-<BehaviorTree ID="T_Navigate">
-  <Action ID="NAVIGATE_TO" name="nav_01" obj="{target_obj}"/>
-</BehaviorTree>
-```
-
-**Note:** Use explicit blackboard approach only when you need to share state across multiple subtrees or when runtime state modification is required. SetBlackboard may require custom node registration in C++.
-
----
-
-## 5. Implementation Modules
-
-### 5.1 Directory Structure
-
-```
-embodied_bt_brain/
-├── agentic_teacher/                   (NEW: agentic teacher implementation)
-│   ├── __init__.py
-│   ├── teacher_loop.py                (Main orchestrator)
-│   ├── agents/
-│   │   ├── __init__.py
-│   │   ├── architect.py               (Agent A)
-│   │   ├── conformance.py             (Agent B)
-│   │   ├── schema.py                  (Agent C)
-│   │   ├── robustness.py              (Agent D)
-│   │   ├── subtree_enablement.py      (Agent E)
-│   │   ├── id_patchability.py         (Agent F)
-│   │   └── scorer.py                  (Agent G)
-│   ├── bt_checks/                     (Static validators)
-│   │   ├── __init__.py
-│   │   ├── library_compliance.py      (Check against PAL v1)
-│   │   ├── parameter_validation.py    (Type/range checks)
-│   │   ├── control_flow.py            (Sequence/Fallback semantics)
-│   │   ├── blackboard.py              (Key usage checks)
-│   │   └── patchability.py            (Patch locality heuristics)
-│   ├── bt_repair/                     (Repair strategies)
-│   │   ├── __init__.py
-│   │   ├── rule_based.py              (Rule-based fixes)
-│   │   └── llm_repair.py              (LLM-driven repair)
-│   └── config/
-│       ├── agent_config.yaml          (Agent parameters)
-│       └── scoring_thresholds.yaml    (Scorer thresholds)
-│
-├── primitive_library/                 (PAL definition + schema)
-│   ├── __init__.py
-│   ├── pal_v1.json                    (14 primitives spec)
-│   ├── subtree_templates.json         (Standard subtree library)
-│   └── validator.py                   (Validate BT against PAL)
-│
-├── dataset_proposer_agentic/          (Dataset generation orchestrator)
-│   ├── __init__.py
-│   ├── generate_dataset.py            (Main script)
-│   ├── input_sources/
-│   │   └── oxe_episodes.py            (Load OXE episodes from out_temp)
-│   ├── output_writers/
-│   │   ├── dataset_writer.py          (Write JSONL dataset)
-│   │   └── audit_logger.py            (Write audit logs)
-│   └── utils/
-│       ├── contact_sheet.py           (Load contact sheets)
-│       └── instruction_parser.py      (Parse task descriptions)
-```
-
-### 5.2 Key Modules
-
-**`teacher_loop.py`** - Main orchestrator:
-```python
-class AgenticTeacherLoop:
-    def __init__(self, pal_spec, bt_conventions, agents):
-        self.agents = agents  # [Architect, Conformance, ..., Scorer]
-        self.pal_spec = pal_spec
-        self.bt_conventions = bt_conventions
-
-    def generate_bt(self, instruction, contact_sheet_path):
-        # Step 1: Architect drafts skeleton
-        bt_skeleton = self.agents['architect'].draft(instruction, contact_sheet_path)
-
-        # Step 2-6: Refinement pipeline
-        bt = bt_skeleton
-        audit_log = []
-
-        for agent_name in ['conformance', 'schema', 'robustness', 'subtree_enablement', 'id_patchability']:
-            bt, agent_log = self.agents[agent_name].process(bt)
-            audit_log.extend(agent_log)
-
-        # Step 7: Scorer evaluates
-        verdict, score, feedback = self.agents['scorer'].evaluate(bt, audit_log)
-
-        if verdict == "REJECT":
-            # Repair iteration (up to 3 tries)
-            return self.repair_and_retry(bt, feedback, audit_log, max_retries=3)
-
-        # Generate outputs
-        subtree_map = extract_subtree_map(bt)
-
-        return {
-            "bt_xml": bt,
-            "audit_log": audit_log,
-            "subtree_map": subtree_map,
-            "score": score
-        }
-```
-
-**`bt_checks/library_compliance.py`** - PAL v1 validation:
-```python
-class LibraryComplianceChecker:
-    def __init__(self, pal_spec):
-        self.allowed_primitives = set(pal_spec['primitives'].keys())
-
-    def check(self, bt_xml):
-        tree = parse_xml(bt_xml)
-        issues = []
-
-        for action in tree.findall(".//Action"):
-            primitive_id = action.get('ID')
-            if primitive_id not in self.allowed_primitives:
-                issues.append({
-                    "node": action.get('name'),
-                    "issue": f"Invalid primitive '{primitive_id}'",
-                    "severity": "error"
-                })
-
-        return issues
-```
-
-**`agents/conformance.py`** - Conformance agent:
-```python
-class ConformanceAgent:
-    def __init__(self, pal_spec, llm_client):
-        self.checker = LibraryComplianceChecker(pal_spec)
-        self.llm_client = llm_client
-        self.pal_spec = pal_spec
-
-    def process(self, bt_xml):
-        issues = self.checker.check(bt_xml)
-
-        if not issues:
-            return bt_xml, []
-
-        # Attempt repair
-        repair_prompt = self._build_repair_prompt(bt_xml, issues)
-        repaired_bt = self.llm_client.generate(repair_prompt)
-
-        # Re-check
-        new_issues = self.checker.check(repaired_bt)
-
-        audit_log = [{
-            "agent": "Conformance",
-            "issues_found": len(issues),
-            "issues_fixed": len(issues) - len(new_issues),
-            "details": issues
-        }]
-
-        return repaired_bt, audit_log
-```
-
----
-
-## 6. Dataset Generation Workflow
-
-### 6.1 Input Source: OXE Episodes (current scope)
-
-**Step 1:** Read episode from `out_temp/<dataset>/episode_XXX/final_selected/`
-```python
-# episode structure (already produced by processing/main.py)
-episode = {
-    "dataset_id": "ucsd_kitchen_dataset_converted_externally_to_rlds_0.1.0",
-    "episode_id": "episode_012",
-    "instruction": "...",  # from final_selected/episode_data.json
-    "contact_sheet": "out_temp/<ds>/<ep>/final_selected/contact_sheet.jpg"
-}
-```
-
-**Step 2:** Build a minimal skeleton (optional)
-```python
-# optional: seed the loop with a minimal skeleton based on instruction
-bt_skeleton = "<BehaviorTree ID=\"MainTree\"><Sequence name=\"root\"/></BehaviorTree>"
-```
-
-**Step 3:** Feed to agentic teacher
-```python
-teacher = AgenticTeacherLoop(pal_spec, bt_conventions, agents)
-
-result = teacher.generate_bt(
-    instruction=episode["instruction"],
-    contact_sheet_path=episode["contact_sheet"]
-)
-
-# result = {
-#     "bt_xml": "<BehaviorTree>...</BehaviorTree>",
-#     "audit_log": [{...}, {...}],
-#     "subtree_map": {...},
-#     "score": 37
-# }
-```
-
-**Step 4:** Write to dataset
-```python
-dataset_entry = {
-    "instruction": episode["instruction"],
-    "contact_sheet": episode["contact_sheet"],
-    "bt_xml": result["bt_xml"],
-    "metadata": {
-        "source": "oxe",
-        "dataset_id": episode["dataset_id"],
-        "episode_id": episode["episode_id"],
-        "score": result["score"],
-        "audit_log": result["audit_log"],
-        "subtree_map": result["subtree_map"]
-    }
-}
-```
-
-### 6.2 Dataset Output Format
-
-**JSONL format for proposer training:**
-```json
-{
-  "messages": [
-    {
-      "role": "system",
-      "content": "You are a BehaviorTree generator. Generate BehaviorTree.CPP v3 XML using only these primitives: [GRASP, PLACE_ON_TOP, PLACE_INSIDE, OPEN, CLOSE, NAVIGATE_TO, RELEASE, TOGGLE_ON, TOGGLE_OFF, WIPE, CUT, SOAK_UNDER, SOAK_INSIDE, PLACE_NEAR_HEATING_ELEMENT]."
-    },
-    {
-      "role": "user",
-      "content": [
-        {"type": "text", "text": "INSTRUCTION: Turn on the radio in the living room"},
-        {"type": "image", "image": "images/<dataset>/<episode>/contact_sheet.jpg"}
-      ]
-    },
-    {
-      "role": "assistant",
-      "content": [
-        {"type": "text", "text": "<BehaviorTree ID=\"MainTree\">\n  <Sequence name=\"seq_00\">\n    <SubTree ID=\"T_Navigate\" name=\"subtree_01\" target=\"radio\"/>\n    <SubTree ID=\"T_Manipulate_Toggle\" name=\"subtree_02\" target=\"radio\"/>\n  </Sequence>\n</BehaviorTree>\n\n<BehaviorTree ID=\"T_Navigate\">\n  <Action ID=\"NAVIGATE_TO\" name=\"nav_01\" obj=\"{target}\"/>\n</BehaviorTree>\n\n<BehaviorTree ID=\"T_Manipulate_Toggle\">\n  <Action ID=\"TOGGLE_ON\" name=\"toggle_01\" obj=\"{target}\"/>\n</BehaviorTree>"}
-      ]
-    }
-  ],
-  "metadata": {
-    "task_name": "turning_on_radio",
-    "source": "oxe",
-    "score": 37,
-    "subtree_map": {...}
-  }
-}
-```
-
-**Audit log (separate file for analysis):**
-```json
-{
-  "episode_id": "turning_on_radio_001",
-  "timestamp": "2025-12-24T10:30:00",
-  "agents": [
-    {
-      "agent": "Architect",
-      "output": "skeleton_bt.xml",
-      "checks": ["phase_decomposition", "recovery_regions"],
-      "status": "success"
-    },
-    {
-      "agent": "Conformance",
-      "issues_found": 0,
-      "issues_fixed": 0,
-      "status": "success"
-    },
-    {
-      "agent": "Robustness",
-      "checks_performed": ["retry_budget", "termination_strategy", "recovery_subtrees"],
-      "repairs": [
-        {"node": "grasp_01", "repair": "Added RetryUntilSuccessful(3)"}
-      ],
-      "status": "success"
-    },
-    {
-      "agent": "Scorer",
-      "scores": {"structural": 8, "robustness": 9, "patchability": 10, "compliance": 10},
-      "total": 37,
-      "verdict": "ACCEPT"
-    }
-  ]
-}
-```
-
----
-
-## 7. Open Questions & Decisions Needed
-
-### 7.1 Blackboard vs Implicit State
-
-**Question:** Do BEHAVIOR-1K primitives use explicit blackboard, or is state implicit?
-
-**Options:**
-1. **Implicit (likely):** Primitives track state internally (e.g., "is object held?")
-2. **Explicit:** Need to manage blackboard keys
-
-**Action:** Verify in BEHAVIOR-1K documentation or test script
-
-### 7.2 Condition Nodes
-
-**Decision (proposer dataset):** No explicit Condition nodes.
-
-**Rationale:**
-1. BEHAVIOR-1K primitives already encode preconditions and fail if unmet
-2. We keep the proposer vocabulary small and stable
-3. Recovery is expressed via Fallback + Retry structures, not explicit conditions
-
-**Future (runtime validator):** We may introduce condition nodes if needed.
-
-### 7.3 SubTree Parameter Passing
-
-**Question:** How does BehaviorTree.CPP v3 handle SubTree parameters?
-
-**Options:**
-1. **Attribute substitution:** `<SubTree ID="T_Nav" target="cup"/>` → `{target}` replaced in subtree
-2. **Blackboard only:** Must use `SetBlackboard` before `SubTree`
-
-**Action:** Test with BehaviorTree.CPP or check documentation
-
-### 7.4 LLM for Agents
-
-**Question:** Which LLM to use for agents (Architect, Conformance repair, etc.)?
-
-**Options:**
-1. **GPT-4o / Claude Opus:** High quality, expensive
-2. **GPT-4o-mini / Claude Sonnet:** Good balance
-3. **Open models (Qwen2.5-72B, etc.):** Cheaper, self-hosted
-
-**Recommendation:** GPT-4o-mini for development, switch to better model if quality issues
-
-### 7.5 Repair Iteration Limit
-
-**Question:** How many repair iterations before giving up?
-
-**Recommendation:** Max 3 iterations per agent, max 2 full loop cycles
-
-If still failing after 2 cycles → flag for manual review
-
----
-
-## 8. Next Steps
-
-### Week 1: Implement Core Checking & Repair
-- [ ] Create `primitive_library/pal_v1.json` (14 primitives)
-- [ ] Implement `bt_checks/library_compliance.py`
-- [ ] Implement `bt_checks/parameter_validation.py`
-- [ ] Implement `bt_checks/control_flow.py`
-- [ ] Write unit tests for checkers
-
-### Week 2: Implement Agents A-D
-- [ ] Implement `agents/architect.py` (skeleton generation)
-- [ ] Implement `agents/conformance.py` (PAL v1 enforcement)
-- [ ] Implement `agents/schema.py` (blackboard validation - if needed)
-- [ ] Implement `agents/robustness.py` (guards, retry, recovery)
-- [ ] Test agents individually with hand-crafted inputs
-
-### Week 3: Implement Agents E-G + Orchestrator
-- [ ] Implement `agents/subtree_enablement.py` (modularization)
-- [ ] Implement `agents/id_patchability.py` (ID assignment)
-- [ ] Implement `agents/scorer.py` (quality evaluation)
-- [ ] Implement `teacher_loop.py` (orchestrator)
-- [ ] Test full loop with sample tasks
-
-### Week 4: Dataset Generation Pipeline
-- [ ] Use OXE episodes from `out_temp/.../final_selected/`
-- [ ] Ensure contact sheets exist for all episodes
-- [ ] Implement `oxe_episodes.py` loader
-- [ ] Implement `generate_dataset.py` orchestrator
-- [ ] Generate pilot dataset (100 episodes)
-- [ ] Analyze audit logs, refine agents
-
-### Week 5: Scale & Validate
-- [ ] Generate full dataset (1000+ episodes)
-- [ ] Validate generated BTs (parse, execute sample in simulation)
-- [ ] Compute dataset statistics
-- [ ] Prepare for proposer training
-
----
-
-## Conclusion
-
-This agentic teacher design produces **high-quality, executable, patchable BTs** suitable for:
-1. **Proposer training:** Learn to generate robust, structured BTs
-2. **Validator training:** Clear patch points and audit logs reveal failure modes
-3. **Runtime execution:** BTs actually work in BEHAVIOR-1K simulation
-
-Key advantages over simple teacher:
-- **Robustness:** Guards, recovery, retry logic built-in
-- **Modularity:** Subtrees enable targeted patching
-- **Compliance:** Guaranteed PAL v1 alignment
-- **Quality:** Scorer rejects brittle trees
-- **Traceability:** Audit logs document all checks and repairs
-
-This is the foundation for a working MoE system.
+## 4. Implementation Plan
+
+1.  **Prompts:** Ensure `feasibility.md` and `scene_analysis.md` are robust.
+2.  **Pipeline:** Update `teacher_loop.py` to reflect the new order (A -> B -> C -> D -> E -> F -> G).
+3.  **Repair:** Ensure `LLMRepairer` is accessible to Agent F.
+4.  **Deterministic IDs:** Implement a python utility to assign `node_01`, `node_02` IDs at the very end (post-XML generation).

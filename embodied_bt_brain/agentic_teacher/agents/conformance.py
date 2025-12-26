@@ -12,11 +12,13 @@ class ConformanceAgent:
         pal_spec: Dict[str, Any],
         *,
         allow_direct_tags: bool = False,
+        strict: bool = True,
         llm_client: Optional[AzureLLMClient] = None,
         model: Optional[str] = None,
     ) -> None:
         self.pal_spec = pal_spec
         self.allow_direct_tags = allow_direct_tags
+        self.strict = strict
         self.llm_client = llm_client
         self.model = model
         
@@ -54,24 +56,12 @@ class ConformanceAgent:
             raise ValueError("ConformanceAgent requires an LLM client to perform repairs.")
 
         # Attempt repair
-        try:
-            fixed_xml = self.repairer.repair(
-                bt_xml,
-                issues,
-                context="Fix the XML to comply with PAL v1 primitives and parameters.",
-                prompt_template="conformance",  # Use the specific conformance prompt which is better suited
-            )
-        except ValueError as exc:
-            # Fallback: if repair fails, log error and return original (or partial)
-            return bt_xml, [
-                {
-                    "agent": "Conformance",
-                    "status": "error",
-                    "error": str(exc),
-                    "issues_found": len(issues),
-                    "used_llm": True,
-                }
-            ]
+        fixed_xml = self.repairer.repair(
+            bt_xml,
+            issues,
+            context="Fix the XML to comply with PAL v1 primitives and parameters.",
+            prompt_template="conformance",
+        )
 
         # Re-check to verify fix
         new_issues = []
@@ -92,4 +82,6 @@ class ConformanceAgent:
                 "used_llm": True,
             }
         ]
+        if self.strict and new_issues:
+            raise ValueError(f"ConformanceAgent strict mode: remaining issues: {new_issues}")
         return fixed_xml, audit_log

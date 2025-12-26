@@ -59,23 +59,17 @@ class LLMRepairer:
 
         # Render the prompt
         template = prompt_template or self.default_prompt
-        try:
-            prompt = render_prompt(
-                template,
-                bt_xml=bt_xml,
-                issues=issues_text,
-                context=context,
-            )
-        except FileNotFoundError:
-            # Fallback if specific template is missing, though this shouldn't happen
-            # with correct configuration.
-            prompt = (
-                f"Fix the following XML based on these errors:\n\nErrors:\n{issues_text}\n\n"
-                f"XML:\n{bt_xml}\n\nContext:\n{context}\n\nReturn ONLY the XML."
-            )
+        # This will raise FileNotFoundError if the template doesn't exist,
+        # which is the desired behavior to enforce using external prompt files.
+        prompt = render_prompt(
+            template,
+            bt_xml=bt_xml,
+            issues=issues_text,
+            context=context,
+        )
 
         # Call LLM
-        response = self.llm_client.complete(prompt, model=self.model)
+        response = self.llm_client.complete_with_fallback(prompt, model=self.model)
         
         # Extract and validate XML
         fixed_xml = extract_xml(response)

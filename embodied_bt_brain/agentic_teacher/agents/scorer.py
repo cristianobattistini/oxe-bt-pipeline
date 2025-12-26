@@ -5,6 +5,20 @@ from embodied_bt_brain.agentic_teacher.llm_client import AzureLLMClient
 from embodied_bt_brain.agentic_teacher.prompt_loader import render_prompt
 
 
+def _extract_json(text: str) -> Dict[str, Any]:
+    text = (text or "").strip()
+    if not text:
+        raise ValueError("empty response")
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            return json.loads(text[start : end + 1])
+        raise
+
+
 class ScorerAgent:
     def __init__(
         self,
@@ -20,19 +34,20 @@ class ScorerAgent:
             raise ValueError("ScorerAgent requires an LLM client.")
 
         prompt = render_prompt("scorer", bt_xml=bt_xml)
-        response = self.llm_client.complete(prompt, model=self.model)
+        response = self.llm_client.complete_with_fallback(prompt, model=self.model)
         try:
-            data = json.loads(response)
+            data = _extract_json(response)
         except json.JSONDecodeError as exc:
             raise ValueError(f"ScorerAgent returned invalid JSON: {exc}") from exc
 
         verdict = data.get("verdict")
-        score = data.get("score")
+        score = data.get("total", data.get("score"))
         log = {
             "agent": "Scorer",
             "status": "ok",
             "verdict": verdict,
             "score": score,
+            "scores": data.get("scores"),
             "comments": data.get("comments"),
             "used_llm": True,
         }
