@@ -1,0 +1,18 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: NAVIGATE is the only required primitive for reaching the goal -->
+      <!-- Check: Initial frame shows a clear hallway floor, no visible obstacles -->
+      <RetryUntilSuccessful>
+        <!-- Risk: Possible failures include collision_with_wall and loss_of_visibility -->
+        <!-- Risk: Recovery hints suggest reorienting toward center and slowing down near turns -->
+        <Fallback>
+          <!-- Attempt to navigate directly toward the goal (even though not visible) -->
+          <Action ID="NAVIGATE_TO" obj="goal"/>
+          <!-- If navigation fails, reorient toward center of hallway floor as recovery -->
+          <Action ID="NAVIGATE_TO" obj="hallway_floor"/>
+        </Fallback>
+      </RetryUntilSuccessful>
+    </Sequence>
+  </BehaviorTree>
+</root>

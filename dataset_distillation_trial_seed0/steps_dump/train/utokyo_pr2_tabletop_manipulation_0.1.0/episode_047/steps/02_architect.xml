@@ -1,0 +1,20 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to grape before attempting grasp -->
+      <Action ID="NAVIGATE_TO" obj="grape"/>
+      <!-- Risk: Grape is fragile, may detach or roll away; robust grasp needed -->
+      <Fallback>
+        <!-- Primary grasp attempt -->
+        <Action ID="GRASP" obj="grape"/>
+        <!-- Risk: If grape detaches or rolls, retry grasp with adjusted grip force -->
+        <RetryUntilSuccessful>
+          <!-- Risk: Semantic State recovery hints suggest tracking and re-grasping -->
+          <Action ID="GRASP" obj="grape"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Manipulation must terminate with RELEASE for stability -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

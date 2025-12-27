@@ -7,6 +7,98 @@ from embodied_bt_brain.agentic_teacher.llm_client import AzureLLMClient
 
 
 class ConformanceAgent:
+    def _deterministic_fixes(self, bt_xml: str) -> Tuple[str, List[Dict[str, Any]]]:
+        """
+        Apply non-LLM, semantics-preserving fixes for common runtime bugs that are not
+        covered by PAL param/spec checks.
+        """
+        try:
+            root = ET.fromstring(bt_xml)
+        except ET.ParseError:
+            return bt_xml, []
+
+        fixes: List[Dict[str, Any]] = []
+
+        # 1) Ensure root@main_tree_to_execute matches the first BehaviorTree ID.
+        first_bt = None
+        for child in list(root):
+            if child.tag == "BehaviorTree":
+                first_bt = child
+                break
+        if first_bt is not None:
+            first_id = first_bt.get("ID")
+            if first_id:
+                cur = root.get("main_tree_to_execute")
+                if cur != first_id:
+                    root.set("main_tree_to_execute", first_id)
+                    fixes.append(
+                        {
+                            "code": "fixed_main_tree_to_execute",
+                            "message": f"Set root@main_tree_to_execute to '{first_id}' (was '{cur}').",
+                        }
+                    )
+
+        # 2) Remove duplicate RELEASE inside placement subtrees if main already has RELEASE.
+        main_id = root.get("main_tree_to_execute")
+        main_bt = None
+        if main_id:
+            for bt in root.findall("BehaviorTree"):
+                if bt.get("ID") == main_id:
+                    main_bt = bt
+                    break
+        if main_bt is not None:
+            main_has_release = any(
+                (node.tag == "Action" and node.get("ID") == "RELEASE") for node in main_bt.iter()
+            )
+            if main_has_release:
+                removed = 0
+                for subtree_id in ("T_Manipulate_Place_OnTop", "T_Manipulate_Place_Inside"):
+                    for bt in root.findall("BehaviorTree"):
+                        if bt.get("ID") != subtree_id:
+                            continue
+                        # remove RELEASE actions inside this subtree definition
+                        for parent in list(bt.iter()):
+                            for child in list(parent):
+                                if child.tag == "Action" and child.get("ID") == "RELEASE":
+                                    parent.remove(child)
+                                    removed += 1
+                if removed:
+                    fixes.append(
+                        {
+                            "code": "removed_duplicate_release_in_place_subtrees",
+                            "message": f"Removed {removed} RELEASE Action(s) from placement subtree definitions.",
+                        }
+                    )
+
+        # 3) BehaviorTree.CPP requires exactly one root node per <BehaviorTree>.
+        wrapped = 0
+        for bt in root.findall("BehaviorTree"):
+            children = list(bt)
+            if len(children) <= 1:
+                continue
+            seq = ET.Element("Sequence")
+            for child in children:
+                bt.remove(child)
+                seq.append(child)
+            bt.append(seq)
+            wrapped += 1
+        if wrapped:
+            fixes.append(
+                {
+                    "code": "wrapped_multiple_roots",
+                    "message": f"Wrapped {wrapped} BehaviorTree(s) with multiple top-level children in a Sequence.",
+                }
+            )
+
+        if not fixes:
+            return bt_xml, []
+
+        try:
+            ET.indent(root, space="  ")
+        except AttributeError:
+            pass
+        return ET.tostring(root, encoding="unicode"), fixes
+
     def __init__(
         self,
         pal_spec: Dict[str, Any],
@@ -32,6 +124,9 @@ class ConformanceAgent:
             self.repairer = None
 
     def process(self, bt_xml: str) -> Tuple[str, List[Dict[str, Any]]]:
+        fixed_xml, deterministic_fixes = self._deterministic_fixes(bt_xml)
+        bt_xml = fixed_xml
+
         issues = []
         issues.extend(
             check_library(bt_xml, self.pal_spec, allow_direct_tags=self.allow_direct_tags)
@@ -42,6 +137,17 @@ class ConformanceAgent:
 
         if not issues:
             # If no issues, return original XML without LLM call
+            if deterministic_fixes:
+                return bt_xml, [
+                    {
+                        "agent": "Conformance",
+                        "status": "ok",
+                        "issues_found": 0,
+                        "issues_fixed": 0,
+                        "deterministic_fixes": deterministic_fixes,
+                        "used_llm": False,
+                    }
+                ]
             return bt_xml, [
                 {
                     "agent": "Conformance",

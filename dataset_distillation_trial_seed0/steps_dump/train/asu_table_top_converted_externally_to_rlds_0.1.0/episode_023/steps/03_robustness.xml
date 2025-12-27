@@ -1,0 +1,22 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent getting stuck during navigation -->
+      <Timeout msec="10000">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="NAVIGATE_TO" obj="maroon cube"/>
+        </RetryUntilSuccessful>
+      </Timeout>
+      <!-- Fallback: Grasp with local recovery if initial attempt fails -->
+      <Fallback>
+        <Action ID="GRASP" obj="maroon cube"/>
+        <!-- Retry: Try grasping up to 3 times if needed -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="GRASP" obj="maroon cube"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Release: End manipulation -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

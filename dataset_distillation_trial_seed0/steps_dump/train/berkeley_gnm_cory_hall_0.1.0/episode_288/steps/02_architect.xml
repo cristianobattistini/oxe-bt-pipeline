@@ -1,0 +1,23 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: NAVIGATE_TO is the only primitive needed for 'navigate to the goal' -->
+      <!-- Check: Initial frame (0) shows no visible goal, so must search -->
+      <Fallback>
+        <!-- Risk: goal_not_in_view, must search for goal -->
+        <RetryUntilSuccessful>
+          <!-- Risk: collision_with_wall, so navigation must be robust -->
+          <Sequence>
+            <!-- Check: NAVIGATE_TO 'goal' (unknown position) -->
+            <Action ID="NAVIGATE_TO" obj="goal"/>
+            <!-- Risk: If navigation fails (collision or not found), adjust heading and retry -->
+          </Sequence>
+        </RetryUntilSuccessful>
+        <!-- Risk: If repeated failures, use recovery hint to search for goal -->
+        <Action ID="NAVIGATE_TO" obj="floor"/>
+        <!-- Risk: If still unsuccessful, adjust heading as last resort -->
+        <Action ID="NAVIGATE_TO" obj="wall"/>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+</root>

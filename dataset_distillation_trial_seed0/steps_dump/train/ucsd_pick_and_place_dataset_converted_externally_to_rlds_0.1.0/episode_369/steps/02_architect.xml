@@ -1,0 +1,22 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to target first (Robotic Common Sense: Proximity) -->
+      <Action ID="NAVIGATE_TO" obj="red object"/>
+      <!-- Risk: Possible collision with blue objects, unstable grasp. Use Fallback for robust grasp. -->
+      <Fallback>
+        <!-- Primary attempt: Grasp the red object directly -->
+        <Action ID="GRASP" obj="red object"/>
+        <!-- Recovery: Adjust gripper position if grasp fails (Risk: collision/unstable grasp) -->
+        <Sequence>
+          <!-- Check: Adjust area if grasp fails due to obstruction -->
+          <!-- Risk: Semantic State recovery hint - clear area around target -->
+          <Action ID="NAVIGATE_TO" obj="red object"/>
+          <Action ID="GRASP" obj="red object"/>
+        </Sequence>
+      </Fallback>
+      <!-- Check: Release after successful grasp (Robotic Common Sense: Termination) -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

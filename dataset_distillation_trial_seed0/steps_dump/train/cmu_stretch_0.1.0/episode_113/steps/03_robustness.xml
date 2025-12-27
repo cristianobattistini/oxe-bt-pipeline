@@ -1,0 +1,43 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent getting stuck navigating to lid -->
+      <Timeout msec="8000">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="NAVIGATE_TO" obj="lid"/>
+        </RetryUntilSuccessful>
+      </Timeout>
+      <!-- Fallback: Robust grasp with retry on failure -->
+      <Fallback>
+        <!-- Primary attempt: Grasp the lid handle -->
+        <RetryUntilSuccessful num_attempts="2">
+          <Action ID="GRASP" obj="lid"/>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Try grasp again after re-navigating to lid -->
+        <Sequence>
+          <!-- Timeout: Prevent stuck navigation during recovery -->
+          <Timeout msec="8000">
+            <Action ID="NAVIGATE_TO" obj="lid"/>
+          </Timeout>
+          <RetryUntilSuccessful num_attempts="2">
+            <Action ID="GRASP" obj="lid"/>
+          </RetryUntilSuccessful>
+        </Sequence>
+      </Fallback>
+      <!-- Sequence: Safe lift trajectory before placement -->
+      <Sequence>
+        <!-- Timeout: Prevent stuck navigation when lifting lid -->
+        <Timeout msec="7000">
+          <RetryUntilSuccessful num_attempts="2">
+            <Action ID="NAVIGATE_TO" obj="lid"/>
+          </RetryUntilSuccessful>
+        </Timeout>
+        <RetryUntilSuccessful num_attempts="2">
+          <Action ID="PLACE_ON_TOP" obj="lid"/>
+        </RetryUntilSuccessful>
+      </Sequence>
+      <!-- Release: Final stable placement -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

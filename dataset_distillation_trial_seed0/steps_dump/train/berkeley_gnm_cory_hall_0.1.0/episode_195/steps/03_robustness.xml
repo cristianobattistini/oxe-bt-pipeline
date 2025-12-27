@@ -1,0 +1,17 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Retry navigation up to 3 times for robustness -->
+      <RetryUntilSuccessful num_attempts="3">
+        <!-- Timeout to prevent getting stuck during navigation -->
+        <Timeout msec="10000">
+          <!-- Fallback: try goal, then hallway_floor as recovery -->
+          <Fallback>
+            <Action ID="NAVIGATE_TO" obj="goal"/>
+            <Action ID="NAVIGATE_TO" obj="hallway_floor"/>
+          </Fallback>
+        </Timeout>
+      </RetryUntilSuccessful>
+    </Sequence>
+  </BehaviorTree>
+</root>

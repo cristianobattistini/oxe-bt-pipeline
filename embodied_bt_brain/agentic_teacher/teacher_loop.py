@@ -25,6 +25,7 @@ class AgenticTeacherLoop:
         if pipeline is None:
             pipeline = [
                 "robustness",
+                "recovery_planner",
                 "subtree_enablement",
                 "conformance",
             ]
@@ -123,7 +124,15 @@ class AgenticTeacherLoop:
             agent = self.agents.get(agent_name)
             if agent is None:
                 continue
-            bt_xml, agent_log = agent.process(bt_xml)
+            process_with_context = getattr(agent, "process_with_context", None)
+            if callable(process_with_context):
+                bt_xml, agent_log = process_with_context(
+                    bt_xml,
+                    instruction=instruction,
+                    scene_analysis=scene_analysis,
+                )
+            else:
+                bt_xml, agent_log = agent.process(bt_xml)
             audit_log.extend(agent_log)
             if record_steps:
                 steps.append({"agent": agent_name, "bt_xml": bt_xml})

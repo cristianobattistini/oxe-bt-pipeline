@@ -1,0 +1,24 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to target first (Robotic Common Sense: must be near to manipulate) -->
+      <Action ID="NAVIGATE_TO" obj="red object"/>
+      <!-- Risk: Possible collision with blue block or blue cards; use Fallback for robust grasp -->
+      <Fallback>
+        <!-- Primary attempt: grasp the red object directly -->
+        <Action ID="GRASP" obj="red object"/>
+        <!-- Risk: If grasp fails due to obstruction, retry with adjusted approach -->
+        <RetryUntilSuccessful>
+          <!-- Risk: Adjust approach angle or clear nearby objects if needed (from recovery hints) -->
+          <Sequence>
+            <!-- Optional: Could add NAVIGATE_TO blue block or blue cards and move them, but not requested; focus on approach -->
+            <Action ID="NAVIGATE_TO" obj="red object"/>
+            <Action ID="GRASP" obj="red object"/>
+          </Sequence>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Release after successful grasp to terminate manipulation -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

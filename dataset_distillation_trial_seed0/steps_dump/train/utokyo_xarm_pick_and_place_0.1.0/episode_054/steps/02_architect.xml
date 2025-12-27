@@ -1,0 +1,28 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to white plate before manipulation -->
+      <Action ID="NAVIGATE_TO" obj="white plate"/>
+      <!-- Risk: Possible misgrasp, use Fallback for robust grasp -->
+      <Fallback>
+        <Action ID="GRASP" obj="white plate"/>
+        <!-- Risk: Semantic State suggests retry on misgrasp -->
+        <RetryUntilSuccessful>
+          <Action ID="GRASP" obj="white plate"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Navigate to red plate before placement -->
+      <Action ID="NAVIGATE_TO" obj="red plate"/>
+      <!-- Risk: Possible collision with red plate, use Fallback for robust placement -->
+      <Fallback>
+        <Action ID="PLACE_ON_TOP" obj="red plate"/>
+        <!-- Risk: Semantic State suggests adjust placement if collision occurs -->
+        <RetryUntilSuccessful>
+          <Action ID="PLACE_ON_TOP" obj="red plate"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Release after placement to terminate manipulation -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

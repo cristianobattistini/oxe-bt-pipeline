@@ -1,0 +1,20 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to target first (Robotic Common Sense: Proximity) -->
+      <Action ID="NAVIGATE_TO" obj="maroon cube"/>
+      <!-- Risk: Target may be close to other objects, gripper misalignment possible -->
+      <Fallback>
+        <!-- Primary grasp attempt -->
+        <Action ID="GRASP" obj="maroon cube"/>
+        <!-- Risk: If grasp fails, adjust approach angle and retry -->
+        <RetryUntilSuccessful>
+          <!-- Risk: Semantic State recovery hints: adjust approach angle -->
+          <Action ID="GRASP" obj="maroon cube"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Task termination (Robotic Common Sense: Manipulation must end with RELEASE) -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

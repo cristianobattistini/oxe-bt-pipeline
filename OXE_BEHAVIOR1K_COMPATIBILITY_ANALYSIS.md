@@ -1,7 +1,7 @@
 # OXE Dataset ↔ BEHAVIOR-1K Compatibility Analysis
 
 **Date:** 2025-12-24
-**Purpose:** Analyze which OXE tasks can be represented with BEHAVIOR-1K's 14 primitives
+**Purpose:** Analyze which OXE tasks can be represented with this repo's PAL v1 primitives (14 core + 6 ghost)
 
 ---
 
@@ -11,10 +11,11 @@
 **OXE datasets included:** 12 datasets
 **Episode count:** 1664
 
-**BEHAVIOR-1K primitives available:** 14
+**PAL v1 primitives available (this repo):** 20
 ```
 GRASP, PLACE_ON_TOP, PLACE_INSIDE, OPEN, CLOSE, NAVIGATE_TO, RELEASE,
-TOGGLE_ON, TOGGLE_OFF, WIPE, CUT, SOAK_UNDER, SOAK_INSIDE, PLACE_NEAR_HEATING_ELEMENT
+TOGGLE_ON, TOGGLE_OFF, WIPE, CUT, SOAK_UNDER, SOAK_INSIDE, PLACE_NEAR_HEATING_ELEMENT,
+PUSH, POUR, FOLD, UNFOLD, SCREW, HANG
 ```
 
 ---

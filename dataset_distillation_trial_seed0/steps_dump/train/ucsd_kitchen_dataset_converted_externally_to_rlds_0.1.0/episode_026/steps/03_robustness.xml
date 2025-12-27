@@ -1,0 +1,30 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent stuck navigation to cabinet door -->
+      <Timeout msec="10000">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="NAVIGATE_TO" obj="cabinet door"/>
+        </RetryUntilSuccessful>
+      </Timeout>
+      <!-- Fallback: Robust grasp with retry if collision/alignment issues -->
+      <Fallback>
+        <Action ID="GRASP" obj="cabinet door"/>
+        <!-- Retry: Adjust trajectory if initial grasp fails -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="GRASP" obj="cabinet door"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Fallback: Robust open with retry if stuck -->
+      <Fallback>
+        <Action ID="OPEN" obj="cabinet door"/>
+        <!-- Retry: Increase grip force if open fails -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="OPEN" obj="cabinet door"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Release after manipulation for stability -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

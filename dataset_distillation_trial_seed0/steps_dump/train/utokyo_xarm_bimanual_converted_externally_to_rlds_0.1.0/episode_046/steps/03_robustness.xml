@@ -1,0 +1,18 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent getting stuck during navigation -->
+      <Timeout msec="10000">
+        <Action ID="NAVIGATE_TO" obj="towel"/>
+      </Timeout>
+      <!-- Fallback: Retry grasp if initial attempt fails -->
+      <Fallback>
+        <Action ID="GRASP" obj="towel"/>
+        <!-- Retry: Up to 2 more grasp attempts for recovery -->
+        <RetryUntilSuccessful num_attempts="2">
+          <Action ID="GRASP" obj="towel"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+</root>

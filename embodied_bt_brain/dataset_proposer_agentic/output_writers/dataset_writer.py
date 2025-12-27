@@ -27,11 +27,18 @@ class JsonlWriter:
         self.images_root.mkdir(parents=True, exist_ok=True)
         self.data_path.parent.mkdir(parents=True, exist_ok=True)
 
-    def _copy_image(self, src: str, dataset_id: str, episode_id: str) -> str:
+    def _copy_image(
+        self,
+        src: str,
+        dataset_id: str,
+        episode_id: str,
+        *,
+        dest_name: Optional[str] = None,
+    ) -> str:
         src_path = Path(src)
         dst_dir = self.images_root / dataset_id / episode_id
         dst_dir.mkdir(parents=True, exist_ok=True)
-        dst_path = dst_dir / src_path.name
+        dst_path = dst_dir / (dest_name or src_path.name)
         if not dst_path.exists():
             shutil.copy2(src_path, dst_path)
         rel_path = dst_path.relative_to(self.output_dir / self.split)
@@ -73,7 +80,40 @@ class JsonlWriter:
         with self.data_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=True) + "\n")
 
-    def prepare_image_path(self, src: str, dataset_id: str, episode_id: str) -> str:
+    def prepare_image_path(
+        self,
+        src: str,
+        dataset_id: str,
+        episode_id: str,
+        *,
+        dest_name: Optional[str] = None,
+    ) -> str:
         if self.copy_images:
-            return self._copy_image(src, dataset_id, episode_id)
+            return self._copy_image(src, dataset_id, episode_id, dest_name=dest_name)
         return src
+
+    def build_rich_record(
+        self,
+        *,
+        episode_id: str,
+        instruction: str,
+        student_image_path: str,
+        teacher_image_path: str,
+        trace: Dict[str, Any],
+        verdict: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        reason: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        record: Dict[str, Any] = {
+            "episode_id": episode_id,
+            "instruction": instruction,
+            "student_image_path": student_image_path,
+            "teacher_image_path": teacher_image_path,
+            "trace": trace,
+            "verdict": verdict,
+        }
+        if reason:
+            record["reason"] = reason
+        if metadata:
+            record["metadata"] = metadata
+        return record

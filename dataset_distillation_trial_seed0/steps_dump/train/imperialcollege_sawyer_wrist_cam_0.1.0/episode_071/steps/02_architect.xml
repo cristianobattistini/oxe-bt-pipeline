@@ -1,0 +1,28 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to lid before manipulation -->
+      <Action ID="NAVIGATE_TO" obj="lid"/>
+      <!-- Risk: Lid may be stuck, use Fallback for robust grasp -->
+      <Fallback>
+        <!-- Check: Grasp lid before opening -->
+        <RetryUntilSuccessful>
+          <!-- Risk: Retry grip if initial grasp fails (Semantic State: "retry grip") -->
+          <Action ID="GRASP" obj="lid"/>
+        </RetryUntilSuccessful>
+        <!-- Risk: If grasp fails, prepare to catch lid (Semantic State: "prepare to catch lid") -->
+        <Action ID="GRASP" obj="lid"/>
+      </Fallback>
+      <!-- Check: Must grasp lid before opening -->
+      <Action ID="OPEN" obj="lid"/>
+      <!-- Risk: Lid may drop after opening, ensure stable release -->
+      <Fallback>
+        <Action ID="RELEASE"/>
+        <!-- Risk: If release fails, retry to ensure lid is not dropped unsafely -->
+        <RetryUntilSuccessful>
+          <Action ID="RELEASE"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+</root>

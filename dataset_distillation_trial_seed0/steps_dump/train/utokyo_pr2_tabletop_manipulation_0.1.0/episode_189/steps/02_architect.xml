@@ -1,0 +1,20 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to grape before attempting grasp -->
+      <Action ID="NAVIGATE_TO" obj="grape"/>
+      <!-- Risk: Possible failures include grape slipping, bunch breaking, collision with plate. Use Fallback for robust grasp. -->
+      <Fallback>
+        <!-- Primary attempt: Grasp grape -->
+        <Action ID="GRASP" obj="grape"/>
+        <!-- Recovery: If grasp fails, adjust grip or reposition arm as per recovery hints -->
+        <RetryUntilSuccessful>
+          <!-- Risk: Adjust grip or reposition arm if initial grasp fails -->
+          <Action ID="GRASP" obj="grape"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Release after manipulation to ensure safe termination -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,32 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent getting stuck during navigation -->
+      <Timeout msec="10000">
+        <Action ID="NAVIGATE_TO" obj="white plate"/>
+      </Timeout>
+      <!-- Fallback: Retry grasp if misalignment or slippage -->
+      <Fallback>
+        <Action ID="GRASP" obj="white plate"/>
+        <!-- Retry: Up to 3 attempts for grasp -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="GRASP" obj="white plate"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Timeout: Prevent getting stuck during navigation -->
+      <Timeout msec="10000">
+        <Action ID="NAVIGATE_TO" obj="red plate"/>
+      </Timeout>
+      <!-- Fallback: Retry placement if collision or instability -->
+      <Fallback>
+        <Action ID="PLACE_ON_TOP" obj="red plate"/>
+        <!-- Retry: Up to 3 attempts for placement -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="PLACE_ON_TOP" obj="red plate"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Release: Finalize manipulation -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

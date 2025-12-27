@@ -1,0 +1,26 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to fridge door first (robot must be in front, handle accessible) -->
+      <Action ID="NAVIGATE_TO" obj="fridge door"/>
+      <!-- Risk: Possible collision with cabinet or robot base, use fallback for robust grasp -->
+      <Fallback>
+        <!-- Check: Grasp fridge door handle (handle_present, required for manipulation) -->
+        <RetryUntilSuccessful>
+          <!-- Risk: Grip slip or door jam, retry grasp as per recovery hints -->
+          <Action ID="GRASP" obj="fridge door handle"/>
+        </RetryUntilSuccessful>
+        <!-- Risk: If grasp fails, adjust position and retry -->
+        <Sequence>
+          <!-- Risk: Collision or limited space, adjust position -->
+          <Action ID="NAVIGATE_TO" obj="fridge door"/>
+          <Action ID="GRASP" obj="fridge door handle"/>
+        </Sequence>
+      </Fallback>
+      <!-- Check: Must grasp before opening the fridge door -->
+      <Action ID="OPEN" obj="fridge door"/>
+      <!-- Check: Release after manipulation for stable termination -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

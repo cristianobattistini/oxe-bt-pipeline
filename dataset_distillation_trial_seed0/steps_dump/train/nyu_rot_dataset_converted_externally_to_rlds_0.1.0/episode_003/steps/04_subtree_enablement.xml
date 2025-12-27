@@ -1,0 +1,40 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent stuck navigation to box -->
+      <SubTree ID="T_Navigate" target="box"/>
+      <!-- Fallback: Robust grasp with retry if handle slips -->
+      <SubTree ID="T_Manipulate_Grasp" target="box_handle"/>
+      <!-- Retry: Robust opening in case of resistance -->
+      <SubTree ID="T_Manipulate_Open" target="box"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Navigate">
+    <root>
+      <Timeout msec="10000">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="NAVIGATE_TO" obj="{target}"/>
+        </RetryUntilSuccessful>
+      </Timeout>
+    </root>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Manipulate_Grasp">
+    <root>
+      <Fallback>
+        <Action ID="GRASP" obj="{target}"/>
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="GRASP" obj="{target}"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+    </root>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Manipulate_Open">
+    <root>
+      <RetryUntilSuccessful num_attempts="3">
+        <Timeout msec="7000">
+          <Action ID="OPEN" obj="{target}"/>
+        </Timeout>
+      </RetryUntilSuccessful>
+    </root>
+  </BehaviorTree>
+</root>

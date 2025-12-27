@@ -12,7 +12,7 @@ client = AzureOpenAI(
 
 # Chiamata al modello multimodale
 resp = client.chat.completions.create(
-    model="gpt-4o",
+    model="gpt-5",
     messages=[
         {
             "role": "user",

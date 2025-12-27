@@ -1,0 +1,29 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to cabinet door before manipulation -->
+      <Action ID="NAVIGATE_TO" obj="cabinet door"/>
+      <!-- Risk: Possible failures (door stuck, collision), use robust grasp and fallback -->
+      <Fallback>
+        <!-- Try to grasp the cabinet door handle -->
+        <Action ID="GRASP" obj="cabinet door"/>
+        <!-- Risk: If grasp fails due to collision or poor alignment, retry with adjusted trajectory -->
+        <RetryUntilSuccessful>
+          <!-- Risk: Adjust arm trajectory as recovery hint -->
+          <Action ID="GRASP" obj="cabinet door"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Must grasp before opening -->
+      <Fallback>
+        <!-- Try to open the cabinet door -->
+        <Action ID="OPEN" obj="cabinet door"/>
+        <!-- Risk: If door is stuck, retry with increased grip force -->
+        <RetryUntilSuccessful>
+          <Action ID="OPEN" obj="cabinet door"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Release after manipulation for stability -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

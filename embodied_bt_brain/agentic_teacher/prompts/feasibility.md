@@ -7,7 +7,8 @@ Important rule (anti-leakage):
 
 PAL v1 primitives:
 GRASP, PLACE_ON_TOP, PLACE_INSIDE, OPEN, CLOSE, NAVIGATE_TO, RELEASE,
-TOGGLE_ON, TOGGLE_OFF, SOAK_UNDER, SOAK_INSIDE, WIPE, CUT, PLACE_NEAR_HEATING_ELEMENT
+TOGGLE_ON, TOGGLE_OFF, SOAK_UNDER, SOAK_INSIDE, WIPE, CUT, PLACE_NEAR_HEATING_ELEMENT,
+PUSH, POUR, FOLD, UNFOLD, SCREW, HANG
 
 Return JSON only (no markdown, no extra text).
 
@@ -35,7 +36,13 @@ Canonical primitive order for sorting `required_primitives`:
   "SOAK_INSIDE",
   "WIPE",
   "CUT",
-  "PLACE_NEAR_HEATING_ELEMENT"
+  "PLACE_NEAR_HEATING_ELEMENT",
+  "PUSH",
+  "POUR",
+  "FOLD",
+  "UNFOLD",
+  "SCREW",
+  "HANG"
 ]
 
 Return JSON only:

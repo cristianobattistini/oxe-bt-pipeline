@@ -92,12 +92,14 @@ class AzureLLMClient:
 
         messages.append({"role": "user", "content": content})
 
-        response = self.client.chat.completions.create(
-            model=model or self.default_model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        target_model = model or self.default_model
+        
+        # GPT-5 and o1 models do not support temperature
+        kwargs = {"model": target_model, "messages": messages, "max_tokens": max_tokens}
+        if not target_model.startswith(("gpt-5", "o1")):
+            kwargs["temperature"] = temperature
+
+        response = self.client.chat.completions.create(**kwargs)
         return response.choices[0].message.content or ""
 
     def complete_with_fallback(

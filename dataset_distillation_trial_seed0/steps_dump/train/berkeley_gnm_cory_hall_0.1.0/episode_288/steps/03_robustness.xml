@@ -1,0 +1,26 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Fallback: search for goal if not in view -->
+      <Fallback>
+        <!-- Retry: robust navigation to goal (up to 3 attempts) -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Sequence>
+            <!-- Timeout: prevent blocking during navigation -->
+            <Timeout msec="10000">
+              <Action ID="NAVIGATE_TO" obj="goal"/>
+            </Timeout>
+          </Sequence>
+        </RetryUntilSuccessful>
+        <!-- Recovery: search floor if goal not found -->
+        <Timeout msec="7000">
+          <Action ID="NAVIGATE_TO" obj="floor"/>
+        </Timeout>
+        <!-- Recovery: search wall as last resort -->
+        <Timeout msec="7000">
+          <Action ID="NAVIGATE_TO" obj="wall"/>
+        </Timeout>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+</root>

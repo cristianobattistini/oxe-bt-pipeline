@@ -1,0 +1,23 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to target first (Robotic Common Sense: must be near shoe before grasping) -->
+      <Action ID="NAVIGATE_TO" obj="shoe"/>
+      <!-- Risk: Possible failures include partial grasp and slippery surface; use Fallback for robust grasp -->
+      <Fallback>
+        <!-- Primary grasp attempt -->
+        <Action ID="GRASP" obj="shoe"/>
+        <!-- Risk: If grasp fails (partial grasp or slip), recovery by adjusting grip and repositioning shoe -->
+        <RetryUntilSuccessful>
+          <!-- Recovery grasp attempt after adjustment -->
+          <Sequence>
+            <!-- Adjust grip or reposition shoe (implicit in retry logic, as PAL does not have explicit adjust action) -->
+            <Action ID="GRASP" obj="shoe"/>
+          </Sequence>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Release after successful grasp to terminate manipulation (if required by downstream task) -->
+      <!-- For "pick up shoe", RELEASE is not strictly required unless placing or handing off, so omitted here -->
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,29 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent stuck navigation to shoe -->
+      <Timeout msec="10000">
+        <SubTree ID="T_Navigate" target="shoe"/>
+      </Timeout>
+      <!-- Fallback: Robust grasp with retry recovery -->
+      <SubTree ID="T_Manipulate_Grasp" target="shoe"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Navigate">
+    <Sequence>
+      <Action ID="NAVIGATE_TO" obj="{target}"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Manipulate_Grasp">
+    <Fallback>
+      <!-- Primary grasp attempt -->
+      <RetryUntilSuccessful num_attempts="2">
+        <Action ID="GRASP" obj="{target}"/>
+      </RetryUntilSuccessful>
+      <!-- Retry: Recovery grasp after fallback -->
+      <RetryUntilSuccessful num_attempts="2">
+        <Action ID="GRASP" obj="{target}"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,48 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent getting stuck navigating to red can -->
+      <Timeout msec="10000">
+        <Action ID="NAVIGATE_TO" obj="red can"/>
+      </Timeout>
+      <!-- Fallback: Robust grasp with retry and recovery -->
+      <Fallback>
+        <!-- Primary attempt: Grasp the red can -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="GRASP" obj="red can"/>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Retry navigation and grasp if initial attempts fail -->
+        <RetryUntilSuccessful num_attempts="2">
+          <Sequence>
+            <Timeout msec="10000">
+              <Action ID="NAVIGATE_TO" obj="red can"/>
+            </Timeout>
+            <Action ID="GRASP" obj="red can"/>
+          </Sequence>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Timeout: Prevent getting stuck navigating to white tabletop -->
+      <Timeout msec="10000">
+        <Action ID="NAVIGATE_TO" obj="white tabletop"/>
+      </Timeout>
+      <!-- Fallback: Robust placement with retry and recovery -->
+      <Fallback>
+        <!-- Primary attempt: Place red can on top of white tabletop -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="PLACE_ON_TOP" obj="white tabletop"/>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Retry navigation and placement if initial attempts fail -->
+        <RetryUntilSuccessful num_attempts="2">
+          <Sequence>
+            <Timeout msec="10000">
+              <Action ID="NAVIGATE_TO" obj="white tabletop"/>
+            </Timeout>
+            <Action ID="PLACE_ON_TOP" obj="white tabletop"/>
+          </Sequence>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Release after placement to terminate manipulation -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

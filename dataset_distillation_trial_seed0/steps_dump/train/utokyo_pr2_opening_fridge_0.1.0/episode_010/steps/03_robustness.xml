@@ -1,0 +1,30 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent getting stuck during navigation -->
+      <Timeout msec="10000">
+        <Action ID="NAVIGATE_TO" obj="fridge door"/>
+      </Timeout>
+      <!-- Fallback: Robust grasp with retry and recovery navigation -->
+      <Fallback>
+        <!-- Retry: Attempt grasp up to 3 times -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="GRASP" obj="fridge door handle"/>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Re-navigate and retry grasp -->
+        <Sequence>
+          <Timeout msec="8000">
+            <Action ID="NAVIGATE_TO" obj="fridge door"/>
+          </Timeout>
+          <Action ID="GRASP" obj="fridge door handle"/>
+        </Sequence>
+      </Fallback>
+      <!-- Timeout: Prevent blocking during door opening -->
+      <Timeout msec="7000">
+        <Action ID="OPEN" obj="fridge door"/>
+      </Timeout>
+      <!-- Release: Ensure stable termination -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

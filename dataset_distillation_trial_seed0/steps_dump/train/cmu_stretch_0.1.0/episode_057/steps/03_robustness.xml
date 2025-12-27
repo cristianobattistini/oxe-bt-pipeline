@@ -1,0 +1,58 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent stuck navigation to dishwasher door -->
+      <Timeout msec="10000">
+        <Action ID="NAVIGATE_TO" obj="dishwasher door"/>
+      </Timeout>
+      <!-- Fallback: Robust grasp with retries and obstacle clearing -->
+      <Fallback>
+        <!-- Retry: Attempt to grasp up to 3 times -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="GRASP" obj="dishwasher door"/>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Clear cabinet-side obstacle and retry grasp -->
+        <Sequence>
+          <!-- Timeout: Prevent stuck navigation to cabinet side -->
+          <Timeout msec="7000">
+            <Action ID="NAVIGATE_TO" obj="cabinet_side"/>
+          </Timeout>
+          <!-- Timeout: Prevent stuck navigation back to dishwasher door -->
+          <Timeout msec="7000">
+            <Action ID="NAVIGATE_TO" obj="dishwasher door"/>
+          </Timeout>
+          <!-- Retry: Attempt to grasp after clearing obstacle -->
+          <RetryUntilSuccessful num_attempts="2">
+            <Action ID="GRASP" obj="dishwasher door"/>
+          </RetryUntilSuccessful>
+        </Sequence>
+      </Fallback>
+      <!-- Fallback: Robust open with retries and re-alignment -->
+      <Fallback>
+        <!-- Retry: Attempt to open up to 3 times -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Timeout msec="8000">
+            <Action ID="OPEN" obj="dishwasher door"/>
+          </Timeout>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Re-align handle and retry open -->
+        <Sequence>
+          <!-- Timeout: Prevent stuck navigation to dishwasher door -->
+          <Timeout msec="7000">
+            <Action ID="NAVIGATE_TO" obj="dishwasher door"/>
+          </Timeout>
+          <!-- Retry: Attempt to grasp for re-alignment -->
+          <RetryUntilSuccessful num_attempts="2">
+            <Action ID="GRASP" obj="dishwasher door"/>
+          </RetryUntilSuccessful>
+          <!-- Timeout: Prevent stuck open attempt -->
+          <Timeout msec="8000">
+            <Action ID="OPEN" obj="dishwasher door"/>
+          </Timeout>
+        </Sequence>
+      </Fallback>
+      <!-- Release: Ensure stable termination -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

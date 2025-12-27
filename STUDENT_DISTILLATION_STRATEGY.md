@@ -1,112 +1,86 @@
-# Student Model Distillation Strategy
-**Goal:** Train a small, efficient "Student" model (e.g., Gemma 2B, Qwen 3B) to generate robust Behavior Trees (BTs) using only the initial state (Frame 0) and an instruction.
+# Stanford-Google Distillation Strategy
+**Goal:** Train a small, efficient "Student" model (e.g., Gemma 2B, Qwen 3B) to execute robust, grounded robotic manipulation tasks.
 
-**Challenge:** The Student is "blind" to the future and has limited reasoning capacity. It risks "hallucinating" actions for objects not visible in Frame 0 or learning language biases instead of visual grounding.
-
-**Solution:** Use **Privileged Information Distillation** with strict **Quality Assurance**. The Teacher uses future knowledge to build plans, but we filter data to ensure the Student only learns from grounded examples.
+**Core Philosophy:**
+Small models cannot do everything at once. We must decouple **Perception** (Vision), **Reasoning** (Logic), and **Correction** (Repair) into specialized modules (Adapters) that share a common language: the **Semantic State**.
 
 ---
 
-## 1. The Core Data Strategy: "Lossless Trace Logging"
+## 1. The Common Language: Semantic State (YAML)
+Instead of forcing the Student to jump from `Pixel -> XML`, we introduce an intermediate representation.
+*   **Format:** Structured YAML describing Target, Environment, Risks, and Affordances.
+*   **Role:** Acts as the output for the Vision Adapter and the input for the Logic Adapter. Anchors the text to physical reality.
 
-We save the entire **Execution Trace** of the Teacher pipeline.
+---
 
-**Data Structure (JSONL Record):**
+## 2. The 3-Adapter Architecture
+
+### Adapter A: Vision-to-Semantics ("The Eye")
+*   **Input:** `Frame 0 (Image)` + `Instruction`
+*   **Output:** `Semantic State (YAML)`
+*   **Task:** "What do I see? What are the risks?"
+*   **Why:** Specializes the Vision Encoder to detect affordances (graspability, obstacles) without worrying about XML syntax.
+
+### Adapter B: Semantics-to-Logic ("The Brain")
+*   **Input:** `Frame 0 (Image)` + `Semantic State (YAML)` + `Instruction`
+*   **Output:** `Robust Behavior Tree (XML)` with Reasoning Comments.
+*   **Task:** "Given this state, plan the robust sequence."
+*   **Why:** Focuses purely on planning logic, fallbacks, and BT structure. Uses the Image as a "visual anchor" but relies on the YAML for explicit constraints.
+
+### Adapter C: Critic & Repair ("The Immunologist")
+*   **Input:** `Frame 0 (Image)` + `Instruction` + `Broken/Naive XML`
+*   **Output:** `Fixed/Robust XML`
+*   **Task:** "Fix this code."
+*   **Why:** Teaches the model to recover from its own syntax errors or naive planning (missing fallbacks).
+
+---
+
+## 3. Data Generation Pipeline (Lossless Trace)
+
+We do not generate 3 separate datasets manually. We generate a single **"Mega-Trace"** for each episode and split it offline.
+
+**Pipeline Config:**
+1.  **Feasibility Check:** Don't filter hard. If it fails, save it as a "Safety Negative".
+2.  **Scene Analysis:** Generates the **Semantic State (YAML)**.
+3.  **Architect:** Uses YAML + Image to draft a plan.
+4.  **Robustness:** Hardens the plan (adds Fallbacks/Retries).
+5.  **Output:** A JSONL record containing *all* these steps.
+
+**The "Mega-Record" Structure:**
 ```json
 {
-  "episode_id": "ep_001",
-  "instruction": "Put the blue can on the table",
-  "student_image_path": "data/images/ep_001_frame0.jpg",      // Input for Student
-  "teacher_image_path": "data/images/ep_001_contact.jpg",    // Input for Teacher (Privileged)
+  "instruction": "Put blue can on table",
+  "student_image": "path/to/frame0.jpg",  // The blind input
+  "teacher_image": "path/to/contact.jpg", // The privileged input
   "trace": {
-    "feasibility": { "feasible": true, "reason": "..." },
-    "frame0_check": {                                          // NEW: Critical Filter
-       "visible_in_frame0": true,
-       "reason": "Object clearly visible on table."
-    },
-    "scene_analysis": { ... },
-    "steps": [ ... ]
-  },
-  "verdict": "ACCEPT"
+    "semantic_state": "Target: blue can\nRisks: ...", // Target for Adapter A
+    "naive_xml": "<root>...</root>",                   // Input for Adapter C
+    "final_xml": "<root>...</root>",                  // Target for Adapter B & C
+      }
 }
 ```
 
 ---
 
-## 2. Derived Datasets (The Curriculum)
+## 4. Execution Plan (Your Job)
 
-### Dataset A: Structured Chain-of-Thought (S-CoT)
-**Goal:** Ground language in vision and force logical planning steps.
-**Constraint:** ONLY include samples where `trace.frame0_check.visible_in_frame0` is TRUE.
+### Phase 1: Pipeline Upgrade
+1.  **Prompts**: Ensure `scene_analysis` outputs strict YAML. Ensure `architect` reads YAML.
+2.  **Writer**: Ensure `generate_dataset.py` saves the full `trace` (including intermediate XMLs) and the extracted `frame0.jpg`.
 
-*   **Input:** Frame 0 + Instruction
-*   **Target Output:**
-    ```text
-    <perception>
-    Objects: Blue can (target), Red mug (obstacle).
-    Relations: Can is close to mug (left side).
-    </perception>
-    <reasoning>
-    Risk: Collision during grasp due to proximity.
-    Strategy: Use fallback with precise approach.
-    </reasoning>
-    <code>
-    <Sequence>
-      <!-- Risk: Collision detected, using fallback -->
-      <Fallback> ... </Fallback>
-    </Sequence>
-    </code>
-    ```
+### Phase 2: Data Generation
+1.  Run the pipeline on the full Open X Embodiment subset.
+2.  This produces `raw_traces.jsonl`.
 
-### Dataset B: DPO (Robustness & Grounding)
-**Goal:** Teach preference for Robustness and Syntax Correctness.
-**Pairs:**
-1.  **Robustness Pair:**
-    *   *Chosen:* Output from `Robustness` agent (with retries/fallbacks).
-    *   *Rejected:* Output from `Architect` (naive/linear).
-2.  **Syntax/Logic Pair (Artificial):**
-    *   *Chosen:* Valid BT.
-    *   *Rejected:* Corrupted version (e.g., deleted `NAVIGATE_TO`, invalid params) generated by a script.
+### Phase 3: Offline Splitting (The Refinery)
+Write a script to process `raw_traces.jsonl` into training files:
+*   `train_vision.jsonl`: Input=`Frame0`, Output=`SemanticState`.
+*   `train_logic.jsonl`: Input=`Frame0 + SemanticState`, Output=`FinalXML`.
+*   `train_repair.jsonl`: Input=`Frame0 + NaiveXML`, Output=`FinalXML`.
+*   `train_safety.jsonl`: Input=`Frame0` (from REJECT episodes), Output=`"I cannot..."`.
 
-### Dataset C: Safety & Anti-Hallucination
-**Goal:** Teach the model to say "NO" when it cannot see.
-**Source:**
-1.  Episodes where `Feasibility` = `False`.
-2.  Episodes where `frame0_check.visible_in_frame0` = `False` (even if feasible later in the video).
-
-*   **Input:** Frame 0 + Instruction
-*   **Target Output:** "I cannot execute this task. Reason: The target object is not visible in the current view."
-
-### Dataset D: Repair / Denoising (Syntax Hardening)
-**Goal:** Teach the model to fix its own syntax errors (XML grammar).
-**Method:** Take valid BTs, inject noise (typos, broken tags, missing IDs), and train the model to restore them.
-
-*   **Input:** Broken XML + Instruction
-*   **Target Output:** Corrected XML
-
----
-
-## 3. Pipeline Changes Required
-
-1.  **`generate_dataset.py`**:
-    *   Implement **Lossless Trace Logging**.
-    *   Save Frame 0 separately.
-
-2.  **`teacher_loop.py`**:
-    *   Accumulate all agent outputs.
-    *   **CRITICAL:** Add a `Frame0Check` step (using `SceneAnalysis` or `Feasibility` agent) that explicitly asks: *"Is the target object visible and actionable in Frame 0 alone?"*
-
-3.  **Prompts**:
-    *   **`scene_analysis.md`**: Update to output structured perception (Objects, Relations) to feed the S-CoT.
-    *   **`architect.md` / `robustness.md`**: Enforce XML comments for reasoning.
-
----
-
-## 4. Training Workflow
-
-1.  **Data Generation:** Run pipeline.
-2.  **Filtering:** Discard SFT samples where Frame 0 is blank/occluded (move to Safety dataset).
-3.  **Curriculum:**
-    *   **Epoch 1-2:** Syntax Repair (Dataset D) + Safety (Dataset C).
-    *   **Epoch 3-5:** S-CoT (Dataset A).
-    *   **Epoch 6+:** DPO (Dataset B) for final polishing.
+### Phase 4: Training
+1.  Train Adapter A (Vision).
+2.  Train Adapter B (Logic).
+3.  Train Adapter C (Repair).
+4.  (Optional) Merge them or serve them as a Multi-Head Mixture of Experts.

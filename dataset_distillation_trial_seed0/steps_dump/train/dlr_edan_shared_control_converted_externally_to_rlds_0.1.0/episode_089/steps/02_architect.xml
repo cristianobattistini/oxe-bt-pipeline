@@ -1,0 +1,25 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to target first (Robotic Common Sense: must be near apple before grasping) -->
+      <Action ID="NAVIGATE_TO" obj="green apple"/>
+      <!-- Risk: Apple may roll or collide with plate; use Fallback for robust grasp -->
+      <Fallback>
+        <!-- Primary attempt: Grasp apple directly -->
+        <Action ID="GRASP" obj="green apple"/>
+        <!-- Recovery: Adjust grip if grasp fails due to rolling or collision -->
+        <RetryUntilSuccessful>
+          <!-- Risk: Semantic State recovery hints suggest adjusting grip or stabilizing apple -->
+          <Sequence>
+            <!-- Check: Re-navigate in case apple moved due to rolling -->
+            <Action ID="NAVIGATE_TO" obj="green apple"/>
+            <!-- Attempt to grasp again -->
+            <Action ID="GRASP" obj="green apple"/>
+          </Sequence>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Release after successful grasp to terminate manipulation -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

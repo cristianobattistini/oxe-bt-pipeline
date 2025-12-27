@@ -1,0 +1,28 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to grid clamp before manipulation -->
+      <Action ID="NAVIGATE_TO" obj="grid clamp"/>
+      <!-- Risk: Clustered objects may interfere with grasp, use Fallback for robust grasp -->
+      <Fallback>
+        <Action ID="GRASP" obj="grid clamp"/>
+        <!-- Risk: Collision with clustered objects, retry grasp if initial attempt fails -->
+        <RetryUntilSuccessful>
+          <Action ID="GRASP" obj="grid clamp"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Navigate to placement surface (wooden grid table) before placing -->
+      <Action ID="NAVIGATE_TO" obj="wooden grid table"/>
+      <!-- Risk: Unstable placement or clutter, use Fallback for robust placement -->
+      <Fallback>
+        <Action ID="PLACE_ON_TOP" obj="wooden grid table"/>
+        <!-- Risk: Placement area may need adjustment, retry placement if unstable or obstructed -->
+        <RetryUntilSuccessful>
+          <Action ID="PLACE_ON_TOP" obj="wooden grid table"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Release after placement to terminate manipulation -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

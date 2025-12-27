@@ -1,0 +1,39 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to target first (dishwasher door handle is visible in frame 0) -->
+      <Action ID="NAVIGATE_TO" obj="dishwasher door"/>
+      <!-- Risk: Possible gripper slip or misalignment, use Fallback for robust grasp -->
+      <Fallback>
+        <!-- Try grasping the handle, retry if slip or misalignment occurs -->
+        <RetryUntilSuccessful>
+          <!-- Check: Grasp before open (handle is accessible) -->
+          <Action ID="GRASP" obj="dishwasher door"/>
+        </RetryUntilSuccessful>
+        <!-- Risk: If grasp fails due to obstruction, attempt to clear surroundings -->
+        <Sequence>
+          <!-- Check: Attempt to clear cabinet-side obstacle if grasp fails -->
+          <Action ID="NAVIGATE_TO" obj="cabinet_side"/>
+          <Action ID="NAVIGATE_TO" obj="dishwasher door"/>
+          <Action ID="GRASP" obj="dishwasher door"/>
+        </Sequence>
+      </Fallback>
+      <!-- Check: Must open the door after grasping -->
+      <Fallback>
+        <!-- Risk: Door may be jammed, retry open if necessary -->
+        <RetryUntilSuccessful>
+          <Action ID="OPEN" obj="dishwasher door"/>
+        </RetryUntilSuccessful>
+        <!-- Risk: If opening fails, check handle alignment and retry -->
+        <Sequence>
+          <!-- Check: Re-align handle and retry open -->
+          <Action ID="NAVIGATE_TO" obj="dishwasher door"/>
+          <Action ID="GRASP" obj="dishwasher door"/>
+          <Action ID="OPEN" obj="dishwasher door"/>
+        </Sequence>
+      </Fallback>
+      <!-- Check: Release after manipulation for stable termination -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

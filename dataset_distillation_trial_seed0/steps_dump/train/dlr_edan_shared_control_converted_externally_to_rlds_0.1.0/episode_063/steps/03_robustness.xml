@@ -1,0 +1,38 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Retry navigation to disk up to 3 times with timeout -->
+      <RetryUntilSuccessful num_attempts="3">
+        <Timeout msec="10000">
+          <Action ID="NAVIGATE_TO" obj="disk"/>
+        </Timeout>
+      </RetryUntilSuccessful>
+      <!-- Fallback: Robust grasp with recovery if disk is missing -->
+      <Fallback>
+        <!-- Primary grasp attempt with retry and timeout -->
+        <RetryUntilSuccessful num_attempts="2">
+          <Timeout msec="7000">
+            <Action ID="GRASP" obj="disk"/>
+          </Timeout>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Search and retry grasp at floor location -->
+        <Sequence>
+          <!-- Retry navigation to floor near shelf with timeout -->
+          <RetryUntilSuccessful num_attempts="2">
+            <Timeout msec="10000">
+              <Action ID="NAVIGATE_TO" obj="floor_near_shelf"/>
+            </Timeout>
+          </RetryUntilSuccessful>
+          <!-- Retry grasp at new location with timeout -->
+          <RetryUntilSuccessful num_attempts="2">
+            <Timeout msec="7000">
+              <Action ID="GRASP" obj="disk"/>
+            </Timeout>
+          </RetryUntilSuccessful>
+        </Sequence>
+      </Fallback>
+      <!-- Release disk after successful grasp -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

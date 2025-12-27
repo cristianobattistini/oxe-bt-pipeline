@@ -1,0 +1,37 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent getting stuck during navigation -->
+      <SubTree ID="T_Navigate" target="grape"/>
+      <!-- Fallback: Robust grasp with retry if grape moves -->
+      <SubTree ID="T_Manipulate_Grasp" target="grape"/>
+      <!-- Release: Ensure object is released at end -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Navigate">
+    <Sequence>
+      <Timeout msec="10000">
+        <RetryUntilSuccessful num_attempts="3">
+          <Action ID="NAVIGATE_TO" obj="{target}"/>
+        </RetryUntilSuccessful>
+      </Timeout>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Manipulate_Grasp">
+    <Sequence>
+      <Fallback>
+        <!-- Primary grasp attempt -->
+        <Timeout msec="5000">
+          <Action ID="GRASP" obj="{target}"/>
+        </Timeout>
+        <!-- Retry grasp up to 2 times if initial fails -->
+        <RetryUntilSuccessful num_attempts="2">
+          <Timeout msec="5000">
+            <Action ID="GRASP" obj="{target}"/>
+          </Timeout>
+        </RetryUntilSuccessful>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+</root>

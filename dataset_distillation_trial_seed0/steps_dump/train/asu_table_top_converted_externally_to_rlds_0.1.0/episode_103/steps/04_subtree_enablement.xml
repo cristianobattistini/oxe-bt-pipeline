@@ -1,0 +1,63 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent getting stuck navigating to red can -->
+      <Timeout msec="10000">
+        <SubTree ID="T_Navigate" target="red can"/>
+      </Timeout>
+      <!-- Fallback: Robust grasp with retry and recovery -->
+      <Fallback>
+        <!-- Primary attempt: Grasp the red can -->
+        <RetryUntilSuccessful num_attempts="3">
+          <SubTree ID="T_Manipulate_Grasp" target="red can"/>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Retry navigation and grasp if initial attempts fail -->
+        <RetryUntilSuccessful num_attempts="2">
+          <Sequence>
+            <Timeout msec="10000">
+              <SubTree ID="T_Navigate" target="red can"/>
+            </Timeout>
+            <SubTree ID="T_Manipulate_Grasp" target="red can"/>
+          </Sequence>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Timeout: Prevent getting stuck navigating to white tabletop -->
+      <Timeout msec="10000">
+        <SubTree ID="T_Navigate" target="white tabletop"/>
+      </Timeout>
+      <!-- Fallback: Robust placement with retry and recovery -->
+      <Fallback>
+        <!-- Primary attempt: Place red can on top of white tabletop -->
+        <RetryUntilSuccessful num_attempts="3">
+          <SubTree ID="T_Manipulate_Place_OnTop" target="white tabletop"/>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Retry navigation and placement if initial attempts fail -->
+        <RetryUntilSuccessful num_attempts="2">
+          <Sequence>
+            <Timeout msec="10000">
+              <SubTree ID="T_Navigate" target="white tabletop"/>
+            </Timeout>
+            <SubTree ID="T_Manipulate_Place_OnTop" target="white tabletop"/>
+          </Sequence>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Release after placement to terminate manipulation -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Navigate">
+    <Sequence>
+      <Action ID="NAVIGATE_TO" obj="{target}"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Manipulate_Grasp">
+    <Sequence>
+      <Action ID="GRASP" obj="{target}"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Manipulate_Place_OnTop">
+    <Sequence>
+      <Action ID="PLACE_ON_TOP" obj="{target}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

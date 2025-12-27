@@ -1,0 +1,29 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Safety: Timeout for navigation to avoid getting stuck -->
+      <Timeout msec="10000">
+        <Action ID="NAVIGATE_TO" obj="red object"/>
+      </Timeout>
+      <!-- Robust grasp: fallback with retry and navigation recovery -->
+      <Fallback>
+        <!-- First attempt: grasp the red object -->
+        <RetryUntilSuccessful num_attempts="2">
+          <Action ID="GRASP" obj="red object"/>
+        </RetryUntilSuccessful>
+        <!-- Retry grasp after re-navigating to object -->
+        <RetryUntilSuccessful num_attempts="2">
+          <Sequence>
+            <!-- Timeout for navigation recovery -->
+            <Timeout msec="10000">
+              <Action ID="NAVIGATE_TO" obj="red object"/>
+            </Timeout>
+            <Action ID="GRASP" obj="red object"/>
+          </Sequence>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Release after successful grasp -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

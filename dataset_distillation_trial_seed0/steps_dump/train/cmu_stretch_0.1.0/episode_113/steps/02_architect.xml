@@ -1,0 +1,28 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to lid before manipulation (Robotic Common Sense: Proximity) -->
+      <Action ID="NAVIGATE_TO" obj="lid"/>
+      <!-- Risk: Possible failures (lid slips, grasp misses handle, lid hits pot); use Fallback for robust grasp -->
+      <Fallback>
+        <!-- Primary attempt: Grasp the lid handle -->
+        <Action ID="GRASP" obj="lid"/>
+        <!-- Risk: Grasp may miss handle or slip; retry with adjustment -->
+        <RetryUntilSuccessful>
+          <!-- Recovery hint: adjust gripper position, check lid alignment -->
+          <Action ID="GRASP" obj="lid"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Must lift before releasing (affordance: LIFT is implied by PLACE_ON_TOP or RELEASE) -->
+      <!-- Risk: Limited space around pot, ensure lid is clear before release -->
+      <Sequence>
+        <!-- Conservative: Use NAVIGATE_TO again to ensure safe lift trajectory -->
+        <Action ID="NAVIGATE_TO" obj="lid"/>
+        <!-- Simulate lifting by moving lid away from pot (no explicit LIFT primitive; use PLACE_ON_TOP as proxy for lifting up) -->
+        <Action ID="PLACE_ON_TOP" obj="lid"/>
+      </Sequence>
+      <!-- Check: Terminate with RELEASE for stable placement -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

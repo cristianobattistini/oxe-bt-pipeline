@@ -1,0 +1,24 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to box before manipulation -->
+      <Action ID="NAVIGATE_TO" obj="box"/>
+      <!-- Risk: Handle may slip or grasp may fail, using Fallback for robust grasp -->
+      <Fallback>
+        <!-- Try grasping the handle first -->
+        <Action ID="GRASP" obj="box_handle"/>
+        <!-- Risk: Recovery hint - retry grasp if handle slips -->
+        <RetryUntilSuccessful>
+          <Action ID="GRASP" obj="box_handle"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Must grasp before opening -->
+      <!-- Risk: Lid may resist opening, using Retry for robust opening -->
+      <RetryUntilSuccessful>
+        <Action ID="OPEN" obj="box"/>
+      </RetryUntilSuccessful>
+      <!-- Check: Box must remain on table, no need to move or release -->
+      <!-- Task ends after box is opened -->
+    </Sequence>
+  </BehaviorTree>
+</root>

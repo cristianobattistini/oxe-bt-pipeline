@@ -1,0 +1,53 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent stuck navigation to fridge door -->
+      <Timeout msec="10000">
+        <SubTree ID="T_Navigate" target="fridge door"/>
+      </Timeout>
+      <!-- Fallback: Robust grasp with retry and recovery navigation -->
+      <Fallback>
+        <!-- Retry: Grasp fridge door handle up to 3 times -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Timeout msec="7000">
+            <SubTree ID="T_Manipulate_Grasp" target="fridge door handle"/>
+          </Timeout>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Re-navigate to handle if grasp fails -->
+        <Timeout msec="7000">
+          <SubTree ID="T_Navigate" target="fridge door handle"/>
+        </Timeout>
+      </Fallback>
+      <!-- Fallback: Robust open with retry and recovery grasp -->
+      <Fallback>
+        <!-- Retry: Open fridge door up to 3 times -->
+        <RetryUntilSuccessful num_attempts="3">
+          <Timeout msec="8000">
+            <SubTree ID="T_Manipulate_Open" target="fridge door"/>
+          </Timeout>
+        </RetryUntilSuccessful>
+        <!-- Recovery: Retry grasp if open fails -->
+        <Timeout msec="7000">
+          <SubTree ID="T_Manipulate_Grasp" target="fridge door handle"/>
+        </Timeout>
+      </Fallback>
+      <!-- Release: Stable termination after manipulation -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Navigate">
+    <Sequence>
+      <Action ID="NAVIGATE_TO" obj="{target}"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Manipulate_Grasp">
+    <Sequence>
+      <Action ID="GRASP" obj="{target}"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Manipulate_Open">
+    <Sequence>
+      <Action ID="OPEN" obj="{target}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

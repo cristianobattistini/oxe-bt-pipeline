@@ -1,0 +1,43 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent stuck navigation to white plate -->
+      <Timeout msec="10000">
+        <SubTree ID="T_Navigate" target="white plate"/>
+      </Timeout>
+      <!-- Fallback: Retry grasp if initial attempt fails -->
+      <SubTree ID="T_Manipulate_Grasp" target="white plate"/>
+      <!-- Timeout: Prevent stuck navigation to red plate -->
+      <Timeout msec="10000">
+        <SubTree ID="T_Navigate" target="red plate"/>
+      </Timeout>
+      <!-- Fallback: Retry placement if initial attempt fails -->
+      <SubTree ID="T_Manipulate_Place_OnTop" target="red plate"/>
+      <!-- Release: Finalize manipulation -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Navigate">
+    <Sequence>
+      <Action ID="NAVIGATE_TO" obj="{target}"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Manipulate_Grasp">
+    <Fallback>
+      <Action ID="GRASP" obj="{target}"/>
+      <!-- Retry: Up to 2 more grasp attempts -->
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="GRASP" obj="{target}"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Manipulate_Place_OnTop">
+    <Fallback>
+      <Action ID="PLACE_ON_TOP" obj="{target}"/>
+      <!-- Retry: Up to 2 more placement attempts -->
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="PLACE_ON_TOP" obj="{target}"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+  </BehaviorTree>
+</root>

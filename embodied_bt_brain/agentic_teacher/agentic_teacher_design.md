@@ -17,6 +17,8 @@ Instruction + Contact Sheet (9 frames)
            ↓
     [Robustness Agent]            (configurable)
            ↓
+  [Recovery Planner Agent]       (configurable; meaningful fallbacks)
+           ↓
 [SubTree Enablement Agent]       (configurable)
            ↓
    [Conformance Agent]            (configurable)
@@ -39,7 +41,7 @@ The `AgenticTeacherLoop` orchestrates the following sequence:
 1. **Optional Preflight**: Feasibility check (can skip episode if infeasible)
 2. **Optional Scene Analysis**: Deep visual and strategic analysis
 3. **Architecture**: Draft initial BT structure
-4. **Refinement Pipeline**: Robustness → SubTree Enablement → Conformance
+4. **Refinement Pipeline**: Robustness → Recovery Planner → SubTree Enablement → Conformance
 5. **Final Validation**: Hard XML and PAL v1 compliance check
 6. **Scoring**: Quality evaluation and verdict
 
@@ -101,32 +103,29 @@ The `AgenticTeacherLoop` orchestrates the following sequence:
 
 **Processing**:
 - Uses LLM with vision (multimodal)
-- Prompt: `prompts/scene_analysis.md`
+- Prompt: `embodied_bt_brain/agentic_teacher/prompts/scene_analysis.md`
 - Temperature: 0.2
 - Max tokens: 900
 
-**Output** (str): Structured markdown text with sections:
-```markdown
-## 1. Scene Description & Entity Analysis
-- Target Object: ...
-- Receptacle/Tool: ...
-- Environment: ...
-- Initial State: ...
-
-## 2. Dynamic Progression (Story of the Episode)
-- Frames 0-2: ...
-- Frames 3-5: ...
-- Visible state changes: ...
-
-## 3. Strategic Assessment
-- Favorable Conditions: ...
-- Unfavorable Conditions / Risks: ...
-- Obstacles: ...
-
-## 4. Planner Hints (Critical for Architect)
-- Grasp Strategy: ...
-- Preconditions: ...
-- Recovery Advice: ...
+**Output** (str): **Structured Semantic State (YAML)** with root `semantic_state`:
+```yaml
+semantic_state:
+  target:
+    name: "<string>"
+    initial_state: "<string>"
+    position: "<string>"
+    attributes: ["<attr1>", "<attr2>"]
+  environment:
+    surface_or_container: "<string>"
+    obstacles: ["<obj1>", "<obj2>"]
+    constraints: ["<constraint1>", "<constraint2>"]
+  risks:
+    possible_failures: ["<risk1>", "<risk2>"]
+    recovery_hints: ["<hint1>", "<hint2>"]
+  affordances:
+    primary_primitives: ["GRASP", "PLACE_ON_TOP"]
+    preconditions: ["<precond1>", "<precond2>"]
+    robustness_need: "low" | "medium" | "high"
 ```
 
 **Audit Log Entry**:
@@ -141,7 +140,7 @@ The `AgenticTeacherLoop` orchestrates the following sequence:
 
 **Behavior**:
 - Can be disabled (returns empty string if disabled)
-- Output is passed to Architect Agent as additional context
+- Output is passed to Architect Agent as structured planning context
 
 ---
 
@@ -437,7 +436,7 @@ The `AgenticTeacherLoop.generate_bt()` method returns:
   },
   {
     "agent": "scene_analysis",
-    "content": "## Scene Description...",
+    "content": "semantic_state: ...",
     "ext": "txt"
   },
   {
@@ -484,6 +483,14 @@ All generated BTs must use ONLY these primitives:
 **Cutting**:
 - `CUT` - Cut/slice object
 
+**Ghost / Extended (symbolic)**:
+- `PUSH` - Push object
+- `POUR` - Pour contents (symbolic)
+- `FOLD` - Fold deformable (symbolic)
+- `UNFOLD` - Unfold deformable (symbolic)
+- `SCREW` - Screw/unscrew (symbolic)
+- `HANG` - Hang object (symbolic)
+
 ---
 
 ## Anti-Leakage Rule
@@ -527,6 +534,7 @@ agents = {
     "scene_analysis": SceneAnalysisAgent(enabled=True),
     "architect": ArchitectAgent(llm_client=client),  # Always required
     "robustness": RobustnessAgent(enabled=True, num_attempts=3),
+    "recovery_planner": RecoveryPlannerAgent(enabled=True),
     "subtree_enablement": SubtreeEnablementAgent(enabled=True),
     "conformance": ConformanceAgent(enabled=True),
     "scorer": ScorerAgent(llm_client=client),
@@ -539,6 +547,7 @@ loop = AgenticTeacherLoop(
     agents=agents,
     pipeline=[
         "robustness",
+        "recovery_planner",
         "subtree_enablement",
         "conformance",
     ]
@@ -561,10 +570,11 @@ The pipeline only includes agents that transform BT XML. Feasibility, SceneAnaly
 2. **Scene Analysis**: "Blue can already grasped, table clear, placement spot between objects..."
 3. **Architect**: Generates linear sequence: NAVIGATE_TO table → PLACE_ON_TOP → RELEASE
 4. **Robustness**: Wraps PLACE_ON_TOP with retry + fallback recovery
-5. **SubTree Enablement**: Extracts T_Manipulate_Place SubTree
-6. **Conformance**: No issues found
-7. **Final Validator**: ✓ Valid XML and PAL v1
-8. **Scorer**: Score 38/40, Verdict ACCEPT
+5. **Recovery Planner**: Normalizes redundant patterns; ensures meaningful fallbacks
+6. **SubTree Enablement**: Extracts T_Manipulate_Place SubTree
+7. **Conformance**: No issues found
+8. **Final Validator**: ✓ Valid XML and PAL v1
+9. **Scorer**: Score 38/40, Verdict ACCEPT
 
 **Output**:
 ```xml
@@ -572,7 +582,8 @@ The pipeline only includes agents that transform BT XML. Feasibility, SceneAnaly
   <BehaviorTree ID="MainTree">
     <Sequence name="put_down_blue_can">
       <SubTree ID="T_Navigate" target="table"/>
-      <SubTree ID="T_Manipulate_Place" target="table" obj="blue_can"/>
+      <SubTree ID="T_Manipulate_Place_OnTop" target="table"/>
+      <Action ID="RELEASE"/>
     </Sequence>
   </BehaviorTree>
 
@@ -582,15 +593,10 @@ The pipeline only includes agents that transform BT XML. Feasibility, SceneAnaly
     </RetryUntilSuccessful>
   </BehaviorTree>
 
-  <BehaviorTree ID="T_Manipulate_Place">
-    <Sequence>
-      <RetryUntilSuccessful num_attempts="3">
-        <Action ID="PLACE_ON_TOP" obj="{obj}"/>
-      </RetryUntilSuccessful>
-      <RetryUntilSuccessful num_attempts="3">
-        <Action ID="RELEASE"/>
-      </RetryUntilSuccessful>
-    </Sequence>
+  <BehaviorTree ID="T_Manipulate_Place_OnTop">
+    <RetryUntilSuccessful num_attempts="3">
+      <Action ID="PLACE_ON_TOP" obj="{target}"/>
+    </RetryUntilSuccessful>
   </BehaviorTree>
 </root>
 ```
@@ -618,6 +624,11 @@ The pipeline only includes agents that transform BT XML. Feasibility, SceneAnaly
 - "required_primitives" ambiguous: from scratch vs. from current state?
 - No explicit guidance on output verbosity vs. conciseness
 - Some prompts lack concrete examples
+
+### 5. BehaviorTree.CPP Runtime Constraints (Important)
+- `root@main_tree_to_execute` must match the main `<BehaviorTree ID="...">`.
+- Each `<BehaviorTree>` must have exactly one root child node (wrap multiple steps in `<Sequence>`).
+- Avoid duplicate `RELEASE` in single-object tasks (keep it once; do not place it both in main and inside place-subtrees).
 
 ---
 

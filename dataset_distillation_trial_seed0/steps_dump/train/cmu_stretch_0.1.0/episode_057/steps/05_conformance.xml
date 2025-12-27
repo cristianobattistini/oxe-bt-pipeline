@@ -1,0 +1,84 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent stuck navigation to dishwasher door -->
+      <Timeout msec="10000">
+        <SubTree ID="T_Navigate" target="dishwasher door"/>
+      </Timeout>
+      <!-- Fallback: Robust grasp with retries and obstacle clearing -->
+      <Fallback>
+        <!-- Retry: Attempt to grasp up to 3 times -->
+        <SubTree ID="T_Manipulate_Grasp_Robust" target="dishwasher door"/>
+        <!-- Recovery: Clear cabinet-side obstacle and retry grasp -->
+        <SubTree ID="T_Manipulate_Grasp_Recovery" target="dishwasher door"/>
+      </Fallback>
+      <!-- Fallback: Robust open with retries and re-alignment -->
+      <Fallback>
+        <!-- Retry: Attempt to open up to 3 times -->
+        <SubTree ID="T_Manipulate_Open_Robust" target="dishwasher door"/>
+        <!-- Recovery: Re-align handle and retry open -->
+        <SubTree ID="T_Manipulate_Open_Recovery" target="dishwasher door"/>
+      </Fallback>
+      <!-- Release: Ensure stable termination -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="T_Navigate">
+    <Sequence>
+      <Action ID="NAVIGATE_TO" obj="{target}"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="T_Manipulate_Grasp_Robust">
+    <Sequence>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="GRASP" obj="{target}"/>
+      </RetryUntilSuccessful>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="T_Manipulate_Grasp_Recovery">
+    <Sequence>
+      <!-- Timeout: Prevent stuck navigation to cabinet side -->
+      <Timeout msec="7000">
+        <SubTree ID="T_Navigate" target="cabinet_side"/>
+      </Timeout>
+      <!-- Timeout: Prevent stuck navigation back to dishwasher door -->
+      <Timeout msec="7000">
+        <SubTree ID="T_Navigate" target="{target}"/>
+      </Timeout>
+      <!-- Retry: Attempt to grasp after clearing obstacle -->
+      <RetryUntilSuccessful num_attempts="2">
+        <Action ID="GRASP" obj="{target}"/>
+      </RetryUntilSuccessful>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="T_Manipulate_Open_Robust">
+    <Sequence>
+      <RetryUntilSuccessful num_attempts="3">
+        <Timeout msec="8000">
+          <Action ID="OPEN" obj="{target}"/>
+        </Timeout>
+      </RetryUntilSuccessful>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="T_Manipulate_Open_Recovery">
+    <Sequence>
+      <!-- Timeout: Prevent stuck navigation to dishwasher door -->
+      <Timeout msec="7000">
+        <SubTree ID="T_Navigate" target="{target}"/>
+      </Timeout>
+      <!-- Retry: Attempt to grasp for re-alignment -->
+      <RetryUntilSuccessful num_attempts="2">
+        <Action ID="GRASP" obj="{target}"/>
+      </RetryUntilSuccessful>
+      <!-- Timeout: Prevent stuck open attempt -->
+      <Timeout msec="8000">
+        <Action ID="OPEN" obj="{target}"/>
+      </Timeout>
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,30 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to fridge door before manipulation -->
+      <Action ID="NAVIGATE_TO" obj="fridge door"/>
+      <!-- Risk: Possible arm collision and handle slip, use robust grasp with fallback -->
+      <Fallback>
+        <!-- Try grasping the fridge door handle -->
+        <RetryUntilSuccessful>
+          <!-- Risk: Handle slip, retry grasp if necessary -->
+          <Action ID="GRASP" obj="fridge door handle"/>
+        </RetryUntilSuccessful>
+        <!-- Risk: Arm collision, adjust arm position if grasp fails -->
+        <Action ID="NAVIGATE_TO" obj="fridge door handle"/>
+      </Fallback>
+      <!-- Check: Fridge door is initially closed, must open -->
+      <Fallback>
+        <!-- Try opening the fridge door -->
+        <RetryUntilSuccessful>
+          <!-- Risk: Door stuck, retry open if necessary -->
+          <Action ID="OPEN" obj="fridge door"/>
+        </RetryUntilSuccessful>
+        <!-- Risk: Arm not aligned, retry grasp if open fails -->
+        <Action ID="GRASP" obj="fridge door handle"/>
+      </Fallback>
+      <!-- Check: Release after manipulation for stable termination -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

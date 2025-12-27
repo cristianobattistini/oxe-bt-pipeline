@@ -1,0 +1,25 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to disk before attempting grasp -->
+      <Action ID="NAVIGATE_TO" obj="disk"/>
+      <!-- Risk: Disk may roll or gripper may miss; use Fallback for robust grasp -->
+      <Fallback>
+        <!-- Primary attempt: Grasp disk on shelf -->
+        <Action ID="GRASP" obj="disk"/>
+        <!-- Risk: Disk may have rolled/fallen; recovery by searching floor and retrying grasp -->
+        <RetryUntilSuccessful>
+          <!-- Adjust gripper alignment and search for disk if not found on shelf -->
+          <Sequence>
+            <!-- Check: Navigate to possible new disk location (floor near shelf) -->
+            <Action ID="NAVIGATE_TO" obj="floor_near_shelf"/>
+            <!-- Attempt grasp again at new location -->
+            <Action ID="GRASP" obj="disk"/>
+          </Sequence>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Release after successful grasp for task termination -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

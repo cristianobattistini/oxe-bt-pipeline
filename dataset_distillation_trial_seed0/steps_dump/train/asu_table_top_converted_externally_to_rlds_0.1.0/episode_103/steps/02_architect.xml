@@ -1,0 +1,34 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Check: Navigate to target first (Robotic Common Sense: must be near red can before grasping) -->
+      <Action ID="NAVIGATE_TO" obj="red can"/>
+      <!-- Risk: Possible collision with nearby objects, using Fallback for robust grasp -->
+      <Fallback>
+        <!-- Primary attempt: Grasp the red can -->
+        <Action ID="GRASP" obj="red can"/>
+        <!-- Risk: If grasp fails due to clutter, retry after adjusting approach -->
+        <RetryUntilSuccessful>
+          <!-- Risk: Semantic State recovery hint - adjust placement area -->
+          <Action ID="NAVIGATE_TO" obj="red can"/>
+          <Action ID="GRASP" obj="red can"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Navigate to destination surface before placement (Robotic Common Sense: must be near surface) -->
+      <Action ID="NAVIGATE_TO" obj="white tabletop"/>
+      <!-- Risk: Unstable placement, use Fallback for robust placement -->
+      <Fallback>
+        <!-- Primary attempt: Place red can on top of white tabletop -->
+        <Action ID="PLACE_ON_TOP" obj="white tabletop"/>
+        <!-- Risk: If placement fails (e.g., unstable or obstructed), retry after adjusting placement area -->
+        <RetryUntilSuccessful>
+          <!-- Risk: Semantic State recovery hint - clear space if needed -->
+          <Action ID="NAVIGATE_TO" obj="white tabletop"/>
+          <Action ID="PLACE_ON_TOP" obj="white tabletop"/>
+        </RetryUntilSuccessful>
+      </Fallback>
+      <!-- Check: Release after placement to terminate manipulation -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

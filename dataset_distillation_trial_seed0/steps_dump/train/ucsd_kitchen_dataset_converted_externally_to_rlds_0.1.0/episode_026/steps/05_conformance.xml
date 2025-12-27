@@ -1,0 +1,37 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="root">
+      <!-- Timeout: Prevent stuck navigation to cabinet door -->
+      <SubTree ID="T_Navigate" target="cabinet door"/>
+      <!-- Fallback: Robust grasp with retry if collision/alignment issues -->
+      <SubTree ID="T_Manipulate_Grasp" target="cabinet door"/>
+      <!-- Fallback: Robust open with retry if stuck -->
+      <SubTree ID="T_Manipulate_Open" target="cabinet door"/>
+      <!-- Release after manipulation for stability -->
+      <Action ID="RELEASE"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Navigate">
+    <Timeout msec="10000">
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="NAVIGATE_TO" obj="{target}"/>
+      </RetryUntilSuccessful>
+    </Timeout>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Manipulate_Grasp">
+    <Fallback>
+      <Action ID="GRASP" obj="{target}"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="GRASP" obj="{target}"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+  </BehaviorTree>
+  <BehaviorTree ID="T_Manipulate_Open">
+    <Fallback>
+      <Action ID="OPEN" obj="{target}"/>
+      <RetryUntilSuccessful num_attempts="3">
+        <Action ID="OPEN" obj="{target}"/>
+      </RetryUntilSuccessful>
+    </Fallback>
+  </BehaviorTree>
+</root>
